@@ -1,0 +1,20 @@
+{
+  "manifest_version": 3,
+  "name": "Auto1 API Interceptor",
+  "version": "1.0",
+  "description": "Intercepte les réponses de l'API Auto1",
+  "permissions": ["scripting", "activeTab"],
+  "content_scripts": [
+    {
+      "matches": ["https://www.auto1.com/*"],
+      "js": ["inject.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["intercept.js"],
+      "matches": ["https://www.auto1.com/*"]
+    }
+  ]
+}
