@@ -40,12 +40,16 @@ const brandMap = {
   "LAND ROVER": "LAND-ROVER",
   "MERCEDES BENZ": "MERCEDES-BENZ",
   "ROLLS ROYCE": "ROLLS-ROYCE",
-  // Ajoute d'autres au fur et à mesure
+  // Ajoute d'autres
 };
 
-// 🕒 Anti-spam : limiter à 1 appel par minute
-let lastRequestTimestamp = 0;
+// Blacklist pour filtrer pièces/scams
+const blacklistKeywords = [
+    "moteur", "boite", "turbo", "injecteur", "piece", "pieces", "épave", "pour pieces", "démonté", "casse", "moteurs"
+];
 
+// Anti-spam: 4s entre appels
+let lastRequestTimestamp = 0;
 
 app.get("/api/estimation", async (req, res) => {
     const now = Date.now();
@@ -53,19 +57,18 @@ app.get("/api/estimation", async (req, res) => {
         return res.status(429).json({ ok: false, error: "Trop de requêtes. Réessaie dans quelques secondes." });
     }
 
-    const { model, brand, year, km, fuel, gearbox } = req.query;
+    const { model, brand, year, km, fuel, gearbox, doors, vehicle_type, colour, critair, min_price = 500 } = req.query;
     if (!model || !brand || !year || !km) {
         return res.status(400).json({ ok: false, error: "Paramètres manquants (model, brand, year, km)" });
     }
 
-
-    const rawBrand = req.query.brand || "";
+    const rawBrand = brand || "";
     const brandMapped = brandMap[rawBrand.toUpperCase()] || rawBrand;
     const yearInt = parseInt(year);
     const kmInt = parseInt(km);
+    const minPriceInt = parseInt(min_price);
 
     lastRequestTimestamp = now;
-
 
     const enums = {
         ad_type: ["offer"],
@@ -75,30 +78,52 @@ app.get("/api/estimation", async (req, res) => {
         enums.u_car_brand = [brandMapped.toUpperCase()];
     }
 
-
-
     const mappedFuel = mapFuelType(fuel);
     if (mappedFuel) enums.fuel = [mappedFuel];
 
     const mappedGearbox = mapGearbox(gearbox);
     if (mappedGearbox) enums.gearbox = [mappedGearbox];
 
-
-    const carModel = req.query.carModel;
-    if (brand && carModel) {
-        const brandUpper = brandMapped.toUpperCase().replace(/ /g, '-'); // LAND ROVER → LAND-ROVER
-        const modelClean = carModel.trim().replace(/ /g, '_');           // "Accord Type S" → "Accord_Type_S"
-
-         const baseModel  = modelClean.split('_')[0];  
-        enums.u_car_model = [`${brandUpper}_${baseModel}`];
+    if (doors) {
+        if (doors === "4") {
+            enums.doors = ["4", "5"]; // Recherche 4 et 5 pour CLA/GLE etc. (Shooting Brake/Break souvent 5p)
+        } else {
+            enums.doors = [doors]; // Ex: 3p seulement 3
+        }
     }
+
+    if (vehicle_type) enums.vehicle_type = [vehicle_type];
+    if (colour) enums.vehicule_color = [colour];
+    if (critair) enums.critair = [critair];
+
+    const carModel = req.query.carModel || model; // Fallback sur model
+    let uCarModel;
+    let keywordsText = model; // Default keywords
+    if (brand && carModel) {
+        let modelClean = carModel.trim().replace(/ /g, '_');
+        // Map spécial Mercedes pour Klasse -> Classe (CLA, CLE, GLA, GLE etc.)
+        if (brandMapped.toUpperCase() === "MERCEDES-BENZ" && modelClean.endsWith('-Klasse')) {
+            const base = modelClean.replace(/-Klasse$/, '').replace(/_/g, ' ');
+            modelClean = `Classe_${base.replace(/ /g, '_')}`; // Ex: CLA-Klasse -> Classe_CLA
+            keywordsText = `${brandMapped} ${base}`; // Keywords sans -Klasse, ex: "Mercedes-Benz CLA"
+        } else if (brandMapped.toUpperCase() === "VOLKSWAGEN" && modelClean.startsWith('Golf')) {
+            modelClean = 'Golf'; // Use base Golf for Volkswagen, specify generation in keywords
+        }
+        const brandUpper = brandMapped.toUpperCase().replace(/ /g, '-');
+        const baseModel = modelClean.split('_')[0];
+        uCarModel = `${brandUpper}_${modelClean}`; // Ex: VOLKSWAGEN_Golf
+        enums.u_car_model = [uCarModel];
+    }
+
+    // Keywords avec exclusions pour virer pièces
+    keywordsText = `${keywordsText}`;
 
     const payload = {
         extend: true,
         filters: {
             category: { id: "2" }, // Voitures
             enums,
-            keywords: { text: model },
+            keywords: { text: keywordsText },
             ranges: {
                 regdate: {
                     min: yearInt - 2,
@@ -107,16 +132,21 @@ app.get("/api/estimation", async (req, res) => {
                 mileage: {
                     min: Math.max(1, kmInt - 30000),
                     max: kmInt + 30000
+                },
+                price: { // Ajout: filtre prix min pour éviter scams
+                    min: minPriceInt,
                 }
             }
         },
         listing_source: "direct-search",
         offset: 0,
-        limit: 35, // ← limite à 1 pour limiter le spam
-        limit_alu: 2,
-        sort_by: "price",
-        sort_order: "asc"
+        limit: 35, // Limite à 35
+        limit_alu: 3,
+        sort_by: "price", // Tri par prix
+        sort_order: "asc" // Ascendant pour les moins chers d'abord
     };
+
+    console.log("📦 Payload envoyé à LBC:\n", JSON.stringify(payload, null, 2)); // Log payload
 
     try {
         const response = await fetch("https://api.leboncoin.fr/finder/search", {
