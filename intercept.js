@@ -1,7 +1,6 @@
 (function () {
   // Interception fetch
 
-
   // Interception XHR
   const originalXHR = window.XMLHttpRequest;
 
@@ -108,4 +107,3 @@ function injectPluginPrices(hits) {
     }, i * 5000); // Évite surcharge
   });
 }
-

@@ -4,7 +4,7 @@ const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fet
 const app = express();
 const PORT = 3001;
 
-// ✅ Entête mobile LBC pour éviter le blocage
+// Headers mobiles pour éviter blocage
 const HEADERS = {
     'Host': 'api.leboncoin.fr',
     'Connection': 'keep-alive',
@@ -31,7 +31,7 @@ function mapGearbox(gearType) {
     switch (gearType.toLowerCase()) {
         case "manual": return "1";
         case "automatic": return "2";
-        case "duplex":    return "2"; 
+        case "duplex": return "2"; 
         default: return null;
     }
 }
