@@ -118,11 +118,19 @@ function injectPluginPrices(hits) {
       const year = new Date(car.firstRegistrationDate).getFullYear();
       const km = car.km;
       const brand = car.manufacturerName.toUpperCase();
-      const fuel = (car.fuelType || "").toLowerCase();      // ex: "petrol"
-      const gearbox = (car.gearType || "").toLowerCase();   // ex: "automatic"
-      const carModel = (car.mainType || "").trim();         // ex: "Astra"
+      const fuel = (car.fuelType || "").toLowerCase();      
+      const gearbox = (car.gearType || "").toLowerCase();   
+      const carModel = (car.mainType || "").trim();         
+      const doors = car.doors || "";                        
+      const vehicleType = mapBodyType(car.bodyType || "");  
+            
 
-       fetch(`http://localhost:3001/api/estimation?model=${encodeURIComponent(searchModel)}&year=${year}&km=${km}&brand=${brand}&fuel=${fuel}&gearbox=${gearbox}&carModel=${encodeURIComponent(carModel)}`)
+      // URL pour estimation (garde fetch pour estimation)
+      let estUrl = `http://localhost:3001/api/estimation?model=${encodeURIComponent(searchModel)}&year=${year}&km=${km}&brand=${brand}&fuel=${fuel}&gearbox=${gearbox}&carModel=${encodeURIComponent(carModel)}&doors=${encodeURIComponent(doors)}`;
+      if (vehicleType) estUrl += `&vehicle_type=${encodeURIComponent(vehicleType)}`;
+
+
+      fetch(estUrl)
         .then(res => res.json())
         .then(data => {
           const pluginPriceDiv = document.createElement("div");
@@ -137,9 +145,49 @@ function injectPluginPrices(hits) {
           realPriceDiv.style = "font-size:13px;color:#6c757d;margin-top:2px;";
           realPriceDiv.innerText = `🛠️ PRIX PRODUIT : ${(price / 100).toFixed(0)} €`;
 
+          // Build LBC URL direct in plugin (no fetch)
+          let text = searchModel; // Default text
+          let uCarModel = '';
+          if (brand && carModel) {
+            let modelClean = carModel.trim().replace(/ /g, '_');
+            if (brand.toUpperCase() === "MERCEDES-BENZ" && modelClean.endsWith('-Klasse')) {
+              const base = modelClean.replace(/-Klasse$/, '').replace(/_/g, ' ');
+              modelClean = `Classe_${base.replace(/ /g, '_')}`;
+              text = `${brand} ${base}`;
+            } else if (brand.toUpperCase() === "VOLKSWAGEN" && modelClean.startsWith('Golf')) {
+              modelClean = 'Golf';
+            }
+            const brandUpper = brand.replace(/ /g, '-');
+            uCarModel = `${brandUpper}_${modelClean}`;
+          }
+
+          let doorsParam = '';
+          if (doors) {
+            doorsParam = doors === "4" ? '4,5' : doors; // Adapt for URL (comma separated)
+          }
+
+          const lbcUrl = `https://www.leboncoin.fr/recherche?category=2&text=${encodeURIComponent(text)}&regdate=${year-2}-${year+2}&mileage=${Math.max(1, km - 30000)}-${km + 30000}&gearbox=${mapGearbox(gearbox)}&fuel=${mapFuelType(fuel)}&u_car_brand=${brand}&u_car_model=${uCarModel}&doors=${doorsParam}&sort=price&order=asc`;
+
+          // Ajout bouton avec build direct + logs
+          const lbcButton = document.createElement("button");
+          lbcButton.innerText = "Voir sur Leboncoin";
+          lbcButton.style = "margin-top:5px; padding:5px 10px; background:#007bff; color:white; border:none; cursor:pointer;";
+          lbcButton.onclick = () => {
+            console.log(`[🖱️ Bouton cliqué pour ${stockId}] Build LBC URL direct...`);
+            console.log(`[📊 LBC URL générée] : ${lbcUrl}`);
+            const popup = window.open(lbcUrl, 'lbcPopup', 'width=800,height=600,resizable=yes,scrollbars=yes');
+            if (popup) {
+              console.log(`[➡️ Popup ouverte] LBC pour ${stockId}`);
+            } else {
+              console.warn(`[⚠️ Popup bloquée] Active popups pour Auto1 ou utilise new tab.`);
+              window.open(lbcUrl, '_blank'); // Fallback new tab
+            }
+          };
+
           pluginPriceDiv.innerText = `💰 PRIX PLUGIN : ${euros}`;
           pluginPriceDiv.appendChild(estimateDiv);
           pluginPriceDiv.appendChild(realPriceDiv);
+          pluginPriceDiv.appendChild(lbcButton); // Ajoute bouton
 
           const insertAfter = card.querySelector(".big-car-card__title");
           if (insertAfter && insertAfter.parentNode) {
