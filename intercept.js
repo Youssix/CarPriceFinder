@@ -38,6 +38,56 @@
   console.log("[🚀 Auto1 interceptor injected in page context]");
 })();
 
+function mapBodyType(body) {
+  const map = {
+    "van": "utilitaire",
+    "sedan": "berline",
+    "hatchback": "berline",
+    "suv": "4x4_suv_crossovers",
+    "convertible": "cabriolet",
+    // Ajoute plus
+  };
+  return map[body.toLowerCase()] || "";
+}
+
+function mapColour(col) {
+  const map = {
+    "black": "noir",
+    "white": "blanc",
+    "grey": "gris",
+    "silver": "gris",
+    "blue": "bleu",
+    "red": "rouge",
+    // Ajoute plus
+  };
+  return map[col.toLowerCase()] || "";
+}
+
+function mapCritair(fuel, year) {
+  if (fuel === "diesel" && year < 2001) return "5"; // Ex: non-classé vieux diesel
+  // Ajoute logique
+  return "";
+}
+
+function mapFuelType(fuelType) {
+    switch (fuelType.toLowerCase()) {
+        case "petrol": return "1";
+        case "diesel": return "2";
+        case "electric": return "3";
+        case "hybrid": return "4";
+        default: return "";
+    }
+}
+
+function mapGearbox(gearType) {
+    switch (gearType.toLowerCase()) {
+        case "manual": return "1";
+        case "automatic": return "2";
+        case "duplex": return "2"; 
+        default: return "";
+    }
+}
+
 function injectPluginPrices(hits) {
   console.log(`[🔍 injectPluginPrices] ${hits.length} véhicules à traiter`);
 
