@@ -3,6 +3,8 @@
   "version": "1.0.0",
   "main": "lbcScraper.js",
   "scripts": {
+    "start": "node lbcScraper.js",
+    "dev": "NODE_ENV=development node lbcScraper.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -11,7 +13,10 @@
   "description": "",
   "dependencies": {
     "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
     "express": "^5.1.0",
+    "form-data": "^4.0.4",
+    "node-catbox": "^3.4.0",
     "node-fetch": "^3.3.2",
     "puppeteer": "^24.9.0",
     "puppeteer-extra": "^3.3.6",

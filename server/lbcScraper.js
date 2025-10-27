@@ -2,7 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
 const app = express();
-const PORT = 3001;
+const PORT = process.env.PORT || 9001;
 
 // Headers mobiles pour éviter blocage
 const HEADERS = {
@@ -16,6 +16,7 @@ const HEADERS = {
 };
 
 app.use(cors());
+app.use(express.json()); // Enable JSON body parsing for all routes
 
 function mapFuelType(fuelType) {
     switch (fuelType.toLowerCase()) {
@@ -50,6 +51,16 @@ const blacklistKeywords = [
 
 // Anti-spam: 4s entre appels
 let lastRequestTimestamp = 0;
+
+// Health check endpoint
+app.get("/api/health", (req, res) => {
+    res.json({
+        ok: true,
+        status: 'running',
+        aiEnabled: false,
+        timestamp: new Date().toISOString()
+    });
+});
 
 app.get("/api/estimation", async (req, res) => {
     const now = Date.now();
@@ -261,6 +272,75 @@ app.get("/api/lbc-url", (req, res) => {
     const lbcUrl = `https://www.leboncoin.fr/recherche?category=2&text=${encodeURIComponent(text)}&regdate=${yearInt-2}-${yearInt+2}&mileage=${Math.max(1, kmInt - 30000)}-${kmInt + 30000}&gearbox=${mapGearbox(gearbox) || ''}&fuel=${mapFuelType(fuel) || ''}&u_car_brand=${brandMapped.toUpperCase()}&u_car_model=${uCarModel}&doors=${doorsParam}&sort=price&order=asc`;
 
     res.json({ ok: true, url: lbcUrl });
+});
+
+// Upload photos using node-catbox package (no API key, no rate limits)
+const { Catbox } = require('node-catbox');
+
+app.post("/api/upload-images", express.json(), async (req, res) => {
+    const { imageUrls, title } = req.body;
+
+    if (!imageUrls || !Array.isArray(imageUrls) || imageUrls.length === 0) {
+        return res.status(400).json({ ok: false, error: "imageUrls array required" });
+    }
+
+    try {
+        console.log(`📤 Uploading ${imageUrls.length} images using node-catbox...`);
+
+        const uploadedImages = [];
+        const catbox = new Catbox(); // Create Catbox instance
+
+        // Upload each image using node-catbox
+        for (let i = 0; i < imageUrls.length; i++) {
+            const imageUrl = imageUrls[i];
+            console.log(`📸 Uploading image ${i + 1}/${imageUrls.length}...`);
+
+            try {
+                // Upload directly from URL (node-catbox supports this!)
+                const catboxUrl = await catbox.uploadURL({ url: imageUrl });
+
+                if (catboxUrl && catboxUrl.startsWith('https://files.catbox.moe/')) {
+                    uploadedImages.push({
+                        link: catboxUrl,
+                        thumb: catboxUrl,
+                        index: i + 1
+                    });
+                    console.log(`✅ Image ${i + 1} uploaded: ${catboxUrl}`);
+                } else {
+                    console.error(`❌ Image ${i + 1} upload failed: Invalid response`);
+                    console.error(`📍 Failed URL:`, imageUrl);
+                }
+            } catch (error) {
+                console.error(`❌ Image ${i + 1} upload error:`, error.message);
+            }
+
+            // Small delay between uploads (200ms)
+            if (i < imageUrls.length - 1) {
+                await new Promise(resolve => setTimeout(resolve, 200));
+            }
+        }
+
+        if (uploadedImages.length === 0) {
+            return res.status(500).json({ ok: false, error: "No images uploaded successfully" });
+        }
+
+        // Create album text with all image URLs (one per line)
+        const albumText = uploadedImages.map(img => img.link).join('\n');
+
+        console.log(`✅ Upload complete: ${uploadedImages.length}/${imageUrls.length} images`);
+
+        return res.json({
+            ok: true,
+            albumUrl: albumText, // All URLs separated by newlines
+            images: uploadedImages,
+            totalImages: uploadedImages.length,
+            note: uploadedImages.length < imageUrls.length ? `Only ${uploadedImages.length}/${imageUrls.length} uploaded` : undefined
+        });
+
+    } catch (error) {
+        console.error('❌ Catbox upload error:', error);
+        return res.status(500).json({ ok: false, error: error.message });
+    }
 });
 
 app.listen(PORT, () => {

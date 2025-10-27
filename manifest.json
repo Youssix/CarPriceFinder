@@ -1,13 +1,21 @@
 {
   "manifest_version": 3,
-  "name": "Auto1 API Interceptor",
-  "version": "1.0",
-  "description": "Intercepte les réponses de l'API Auto1",
-  "permissions": ["scripting", "activeTab"],
+  "name": "CarPriceFinder AI",
+  "version": "2.0",
+  "description": "Intelligence artificielle pour l'estimation des prix de voitures avec détection d'options premium",
+  "permissions": ["scripting", "activeTab", "storage"],
+  "host_permissions": [
+    "http://localhost:9001/*",
+    "http://127.0.0.1:9001/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "CarPriceFinder AI Settings"
+  },
   "content_scripts": [
     {
       "matches": ["https://www.auto1.com/*"],
-      "js": ["inject.js"],
+      "js": ["inject.js", "content-bridge.js"],
       "run_at": "document_start"
     }
   ],

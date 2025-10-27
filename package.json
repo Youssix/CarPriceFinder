@@ -1,0 +1,38 @@
+{
+  "name": "carpricefinder",
+  "version": "2.0.0",
+  "description": "AI-powered car price analysis Chrome extension for Auto1 dealers",
+  "private": true,
+  "scripts": {
+    "start": "npm run server:start",
+    "dev": "npm run server:dev",
+    "server:start": "cd server && npm start",
+    "server:dev": "cd server && npm run dev",
+    "server:install": "cd server && npm install",
+    "clean": "rm -rf server/node_modules package-lock.json server/package-lock.json",
+    "clean:cache": "echo 'Open chrome://extensions and click extension icon to clear cache'",
+    "build:extension": "npm run clean:obsolete && echo 'Extension ready - load in chrome://extensions'",
+    "clean:obsolete": "rm -f intercept_ai_enhanced.js intercept_cached.js",
+    "pack:extension": "zip -r CarPriceFinder-v2.0.0.zip . -x '*.git*' -x 'server/node_modules/*' -x 'server/.env' -x '*.md' -x 'PRODUCT_*' -x 'ACTION_*' -x 'START_*' -x 'BRAINSTORM_*' -x 'EXECUTIVE_*'",
+    "install:all": "npm run server:install",
+    "postinstall": "echo 'Run: npm run server:install to install server dependencies'"
+  },
+  "keywords": [
+    "chrome-extension",
+    "car-pricing",
+    "auto1",
+    "leboncoin",
+    "ai",
+    "price-analysis"
+  ],
+  "author": "CarPriceFinder Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/carpricefinder.git"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
+}

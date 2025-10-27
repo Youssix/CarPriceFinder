@@ -3,7 +3,7 @@
   let extensionSettings = {
     requestTimeout: 5000,
     cacheTimeout: 86400000, // 24 hours
-    serverUrl: 'http://localhost:9001'
+    serverUrl: 'http://localhost:3001'
   };
   
   let cacheStats = { hits: 0, requests: 0 };
@@ -360,233 +360,11 @@
 
   console.log("[🚀 Auto1 interceptor with AI & Cache injected]");
 
-  // ✅ VEHICLE LIST MANAGEMENT SYSTEM
-  // Storage helper using message bridge
-  const storageHelper = {
-    requestId: 0,
-    pendingRequests: new Map(),
-
-    async get(keys) {
-      return new Promise((resolve, reject) => {
-        const requestId = ++this.requestId;
-
-        // Store the promise callbacks
-        this.pendingRequests.set(requestId, { resolve, reject });
-
-        // Send message to content bridge
-        window.postMessage({
-          type: 'STORAGE_REQUEST',
-          action: 'get',
-          keys: keys,
-          requestId: requestId
-        }, '*');
-
-        // Timeout after 5 seconds
-        setTimeout(() => {
-          if (this.pendingRequests.has(requestId)) {
-            this.pendingRequests.delete(requestId);
-            reject(new Error('Storage request timeout'));
-          }
-        }, 5000);
-      });
-    },
-
-    async set(data) {
-      return new Promise((resolve, reject) => {
-        const requestId = ++this.requestId;
-
-        this.pendingRequests.set(requestId, { resolve, reject });
-
-        window.postMessage({
-          type: 'STORAGE_REQUEST',
-          action: 'set',
-          data: data,
-          requestId: requestId
-        }, '*');
-
-        setTimeout(() => {
-          if (this.pendingRequests.has(requestId)) {
-            this.pendingRequests.delete(requestId);
-            reject(new Error('Storage request timeout'));
-          }
-        }, 5000);
-      });
-    },
-
-    async remove(keys) {
-      return new Promise((resolve, reject) => {
-        const requestId = ++this.requestId;
-
-        this.pendingRequests.set(requestId, { resolve, reject });
-
-        window.postMessage({
-          type: 'STORAGE_REQUEST',
-          action: 'remove',
-          keys: keys,
-          requestId: requestId
-        }, '*');
-
-        setTimeout(() => {
-          if (this.pendingRequests.has(requestId)) {
-            this.pendingRequests.delete(requestId);
-            reject(new Error('Storage request timeout'));
-          }
-        }, 5000);
-      });
-    }
-  };
-
-  // Listen for storage responses
-  window.addEventListener('message', (event) => {
-    if (event.source !== window) return;
-
-    const message = event.data;
-    if (!message || message.type !== 'STORAGE_RESPONSE') return;
-
-    const pending = storageHelper.pendingRequests.get(message.requestId);
-    if (!pending) return;
-
-    storageHelper.pendingRequests.delete(message.requestId);
-
-    if (message.error) {
-      pending.reject(new Error(message.error));
-    } else {
-      pending.resolve(message.data || message.success);
-    }
-  });
-
-  class VehicleListManager {
-    constructor() {
-      this.list = [];
-      this.loadList();
-    }
-
-    async loadList() {
-      try {
-        const result = await storageHelper.get(['carFinderSelectedList']);
-        this.list = result.carFinderSelectedList || [];
-        console.log(`[📋 Liste] ${this.list.length} véhicules chargés`);
-      } catch (error) {
-        console.warn('[📋 Liste] Erreur chargement:', error.message);
-        this.list = [];
-      }
-    }
-
-    async addVehicle(carData, analysisData, photos, imgurAlbumUrl = null) {
-      // Check if already in list
-      if (this.isInList(carData.stockNumber)) {
-        console.log(`[📋 Liste] Véhicule ${carData.stockNumber} déjà dans la liste`);
-        return false;
-      }
-
-      const vehicleEntry = {
-        stockNumber: carData.stockNumber,
-        brand: carData.manufacturerName,
-        model: carData.mainType,
-        year: new Date(carData.firstRegistrationDate).getFullYear(),
-        km: carData.km,
-        fuel: carData.fuelType,
-        gearbox: carData.gearType,
-        power: carData.power || carData.horsepower,
-        doors: carData.doors,
-        color: carData.exteriorColor,
-        auto1Price: (carData.price / 100).toFixed(0),
-        estimatedPrice: analysisData.adjustedPrice || analysisData.estimatedPrice,
-        margin: analysisData.adjustedPrice ?
-          (parseInt(analysisData.adjustedPrice) - (carData.price / 100)).toFixed(0) :
-          (parseInt(analysisData.estimatedPrice) - (carData.price / 100)).toFixed(0),
-        detectedOptions: analysisData.aiAnalysis?.detectedOptions || [],
-        equipment: carData.equipment || [],
-        description: carData.description || '',
-        photos: photos || [],
-        imgurAlbumUrl: imgurAlbumUrl,
-        addedAt: Date.now()
-      };
-
-      this.list.push(vehicleEntry);
-      await this.saveList();
-      console.log(`[📋 Liste] Véhicule ${carData.stockNumber} ajouté (${this.list.length} total)`);
-      return true;
-    }
-
-    async removeVehicle(stockNumber) {
-      const initialLength = this.list.length;
-      this.list = this.list.filter(v => v.stockNumber !== stockNumber);
-
-      if (this.list.length < initialLength) {
-        await this.saveList();
-        console.log(`[📋 Liste] Véhicule ${stockNumber} retiré`);
-        return true;
-      }
-      return false;
-    }
-
-    isInList(stockNumber) {
-      return this.list.some(v => v.stockNumber === stockNumber);
-    }
-
-    async saveList() {
-      try {
-        await storageHelper.set({ carFinderSelectedList: this.list });
-      } catch (error) {
-        console.error('[📋 Liste] Erreur sauvegarde:', error.message);
-      }
-    }
-
-    async clearList() {
-      this.list = [];
-      await storageHelper.remove(['carFinderSelectedList']);
-      console.log('[📋 Liste] Liste vidée');
-    }
-  }
-
-  const vehicleListManager = new VehicleListManager();
-
-  // Function to extract photos from Auto1 API data
-  function extractVehiclePhotos(carData, card) {
-    const photos = [];
-    try {
-      // Priority 1: Get photos from API data (best quality)
-      if (carData.images && Array.isArray(carData.images)) {
-        carData.images.forEach(img => {
-          // Try different possible URL properties in Auto1 API
-          const imageUrl = img.fullUrl || img.url || img.href || img.src || img.path;
-          if (imageUrl && !photos.includes(imageUrl)) {
-            photos.push(imageUrl);
-          }
-        });
-      }
-
-      // Fallback: Extract from DOM if API data not available
-      if (photos.length === 0 && card) {
-        const mainImg = card.querySelector('.big-car-card__image img');
-        if (mainImg && mainImg.src) {
-          photos.push(mainImg.src);
-        }
-
-        const galleryImgs = card.querySelectorAll('.gallery img, .image-gallery img');
-        galleryImgs.forEach(img => {
-          if (img.src && !photos.includes(img.src)) {
-            photos.push(img.src);
-          }
-        });
-      }
-
-      console.log(`[📸 Photos] ${photos.length} photo(s) extraite(s) depuis ${carData.images ? 'API' : 'DOM'}`);
-      if (photos.length > 0) {
-        console.log(`[📸 Photos] URLs:`, photos.slice(0, 3).join(', ') + (photos.length > 3 ? ` ... (+${photos.length - 3} more)` : ''));
-      }
-    } catch (error) {
-      console.warn('[📸 Photos] Erreur extraction:', error.message);
-    }
-    return photos;
-  }
-
   // Utility functions
   function mapBodyType(body) {
     const map = {
       "van": "utilitaire",
-      "sedan": "berline",
+      "sedan": "berline", 
       "hatchback": "berline",
       "suv": "4x4_suv_crossovers",
       "convertible": "cabriolet",
@@ -659,8 +437,7 @@
           firstRegistrationDate: car.firstRegistrationDate,
           km: car.km,
           price: price,
-          stockNumber: stockId,
-          images: car.images || []  // ✅ FIX: Include images array for photo extraction
+          stockNumber: stockId
         };
 
         // Show loading with timeout info and cache status
@@ -717,36 +494,18 @@
   function createLoadingIndicator(timeout, forceRefresh = false) {
     const loadingDiv = document.createElement("div");
     loadingDiv.className = "plugin-loading";
-    loadingDiv.style = `
-      margin: 12px 0;
-      padding: 16px;
-      border-radius: 4px;
-      background: #2c3e50;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-      border: none;
-    `;
-
+    loadingDiv.style = "font-weight:bold;font-size:14px;margin:10px 0;color:#17a2b8;border: 1px solid #17a2b8; padding: 8px; border-radius: 5px; background: #e7f3ff;";
+    
     const timeoutSec = Math.round(timeout / 1000);
-    const refreshStatus = forceRefresh ? '<span style="background: rgba(255,193,7,0.2); color: #FFD700; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: 600; margin-left: 8px;">🔄 FORCE REFRESH</span>' : '';
+    const refreshStatus = forceRefresh ? ' • 🔄 FORCE REFRESH' : '';
     const cacheCount = analysisCache.cache.size;
-
+    
     loadingDiv.innerHTML = `
-      <div style="display: flex; align-items: center; gap: 12px;">
-        <div style="
-          width: 20px;
-          height: 20px;
-          border: 3px solid rgba(255,255,255,0.3);
-          border-top: 3px solid #FFD700;
-          border-radius: 50%;
-          animation: spin 0.8s linear infinite;
-        "></div>
-        <div style="flex: 1;">
-          <div style="color: white; font-weight: 600; font-size: 14px; margin-bottom: 4px;">
-            🤖 Analyse IA en cours...
-          </div>
-          <div style="font-size: 11px; color: rgba(255,255,255,0.7); font-weight: 500;">
-            ⏱️ Timeout: ${timeoutSec}s • 💾 Cache: ${cacheCount} entrées${refreshStatus}
-          </div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <div style="width: 16px; height: 16px; border: 2px solid #17a2b8; border-top: 2px solid transparent; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+        <div>
+          🤖 Analyse IA en cours...
+          <div style="font-size:11px;color:#6c757d;">Timeout: ${timeoutSec}s • Cache: ${cacheCount} entrées${refreshStatus}</div>
         </div>
       </div>
       <style>
@@ -756,7 +515,7 @@
         }
       </style>
     `;
-
+    
     return loadingDiv;
   }
 
@@ -771,74 +530,125 @@
   function renderCarAnalysis(card, carData, analysisData, euros, fromCache) {
     const pluginPriceDiv = document.createElement("div");
     pluginPriceDiv.className = "plugin-price";
-    pluginPriceDiv.style = `
-      margin: 8px 0;
-      padding: 10px 14px;
-      border-radius: 4px;
-      background: #2c3e50;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-      border: none;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 20px;
-      font-size: 13px;
-    `;
+    pluginPriceDiv.style = "font-weight:bold;font-size:16px;margin:10px 0;color:#007bff;border: 1px solid #007bff; padding: 10px; border-radius: 5px; background: #f8f9fa;";
 
-    // Calculs
-    const auto1Price = carData.price / 100;
-    const baseEstimate = analysisData.estimatedPrice || "N/A";
-    const adjustedEstimate = analysisData.adjustedPrice || baseEstimate;
-    const marketPrice = adjustedEstimate !== "N/A" ? parseInt(adjustedEstimate) : null;
+    // Cache indicator
+    const cacheIndicator = fromCache ? '<span style="background:#6c757d;color:white;padding:1px 4px;border-radius:2px;font-size:9px;margin-left:5px;">CACHE</span>' : '';
 
-    let profit = 0;
-    let profitPercent = 0;
-    let isProfit = false;
+    // AI Analysis Display - ✅ FIX #4: Safe DOM construction instead of innerHTML
+    let aiAnalysisContainer = null;
+    if (analysisData.aiAnalysis && analysisData.aiAnalysis.detectedOptions.length > 0) {
+      aiAnalysisContainer = document.createElement('div');
+      aiAnalysisContainer.style = "font-size:13px;color:#28a745;margin:5px 0;border-bottom:1px solid #dee2e6;padding-bottom:5px;";
 
-    if (marketPrice && marketPrice !== auto1Price) {
-      profit = marketPrice - auto1Price;
-      profitPercent = ((profit / auto1Price) * 100).toFixed(0);
-      isProfit = profit > 0;
+      const header = document.createElement('strong');
+      header.textContent = '🤖 OPTIONS DÉTECTÉES:';
+      aiAnalysisContainer.appendChild(header);
+
+      if (fromCache) {
+        const cacheSpan = document.createElement('span');
+        cacheSpan.style = "background:#6c757d;color:white;padding:1px 4px;border-radius:2px;font-size:9px;margin-left:5px;";
+        cacheSpan.textContent = 'CACHE';
+        aiAnalysisContainer.appendChild(cacheSpan);
+      }
+
+      aiAnalysisContainer.appendChild(document.createElement('br'));
+
+      // ✅ Safe option badges with sanitized text
+      analysisData.aiAnalysis.detectedOptions.forEach(opt => {
+        const optSpan = document.createElement('span');
+        optSpan.style = "background:#28a745;color:white;padding:2px 6px;border-radius:3px;font-size:11px;margin:0 2px;";
+        optSpan.textContent = sanitizeText(opt.name); // ✅ Sanitized
+        aiAnalysisContainer.appendChild(optSpan);
+      });
+
+      aiAnalysisContainer.appendChild(document.createElement('br'));
+
+      const impact = (analysisData.aiAnalysis.valueImpact * 100).toFixed(1);
+      const confidence = (analysisData.aiAnalysis.confidence * 100).toFixed(0);
+
+      const statsSpan = document.createElement('span');
+      statsSpan.style = "font-size:11px;color:#6c757d;";
+      statsSpan.textContent = `Impact valeur: +${impact}% (confiance: ${confidence}%)`;
+      aiAnalysisContainer.appendChild(statsSpan);
+
+    } else if (fromCache) {
+      aiAnalysisContainer = document.createElement('div');
+      aiAnalysisContainer.style = "font-size:11px;color:#6c757d;margin-bottom:5px;";
+      aiAnalysisContainer.textContent = '🤖 Analyse IA';
+
+      const cacheSpan = document.createElement('span');
+      cacheSpan.style = "background:#6c757d;color:white;padding:1px 4px;border-radius:2px;font-size:9px;margin-left:5px;";
+      cacheSpan.textContent = 'CACHE';
+      aiAnalysisContainer.appendChild(cacheSpan);
     }
 
-    // Section gauche: Prix face à face
-    const pricesSection = document.createElement('div');
-    pricesSection.style = `
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      flex: 1;
-      font-weight: 600;
-      color: #ecf0f1;
-    `;
+    const baseEstimate = analysisData.estimatedPrice || "N/A";
+    const adjustedEstimate = analysisData.adjustedPrice || baseEstimate;
+    const hasAdjustment = analysisData.adjustedPrice && analysisData.adjustedPrice !== analysisData.estimatedPrice;
 
-    pricesSection.innerHTML = `
-      <span style="color: #3498db;">AUTO1: <strong style="color: #ffffff;">${auto1Price.toFixed(0)}€</strong></span>
-      <span style="color: #95a5a6;">|</span>
-      <span style="color: #e67e22;">LBC: <strong style="color: #ffffff;">${marketPrice ? marketPrice + '€' : 'N/A'}</strong></span>
-      ${isProfit ? `
-        <span style="color: #95a5a6;">|</span>
-        <span style="color: ${isProfit ? '#2ecc71' : '#e74c3c'};">
-          MARGE: <strong style="color: #ffffff;">${profit > 0 ? '+' : ''}${profit}€</strong> <span style="color: ${isProfit ? '#2ecc71' : '#e74c3c'};">(${profit > 0 ? '+' : ''}${profitPercent}%)</span>
-        </span>
-      ` : ''}
-    `;
+    const estimateDiv = document.createElement("div");
+    estimateDiv.style = "font-size:14px;margin-top:5px;";
 
-    // Enhanced LBC button (compact)
+    // ✅ FIX #4: Safe DOM construction for prices
+    if (aiAnalysisContainer) {
+      estimateDiv.appendChild(aiAnalysisContainer);
+    }
+
+    if (hasAdjustment) {
+      const baseDiv = document.createElement('div');
+      baseDiv.style = "color:#dc3545;";
+      baseDiv.textContent = `📈 PRIX BASE LBC: ${sanitizeText(baseEstimate)} €`;
+      estimateDiv.appendChild(baseDiv);
+
+      const adjustedDiv = document.createElement('div');
+      adjustedDiv.style = "color:#28a745;font-weight:bold;";
+      adjustedDiv.textContent = `🚀 PRIX AJUSTÉ IA: ${sanitizeText(adjustedEstimate)} €`;
+      estimateDiv.appendChild(adjustedDiv);
+    } else {
+      const priceDiv = document.createElement('div');
+      priceDiv.style = "color:#28a745;";
+      priceDiv.textContent = `📈 ESTIMATION LBC: ${sanitizeText(baseEstimate)} €`;
+      estimateDiv.appendChild(priceDiv);
+    }
+
+    const realPriceDiv = document.createElement("div");
+    realPriceDiv.style = "font-size:13px;color:#6c757d;margin-top:2px;";
+    
+    // Price filter information (combine with Auto1 price to avoid duplication)
+    let priceFilterDiv = '';
+    if (analysisData.priceFilter && analysisData.priceFilter.minPriceUsed) {
+      const minUsed = analysisData.priceFilter.minPriceUsed;
+      const ratio = analysisData.priceFilter.filterRatio;
+      realPriceDiv.innerHTML = `🛠️ PRIX AUTO1: ${(carData.price / 100).toFixed(0)} € • 🔍 Filtre LBC: min ${minUsed}€ (${ratio}%)`;
+    } else {
+      realPriceDiv.innerText = `🛠️ PRIX AUTO1: ${(carData.price / 100).toFixed(0)} €`;
+    }
+
+    // Calculate potential profit
+    const auto1Price = carData.price / 100;
+    const marketPrice = adjustedEstimate !== "N/A" ? parseInt(adjustedEstimate) : null;
+    let profitDiv = '';
+    
+    if (marketPrice && marketPrice > auto1Price) {
+      const profit = marketPrice - auto1Price;
+      const profitPercent = ((profit / auto1Price) * 100).toFixed(1);
+      profitDiv = `<div style="font-size:12px;color:#17a2b8;margin-top:3px;font-weight:bold;">💰 MARGE POTENTIELLE: +${profit}€ (+${profitPercent}%)</div>`;
+    }
+
+    // Enhanced LBC button
     const lbcButton = createLbcButton(carData, analysisData);
 
-    // ✅ ADD TO LIST BUTTON (compact)
-    const addToListButton = createAddToListButton(card, carData, analysisData);
-
-    // Buttons container (à droite)
-    const buttonsContainer = document.createElement('div');
-    buttonsContainer.style = 'display: flex; gap: 8px;';
-    buttonsContainer.appendChild(lbcButton);
-    buttonsContainer.appendChild(addToListButton);
-
-    // Assemblage final
-    pluginPriceDiv.appendChild(pricesSection);
-    pluginPriceDiv.appendChild(buttonsContainer);
+    // Assemble the price display  
+    pluginPriceDiv.innerHTML = `<strong>🤖 Analyse CarPriceFinder</strong>`;
+    pluginPriceDiv.appendChild(estimateDiv);
+    pluginPriceDiv.appendChild(realPriceDiv);
+    if (profitDiv) {
+      const profitElement = document.createElement("div");
+      profitElement.innerHTML = profitDiv;
+      pluginPriceDiv.appendChild(profitElement);
+    }
+    pluginPriceDiv.appendChild(lbcButton);
 
     // Insert into page
     const finalInsertLocation = card.querySelector(".big-car-card__title");
@@ -910,176 +720,6 @@
     return model; // Return original if no mapping found
   }
 
-  function createAddToListButton(card, carData, analysisData) {
-    const addButton = document.createElement("button");
-    const isInList = vehicleListManager.isInList(carData.stockNumber);
-
-    // Style based on whether vehicle is already in list
-    if (isInList) {
-      addButton.innerHTML = '✅ <strong>Dans ma liste</strong>';
-      addButton.style = `
-        padding: 6px 12px;
-        background: #27ae60;
-        color: white;
-        border: none;
-        cursor: not-allowed;
-        border-radius: 3px;
-        font-size: 12px;
-        font-weight: 600;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        white-space: nowrap;
-        opacity: 0.7;
-      `;
-      addButton.disabled = true;
-    } else {
-      addButton.innerHTML = '<span style="color: #27ae60; font-size: 14px;">➕</span> <strong>Ajouter</strong>';
-      addButton.style = `
-        padding: 6px 12px;
-        background: #d5f4e6;
-        color: #27ae60;
-        border: 1px solid #27ae60;
-        cursor: pointer;
-        border-radius: 3px;
-        font-size: 12px;
-        font-weight: 600;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        transition: all 0.2s ease;
-        white-space: nowrap;
-      `;
-
-      addButton.onmouseover = () => {
-        addButton.style.transform = 'translateY(-1px)';
-        addButton.style.boxShadow = '0 3px 6px rgba(39, 174, 96, 0.3)';
-        addButton.style.background = '#27ae60';
-        addButton.style.color = 'white';
-      };
-
-      addButton.onmouseout = () => {
-        addButton.style.transform = 'translateY(0)';
-        addButton.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.1)';
-        addButton.style.background = '#d5f4e6';
-        addButton.style.color = '#27ae60';
-      };
-
-      addButton.onclick = async () => {
-        try {
-          // Extract photos from API data and card
-          const photos = extractVehiclePhotos(carData, card);
-
-          // Update button to show upload in progress
-          addButton.innerHTML = '⏳ <strong>Upload photos...</strong>';
-          addButton.disabled = true;
-
-          let imgurAlbumUrl = null;
-
-          // Upload photos to Imgur if available
-          if (photos && photos.length > 0) {
-            try {
-              const uploadResponse = await fetch(`${extensionSettings.serverUrl}/api/upload-images`, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                  imageUrls: photos,
-                  title: `${carData.manufacturerName} ${carData.mainType} - ${carData.firstRegistrationYear}`
-                })
-              });
-
-              if (uploadResponse.ok) {
-                const uploadData = await uploadResponse.json();
-                if (uploadData.ok && uploadData.albumUrl) {
-                  imgurAlbumUrl = uploadData.albumUrl;
-                  console.log(`[📸 Imgur] Album créé: ${imgurAlbumUrl}`);
-                }
-              }
-            } catch (uploadError) {
-              console.error('[📸 Imgur] Erreur upload:', uploadError);
-              // Continue without Imgur link - not critical
-            }
-          }
-
-          // Add to list with Imgur link
-          const added = await vehicleListManager.addVehicle(carData, analysisData, photos, imgurAlbumUrl);
-
-          if (added) {
-            // Update button state
-            addButton.innerHTML = '✅ <strong>Ajouté!</strong>';
-            addButton.style.background = '#27ae60';
-            addButton.style.cursor = 'not-allowed';
-            addButton.disabled = true;
-
-            // Show notification
-            const notifMessage = imgurAlbumUrl
-              ? '✅ Véhicule ajouté avec photos Imgur !'
-              : '✅ Véhicule ajouté à votre liste !';
-            showNotification(notifMessage, 'success');
-
-            console.log(`[➕ Liste] ${carData.manufacturerName} ${carData.mainType} ajouté${imgurAlbumUrl ? ' avec Imgur' : ''}`);
-          } else {
-            addButton.innerHTML = '➕ <strong>Ajouter à la liste</strong>';
-            addButton.disabled = false;
-            showNotification('⚠️ Ce véhicule est déjà dans votre liste', 'warning');
-          }
-        } catch (error) {
-          console.error('[❌ Liste] Erreur ajout:', error);
-          addButton.innerHTML = '➕ <strong>Ajouter à la liste</strong>';
-          addButton.disabled = false;
-          showNotification('❌ Erreur lors de l\'ajout', 'error');
-        }
-      };
-    }
-
-    return addButton;
-  }
-
-  // Notification system
-  function showNotification(message, type = 'info') {
-    const notification = document.createElement('div');
-    notification.style = `
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      padding: 16px 24px;
-      border-radius: 4px;
-      font-weight: 600;
-      font-size: 14px;
-      z-index: 10000;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-      animation: slideIn 0.3s ease-out;
-      ${type === 'success' ? 'background: #27ae60; color: white;' :
-        type === 'warning' ? 'background: #f39c12; color: white;' :
-        type === 'error' ? 'background: #e74c3c; color: white;' :
-        'background: #2c3e50; color: white;'}
-    `;
-
-    notification.textContent = message;
-    document.body.appendChild(notification);
-
-    // Add animation style
-    if (!document.getElementById('notification-styles')) {
-      const style = document.createElement('style');
-      style.id = 'notification-styles';
-      style.textContent = `
-        @keyframes slideIn {
-          from { transform: translateX(400px); opacity: 0; }
-          to { transform: translateX(0); opacity: 1; }
-        }
-        @keyframes slideOut {
-          from { transform: translateX(0); opacity: 1; }
-          to { transform: translateX(400px); opacity: 0; }
-        }
-      `;
-      document.head.appendChild(style);
-    }
-
-    // Auto-remove after 3 seconds
-    setTimeout(() => {
-      notification.style.animation = 'slideOut 0.3s ease-in';
-      setTimeout(() => notification.remove(), 300);
-    }, 3000);
-  }
-
   function createLbcButton(carData, analysisData) {
     const originalModel = carData.mainType;
     const frenchModel = mapModelToFrench(carData.manufacturerName, originalModel);
@@ -1108,38 +748,9 @@
     }
 
     const lbcButton = document.createElement("button");
-    const hasAI = analysisData.aiAnalysis && analysisData.aiAnalysis.detectedOptions.length > 0;
-
-    lbcButton.innerHTML = hasAI ?
-      '🤖 <strong>Recherche IA LBC</strong>' :
-      '🔍 <strong>Voir sur LBC</strong>';
-
-    lbcButton.style = `
-      padding: 6px 12px;
-      background: #FF6B00;
-      color: white;
-      border: none;
-      cursor: pointer;
-      border-radius: 3px;
-      font-size: 12px;
-      font-weight: 600;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-      transition: all 0.2s ease;
-      white-space: nowrap;
-    `;
-
-    lbcButton.onmouseover = () => {
-      lbcButton.style.transform = 'translateY(-2px)';
-      lbcButton.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.15)';
-      lbcButton.style.background = '#FF8C42';
-    };
-
-    lbcButton.onmouseout = () => {
-      lbcButton.style.transform = 'translateY(0)';
-      lbcButton.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.1)';
-      lbcButton.style.background = '#FF6B00';
-    };
-
+    lbcButton.innerText = analysisData.aiAnalysis && analysisData.aiAnalysis.detectedOptions.length > 0 ? 
+      "🤖 Voir sur LBC (Recherche IA)" : "Voir sur Leboncoin";
+    lbcButton.style = "margin-top:8px; padding:8px 12px; background:#007bff; color:white; border:none; cursor:pointer; border-radius:4px; font-size:12px;";
     lbcButton.onclick = () => {
       console.log(`[🖱️ Opening LBC] Enhanced search: "${text}"`);
       window.open(lbcUrl, '_blank');

@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        body {
+            width: 350px;
+            padding: 15px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            margin: 0;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 20px;
+            font-weight: 600;
+        }
+        
+        .header p {
+            margin: 5px 0 0 0;
+            opacity: 0.8;
+            font-size: 12px;
+        }
+        
+        .setting-group {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .setting-label {
+            font-weight: 500;
+            margin-bottom: 8px;
+            display: block;
+            font-size: 14px;
+        }
+        
+        .setting-description {
+            font-size: 11px;
+            opacity: 0.7;
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+        
+        select, button {
+            width: 100%;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+        }
+        
+        select:focus, button:focus {
+            outline: 2px solid #4CAF50;
+            outline-offset: 2px;
+        }
+        
+        .speed-indicator {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 5px;
+            font-size: 10px;
+            opacity: 0.6;
+        }
+        
+        .cache-stats {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 6px;
+            padding: 10px;
+            margin-top: 10px;
+            font-size: 12px;
+        }
+        
+        .cache-stat {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+        
+        .cache-stat:last-child {
+            margin-bottom: 0;
+        }
+        
+        .buttons {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .btn-primary {
+            background: #4CAF50;
+            color: white;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .btn-primary:hover {
+            background: #45a049;
+        }
+        
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        .status {
+            text-align: center;
+            padding: 8px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .status.connected {
+            background: rgba(76, 175, 80, 0.2);
+            border: 1px solid rgba(76, 175, 80, 0.3);
+        }
+        
+        .status.disconnected {
+            background: rgba(244, 67, 54, 0.2);
+            border: 1px solid rgba(244, 67, 54, 0.3);
+        }
+        
+        .ai-indicator {
+            display: inline-block;
+            margin-left: 5px;
+            padding: 2px 6px;
+            background: rgba(255, 193, 7, 0.2);
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: bold;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        .tab-button {
+            flex: 1;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+        .tab-button.active {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: #FFD700;
+        }
+
+        .tab-button:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Vehicle List */
+        #vehicleList {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .vehicle-item {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+            position: relative;
+        }
+
+        .vehicle-item:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .vehicle-header {
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 6px;
+            color: #FFD700;
+        }
+
+        .vehicle-details {
+            font-size: 11px;
+            line-height: 1.6;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .vehicle-margin {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-top: 6px;
+        }
+
+        .vehicle-margin.positive {
+            background: rgba(40, 167, 69, 0.3);
+            color: #4CAF50;
+        }
+
+        .vehicle-margin.negative {
+            background: rgba(244, 67, 54, 0.3);
+            color: #f44336;
+        }
+
+        .vehicle-remove {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(244, 67, 54, 0.8);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            font-size: 16px;
+            line-height: 1;
+            transition: all 0.2s;
+        }
+
+        .vehicle-remove:hover {
+            background: #f44336;
+            transform: scale(1.1);
+        }
+
+        .empty-list {
+            text-align: center;
+            padding: 40px 20px;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .empty-list-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🤖 CarPriceFinder AI</h1>
+        <p>Configuration & Performance</p>
+    </div>
+
+    <!-- Tabs Navigation -->
+    <div class="tabs">
+        <button class="tab-button active" data-tab="settings">⚙️ Paramètres</button>
+        <button class="tab-button" data-tab="list">📋 Ma Liste (<span id="listCount">0</span>)</button>
+    </div>
+    
+    <!-- Settings Tab -->
+    <div id="settingsTab" class="tab-content active">
+        <div id="serverStatus" class="status disconnected">
+            🔄 Vérification du serveur...
+        </div>
+
+        <div class="setting-group">
+        <label class="setting-label">⚡ Vitesse d'analyse</label>
+        <div class="setting-description">
+            Contrôle la rapidité des requêtes AI. Plus rapide = plus de charge serveur.
+        </div>
+        <select id="timeoutSelect">
+            <option value="1000">🚀 Ultra Rapide (1s) - Charge élevée</option>
+            <option value="3000">⚡ Rapide (3s) - Recommandé</option>
+            <option value="5000" selected>🐢 Normal (5s) - Équilibré</option>
+            <option value="8000">🐌 Lent (8s) - Serveur fragile</option>
+            <option value="12000">🦴 Très lent (12s) - Mode économie</option>
+        </select>
+        <div class="speed-indicator">
+            <span>Économie</span>
+            <span>Performance</span>
+        </div>
+    </div>
+    
+    <div class="setting-group">
+        <label class="setting-label">💾 Cache intelligent <span class="ai-indicator">AI</span></label>
+        <div class="setting-description">
+            Évite les re-analyses pour les voitures déjà traitées récemment.
+        </div>
+        <select id="cacheSelect">
+            <option value="0">❌ Désactivé - Toujours analyser</option>
+            <option value="3600000">⏱️ 1 heure - Tests fréquents</option>
+            <option value="21600000">🕕 6 heures - Développement</option>
+            <option value="86400000" selected>📅 24 heures - Production</option>
+            <option value="604800000">📆 7 jours - Mode économie</option>
+        </select>
+        
+        <div class="cache-stats" id="cacheStats">
+            <div class="cache-stat">
+                <span>Entrées en cache:</span>
+                <span id="cacheCount">-</span>
+            </div>
+            <div class="cache-stat">
+                <span>Taux de hit:</span>
+                <span id="hitRate">-</span>
+            </div>
+            <div class="cache-stat">
+                <span>Économisé:</span>
+                <span id="savedRequests">-</span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="setting-group">
+        <label class="setting-label">🔧 Actions rapides</label>
+        <div class="buttons">
+            <button id="clearCache" class="btn-secondary">🗑️ Vider cache</button>
+            <button id="forceRefresh" class="btn-secondary">🔄 Forcer refresh</button>
+            <button id="testConnection" class="btn-secondary">🔍 Test serveur</button>
+        </div>
+        <div style="font-size:11px;color:rgba(255,255,255,0.7);margin-top:8px;">
+            • Vider cache: Supprime toutes les analyses stockées<br>
+            • Forcer refresh: Désactive temporairement le cache<br>
+            • Test serveur: Vérifie la connexion backend
+        </div>
+    </div>
+    
+        <div class="buttons">
+            <button id="saveSettings" class="btn-primary">💾 Sauvegarder</button>
+            <button id="resetSettings" class="btn-secondary">🔄 Reset</button>
+        </div>
+    </div>
+
+    <!-- List Tab -->
+    <div id="listTab" class="tab-content">
+        <div class="setting-group">
+            <label class="setting-label">📋 Véhicules sélectionnés</label>
+            <div class="setting-description">
+                Gérez votre liste de véhicules et générez un email professionnel.
+            </div>
+
+            <div id="vehicleList">
+                <!-- Vehicles will be dynamically loaded here -->
+            </div>
+
+            <div class="buttons" style="margin-top: 15px;">
+                <button id="generateEmail" class="btn-primary">✉️ Générer Email</button>
+                <button id="clearList" class="btn-secondary">🗑️ Vider liste</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="popup.js"></script>
+</body>
+</html>
