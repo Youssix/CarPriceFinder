@@ -1,0 +1,55 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          command_timeout: 5m
+          script: |
+            set -e
+            cd /opt/carlytics
+
+            echo "=== Pulling latest code ==="
+            git pull origin main
+
+            echo "=== Building API image ==="
+            docker compose build --no-cache api
+
+            echo "=== Starting services ==="
+            docker compose up -d
+
+            echo "=== Waiting for health check ==="
+            for i in $(seq 1 30); do
+              if docker compose exec -T api wget -qO- http://localhost:9001/api/health > /dev/null 2>&1; then
+                echo "API healthy after $((i * 2))s"
+                break
+              fi
+              if [ "$i" -eq 30 ]; then
+                echo "ERROR: API not healthy after 60s"
+                docker compose logs --tail=30 api
+                exit 1
+              fi
+              sleep 2
+            done
+
+            echo "=== Service status ==="
+            docker compose ps
+            echo "Deploy successful at $(date)"

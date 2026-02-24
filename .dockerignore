@@ -1,0 +1,54 @@
+# Dependencies (installed fresh in Docker)
+node_modules
+server/node_modules
+dashboard/node_modules
+
+# Git
+.git
+.gitignore
+
+# Environment (injected via docker-compose)
+.env
+server/.env
+
+# Documentation
+*.md
+
+# Backups
+backups/
+
+# Serena/Claude config
+.serena/
+.claude/
+
+# IDE
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+*.crx
+*.pem
+*.zip
+
+# Data (volumes handle persistence)
+server/data/
+
+# Chrome extension files (not needed in server image)
+intercept.js.backup
+web-ext-artifacts/
+
+# Docker files (avoid recursive context)
+docker-compose.yml
+Dockerfile
+.dockerignore
+Caddyfile
+
+# Scripts not needed in image
+deploy.sh
+
+# CI/CD
+.github/

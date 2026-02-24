@@ -3,372 +3,506 @@
 <head>
     <meta charset="utf-8">
     <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
         body {
-            width: 350px;
-            padding: 15px;
+            width: 340px;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #1a1a2e;
             color: white;
-            margin: 0;
-        }
-        
-        .header {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        
-        .header h1 {
-            margin: 0;
-            font-size: 20px;
-            font-weight: 600;
-        }
-        
-        .header p {
-            margin: 5px 0 0 0;
-            opacity: 0.8;
-            font-size: 12px;
-        }
-        
-        .setting-group {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 15px;
-            backdrop-filter: blur(10px);
-        }
-        
-        .setting-label {
-            font-weight: 500;
-            margin-bottom: 8px;
-            display: block;
-            font-size: 14px;
-        }
-        
-        .setting-description {
-            font-size: 11px;
-            opacity: 0.7;
-            margin-bottom: 10px;
-            line-height: 1.4;
-        }
-        
-        select, button {
-            width: 100%;
-            padding: 8px 12px;
-            border: none;
-            border-radius: 6px;
-            font-size: 13px;
-            background: rgba(255, 255, 255, 0.9);
-            color: #333;
-        }
-        
-        select:focus, button:focus {
-            outline: 2px solid #4CAF50;
-            outline-offset: 2px;
-        }
-        
-        .speed-indicator {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 5px;
-            font-size: 10px;
-            opacity: 0.6;
-        }
-        
-        .cache-stats {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 6px;
-            padding: 10px;
-            margin-top: 10px;
-            font-size: 12px;
-        }
-        
-        .cache-stat {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 5px;
-        }
-        
-        .cache-stat:last-child {
-            margin-bottom: 0;
-        }
-        
-        .buttons {
-            display: flex;
-            gap: 10px;
-        }
-        
-        .btn-primary {
-            background: #4CAF50;
-            color: white;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        
-        .btn-primary:hover {
-            background: #45a049;
-        }
-        
-        .btn-secondary {
-            background: rgba(255, 255, 255, 0.2);
-            color: white;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        
-        .btn-secondary:hover {
-            background: rgba(255, 255, 255, 0.3);
-        }
-        
-        .status {
-            text-align: center;
-            padding: 8px;
-            border-radius: 6px;
-            margin-bottom: 15px;
-            font-size: 12px;
-            font-weight: 500;
-        }
-        
-        .status.connected {
-            background: rgba(76, 175, 80, 0.2);
-            border: 1px solid rgba(76, 175, 80, 0.3);
-        }
-        
-        .status.disconnected {
-            background: rgba(244, 67, 54, 0.2);
-            border: 1px solid rgba(244, 67, 54, 0.3);
-        }
-        
-        .ai-indicator {
-            display: inline-block;
-            margin-left: 5px;
-            padding: 2px 6px;
-            background: rgba(255, 193, 7, 0.2);
-            border-radius: 10px;
-            font-size: 10px;
-            font-weight: bold;
         }
 
-        /* Tabs */
+        /* === HEADER === */
+        .header {
+            padding: 16px 20px 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo {
+            font-size: 17px;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ef4444;
+        }
+
+        .status-dot.connected { background: #22c55e; }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-settings {
+            background: none;
+            border: none;
+            color: rgba(255,255,255,0.5);
+            cursor: pointer;
+            font-size: 16px;
+            padding: 4px;
+            border-radius: 6px;
+            transition: all 0.15s;
+            width: auto;
+        }
+
+        .btn-settings:hover {
+            color: white;
+            background: rgba(255,255,255,0.1);
+        }
+
+        /* === TABS === */
         .tabs {
             display: flex;
-            gap: 8px;
-            margin-bottom: 15px;
+            padding: 0 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
         }
 
         .tab-button {
             flex: 1;
-            padding: 10px;
-            background: rgba(255, 255, 255, 0.1);
-            border: 2px solid rgba(255, 255, 255, 0.2);
-            color: white;
+            padding: 10px 0;
+            background: none;
+            border: none;
+            border-bottom: 2px solid transparent;
+            color: rgba(255,255,255,0.5);
             cursor: pointer;
-            font-weight: 600;
             font-size: 13px;
-            transition: all 0.2s;
+            font-weight: 500;
+            transition: all 0.15s;
+            width: auto;
         }
 
         .tab-button.active {
-            background: rgba(255, 255, 255, 0.3);
-            border-color: #FFD700;
+            color: white;
+            border-bottom-color: #3b82f6;
         }
 
-        .tab-button:hover {
-            background: rgba(255, 255, 255, 0.2);
+        .tab-button:hover { color: rgba(255,255,255,0.8); }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* === CONTENT === */
+        .content { padding: 16px 20px; }
+
+        /* === ACCOUNT CARD === */
+        .account-card {
+            background: rgba(255,255,255,0.06);
+            border-radius: 10px;
+            padding: 14px;
+            margin-bottom: 14px;
         }
 
-        .tab-content {
-            display: none;
+        .account-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
-        .tab-content.active {
-            display: block;
+        .account-email {
+            font-size: 13px;
+            color: rgba(255,255,255,0.7);
         }
 
-        /* Vehicle List */
+        .account-badge {
+            font-size: 11px;
+            font-weight: 600;
+            padding: 3px 10px;
+            border-radius: 10px;
+        }
+
+        .account-badge.active {
+            background: rgba(34,197,94,0.15);
+            color: #22c55e;
+        }
+
+        .account-badge.inactive {
+            background: rgba(239,68,68,0.15);
+            color: #ef4444;
+        }
+
+        .btn-disconnect {
+            background: none;
+            border: none;
+            color: rgba(255,255,255,0.35);
+            cursor: pointer;
+            font-size: 11px;
+            padding: 6px 0 0;
+            transition: color 0.15s;
+            width: auto;
+        }
+
+        .btn-disconnect:hover { color: #ef4444; }
+
+        /* === VEHICLE LIST === */
         #vehicleList {
-            max-height: 400px;
+            max-height: 380px;
             overflow-y: auto;
         }
 
         .vehicle-item {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 8px;
-            padding: 12px;
+            background: rgba(255,255,255,0.06);
+            border-radius: 10px;
+            padding: 12px 14px;
             margin-bottom: 10px;
             position: relative;
         }
 
-        .vehicle-item:hover {
-            background: rgba(255, 255, 255, 0.15);
+        .vehicle-item:hover { background: rgba(255,255,255,0.09); }
+
+        .vehicle-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
         }
 
-        .vehicle-header {
+        .vehicle-name {
             font-weight: 600;
             font-size: 14px;
-            margin-bottom: 6px;
-            color: #FFD700;
+            color: #ffffff;
         }
 
-        .vehicle-details {
+        .vehicle-specs {
             font-size: 11px;
-            line-height: 1.6;
-            color: rgba(255, 255, 255, 0.9);
+            color: rgba(255,255,255,0.5);
+            margin-top: 3px;
+        }
+
+        .vehicle-prices {
+            display: flex;
+            gap: 12px;
+            margin-top: 8px;
+            font-size: 12px;
+        }
+
+        .vehicle-prices .label {
+            color: rgba(255,255,255,0.45);
+        }
+
+        .vehicle-prices .value {
+            font-weight: 600;
+            color: white;
         }
 
         .vehicle-margin {
             display: inline-block;
-            padding: 3px 8px;
-            border-radius: 12px;
+            padding: 2px 8px;
+            border-radius: 8px;
             font-size: 11px;
-            font-weight: 600;
+            font-weight: 700;
             margin-top: 6px;
         }
 
         .vehicle-margin.positive {
-            background: rgba(40, 167, 69, 0.3);
-            color: #4CAF50;
+            background: rgba(34,197,94,0.15);
+            color: #22c55e;
         }
 
         .vehicle-margin.negative {
-            background: rgba(244, 67, 54, 0.3);
-            color: #f44336;
+            background: rgba(239,68,68,0.15);
+            color: #ef4444;
         }
 
         .vehicle-remove {
-            position: absolute;
-            top: 8px;
-            right: 8px;
-            background: rgba(244, 67, 54, 0.8);
-            color: white;
+            background: none;
             border: none;
-            border-radius: 50%;
-            width: 24px;
-            height: 24px;
+            color: rgba(255,255,255,0.25);
             cursor: pointer;
-            font-size: 16px;
-            line-height: 1;
-            transition: all 0.2s;
+            font-size: 14px;
+            padding: 2px 4px;
+            border-radius: 4px;
+            transition: all 0.15s;
+            width: auto;
         }
 
         .vehicle-remove:hover {
-            background: #f44336;
-            transform: scale(1.1);
+            color: #ef4444;
+            background: rgba(239,68,68,0.1);
         }
 
         .empty-list {
             text-align: center;
             padding: 40px 20px;
-            color: rgba(255, 255, 255, 0.6);
+            color: rgba(255,255,255,0.35);
         }
 
-        .empty-list-icon {
-            font-size: 48px;
+        .empty-list-icon { font-size: 36px; margin-bottom: 8px; }
+        .empty-list p { font-size: 13px; line-height: 1.5; }
+
+        /* === BUTTONS === */
+        .buttons {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .btn-primary {
+            flex: 1;
+            padding: 10px;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .btn-primary:hover { background: #2563eb; }
+
+        .btn-secondary {
+            flex: 1;
+            padding: 10px;
+            background: rgba(255,255,255,0.08);
+            color: rgba(255,255,255,0.7);
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255,255,255,0.12);
+            color: white;
+        }
+
+        /* === LOGIN SCREEN === */
+        #loginScreen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 24px;
+            min-height: 320px;
+        }
+
+        .login-logo { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+        .login-subtitle { font-size: 13px; color: rgba(255,255,255,0.5); margin-bottom: 28px; }
+
+        .login-box {
+            width: 100%;
+            background: rgba(255,255,255,0.06);
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .login-box input[type="text"] {
+            width: 100%;
+            padding: 11px 14px;
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 8px;
+            font-size: 14px;
+            background: rgba(255,255,255,0.08);
+            color: white;
+            margin-bottom: 12px;
+        }
+
+        .login-box input[type="text"]::placeholder { color: rgba(255,255,255,0.3); }
+        .login-box input[type="text"]:focus { outline: none; border-color: #3b82f6; }
+
+        .btn-activate {
+            width: 100%;
+            padding: 12px;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .btn-activate:hover { background: #2563eb; }
+        .btn-activate:disabled { background: #374151; cursor: not-allowed; }
+
+        .login-error {
+            margin-top: 10px;
+            font-size: 12px;
+            color: #ef4444;
+            text-align: center;
+            min-height: 16px;
+        }
+
+        .login-link {
+            margin-top: 20px;
+            font-size: 12px;
+            color: rgba(255,255,255,0.4);
+        }
+
+        .login-link a { color: #3b82f6; text-decoration: none; }
+        .login-link a:hover { text-decoration: underline; }
+
+        /* === SETTINGS PANEL (hidden by default) === */
+        #settingsPanel {
+            display: none;
+            padding: 16px 20px;
+        }
+
+        #settingsPanel.active { display: block; }
+
+        .settings-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .btn-close-settings {
+            background: none;
+            border: none;
+            color: rgba(255,255,255,0.5);
+            cursor: pointer;
+            font-size: 18px;
+            padding: 2px 6px;
+            border-radius: 6px;
+            width: auto;
+        }
+
+        .btn-close-settings:hover { color: white; background: rgba(255,255,255,0.1); }
+
+        .setting-row {
+            background: rgba(255,255,255,0.06);
+            border-radius: 10px;
+            padding: 12px 14px;
             margin-bottom: 10px;
         }
+
+        .setting-row label {
+            font-size: 12px;
+            color: rgba(255,255,255,0.5);
+            display: block;
+            margin-bottom: 6px;
+        }
+
+        .setting-row select {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 6px;
+            font-size: 13px;
+            background: rgba(255,255,255,0.08);
+            color: white;
+        }
+
+        .setting-row select:focus { outline: none; border-color: #3b82f6; }
+
+        /* Hide elements */
+        .hidden { display: none !important; }
+
+        /* === SCROLLBAR === */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>🤖 CarPriceFinder AI</h1>
-        <p>Configuration & Performance</p>
+
+    <!-- LOGIN SCREEN -->
+    <div id="loginScreen">
+        <div class="login-logo">Carlytics</div>
+        <p class="login-subtitle">Analysez les prix VO en temps reel</p>
+        <div class="login-box">
+            <input type="text" id="loginApiKeyInput" placeholder="Collez votre cle API..." autocomplete="off" />
+            <button class="btn-activate" id="loginActivateBtn">Se connecter</button>
+            <div class="login-error" id="loginError"></div>
+        </div>
+        <div class="login-link">
+            Pas de compte ? <a href="https://carlytics.fr" target="_blank">Essai gratuit 14 jours</a>
+        </div>
     </div>
 
-    <!-- Tabs Navigation -->
-    <div class="tabs">
-        <button class="tab-button active" data-tab="settings">⚙️ Paramètres</button>
-        <button class="tab-button" data-tab="list">📋 Ma Liste (<span id="listCount">0</span>)</button>
-    </div>
-    
-    <!-- Settings Tab -->
-    <div id="settingsTab" class="tab-content active">
-        <div id="serverStatus" class="status disconnected">
-            🔄 Vérification du serveur...
+    <!-- MAIN UI -->
+    <div class="header" style="display:none;">
+        <div class="header-left">
+            <div class="status-dot" id="statusDot"></div>
+            <span class="logo">Carlytics</span>
         </div>
+        <div class="header-right">
+            <button class="btn-settings" id="openSettings" title="Parametres">&#9881;</button>
+        </div>
+    </div>
 
-        <div class="setting-group">
-        <label class="setting-label">⚡ Vitesse d'analyse</label>
-        <div class="setting-description">
-            Contrôle la rapidité des requêtes AI. Plus rapide = plus de charge serveur.
-        </div>
-        <select id="timeoutSelect">
-            <option value="1000">🚀 Ultra Rapide (1s) - Charge élevée</option>
-            <option value="3000">⚡ Rapide (3s) - Recommandé</option>
-            <option value="5000" selected>🐢 Normal (5s) - Équilibré</option>
-            <option value="8000">🐌 Lent (8s) - Serveur fragile</option>
-            <option value="12000">🦴 Très lent (12s) - Mode économie</option>
-        </select>
-        <div class="speed-indicator">
-            <span>Économie</span>
-            <span>Performance</span>
-        </div>
+    <div class="tabs" id="mainTabs" style="display:none;">
+        <button class="tab-button active" data-tab="list">Vehicules (<span id="listCount">0</span>)</button>
+        <button class="tab-button" data-tab="account">Compte</button>
     </div>
-    
-    <div class="setting-group">
-        <label class="setting-label">💾 Cache intelligent <span class="ai-indicator">AI</span></label>
-        <div class="setting-description">
-            Évite les re-analyses pour les voitures déjà traitées récemment.
-        </div>
-        <select id="cacheSelect">
-            <option value="0">❌ Désactivé - Toujours analyser</option>
-            <option value="3600000">⏱️ 1 heure - Tests fréquents</option>
-            <option value="21600000">🕕 6 heures - Développement</option>
-            <option value="86400000" selected>📅 24 heures - Production</option>
-            <option value="604800000">📆 7 jours - Mode économie</option>
-        </select>
-        
-        <div class="cache-stats" id="cacheStats">
-            <div class="cache-stat">
-                <span>Entrées en cache:</span>
-                <span id="cacheCount">-</span>
-            </div>
-            <div class="cache-stat">
-                <span>Taux de hit:</span>
-                <span id="hitRate">-</span>
-            </div>
-            <div class="cache-stat">
-                <span>Économisé:</span>
-                <span id="savedRequests">-</span>
+
+    <!-- VEHICLE LIST TAB -->
+    <div id="listTab" class="tab-content active">
+        <div class="content">
+            <div id="vehicleList"></div>
+            <div class="buttons">
+                <button id="generateEmail" class="btn-primary">Generer email</button>
+                <button id="clearList" class="btn-secondary">Vider</button>
             </div>
         </div>
     </div>
-    
-    <div class="setting-group">
-        <label class="setting-label">🔧 Actions rapides</label>
+
+    <!-- ACCOUNT TAB -->
+    <div id="accountTab" class="tab-content">
+        <div class="content">
+            <div class="account-card">
+                <div class="account-row">
+                    <span class="account-email" id="accountEmail">—</span>
+                    <span class="account-badge active" id="accountBadge">Actif</span>
+                </div>
+                <button class="btn-disconnect" id="disconnectBtn">Se deconnecter</button>
+            </div>
+            <div class="setting-row">
+                <label>Cle API</label>
+                <div style="display:flex;gap:6px;align-items:center;">
+                    <input type="text" id="apiKeyDisplay" readonly style="width:100%;padding:8px 10px;border:1px solid rgba(255,255,255,0.12);border-radius:6px;font-size:11px;background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.6);font-family:monospace;" />
+                </div>
+            </div>
+            <a href="https://app.carlytics.fr" target="_blank" style="display:block;text-align:center;color:#3b82f6;font-size:12px;margin-top:12px;text-decoration:none;">Ouvrir le dashboard</a>
+        </div>
+    </div>
+
+    <!-- SETTINGS PANEL (overlay) -->
+    <div id="settingsPanel">
+        <div class="settings-title">
+            <span>Parametres</span>
+            <button class="btn-close-settings" id="closeSettings">&times;</button>
+        </div>
+        <div class="setting-row">
+            <label>Serveur</label>
+            <select id="debugModeSelect">
+                <option value="false">Production (api.carlytics.fr)</option>
+                <option value="true">Local (localhost:9001)</option>
+            </select>
+        </div>
+        <div class="setting-row">
+            <label>Delai entre analyses</label>
+            <select id="timeoutSelect">
+                <option value="1000">1 seconde</option>
+                <option value="3000">3 secondes</option>
+                <option value="5000" selected>5 secondes</option>
+                <option value="8000">8 secondes</option>
+            </select>
+        </div>
         <div class="buttons">
-            <button id="clearCache" class="btn-secondary">🗑️ Vider cache</button>
-            <button id="forceRefresh" class="btn-secondary">🔄 Forcer refresh</button>
-            <button id="testConnection" class="btn-secondary">🔍 Test serveur</button>
+            <button id="testConnection" class="btn-secondary">Tester la connexion</button>
         </div>
-        <div style="font-size:11px;color:rgba(255,255,255,0.7);margin-top:8px;">
-            • Vider cache: Supprime toutes les analyses stockées<br>
-            • Forcer refresh: Désactive temporairement le cache<br>
-            • Test serveur: Vérifie la connexion backend
-        </div>
-    </div>
-    
-        <div class="buttons">
-            <button id="saveSettings" class="btn-primary">💾 Sauvegarder</button>
-            <button id="resetSettings" class="btn-secondary">🔄 Reset</button>
-        </div>
-    </div>
-
-    <!-- List Tab -->
-    <div id="listTab" class="tab-content">
-        <div class="setting-group">
-            <label class="setting-label">📋 Véhicules sélectionnés</label>
-            <div class="setting-description">
-                Gérez votre liste de véhicules et générez un email professionnel.
-            </div>
-
-            <div id="vehicleList">
-                <!-- Vehicles will be dynamically loaded here -->
-            </div>
-
-            <div class="buttons" style="margin-top: 15px;">
-                <button id="generateEmail" class="btn-primary">✉️ Générer Email</button>
-                <button id="clearList" class="btn-secondary">🗑️ Vider liste</button>
-            </div>
-        </div>
+        <div id="serverStatus" style="text-align:center;font-size:12px;margin-top:10px;color:rgba(255,255,255,0.5);"></div>
     </div>
 
     <script src="popup.js"></script>

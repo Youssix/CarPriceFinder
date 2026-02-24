@@ -52,6 +52,14 @@ temp/
 .DS_Store
 Thumbs.db
 
+# SQLite databases
+server/data/*.db
+server/data/*.db-journal
+server/data/*.db-wal
+
+# Docker backups
+backups/
+
 # Misc
 *.bak
 *.cache

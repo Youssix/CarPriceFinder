@@ -1,0 +1,91 @@
+# Carlytics Production Configuration
+# Caddy auto-provisions TLS certificates via Let's Encrypt
+
+# API backend - proxies all requests to the Node.js server
+api.carlytics.fr {
+    # API routes
+    handle /api/* {
+        reverse_proxy api:9001
+    }
+
+    # Catch-all to API
+    handle {
+        reverse_proxy api:9001
+    }
+
+    header {
+        X-Content-Type-Options nosniff
+        X-Frame-Options DENY
+        Referrer-Policy strict-origin-when-cross-origin
+        -Server
+    }
+
+    log {
+        output file /data/logs/api.log {
+            roll_size 10mb
+            roll_keep 5
+        }
+        format json
+    }
+}
+
+# Dashboard SPA - serves built React app, proxies API calls
+app.carlytics.fr {
+    # API calls proxy to backend
+    handle /api/* {
+        reverse_proxy api:9001
+    }
+
+    # Serve dashboard static files with SPA fallback
+    handle {
+        root * /srv/dashboard
+        try_files {path} /index.html
+        file_server
+    }
+
+    header {
+        X-Content-Type-Options nosniff
+        X-Frame-Options DENY
+        Referrer-Policy strict-origin-when-cross-origin
+        -Server
+    }
+
+    # Cache static assets aggressively
+    @static path *.js *.css *.svg *.png *.jpg *.webp *.woff2
+    header @static Cache-Control "public, max-age=31536000, immutable"
+
+    log {
+        output file /data/logs/app.log {
+            roll_size 10mb
+            roll_keep 5
+        }
+        format json
+    }
+}
+
+# Landing page - static marketing site
+carlytics.fr {
+    root * /srv/landing
+    file_server
+
+    header {
+        X-Content-Type-Options nosniff
+        X-Frame-Options SAMEORIGIN
+        Referrer-Policy strict-origin-when-cross-origin
+        -Server
+        Cache-Control "public, max-age=86400"
+    }
+
+    log {
+        output file /data/logs/landing.log {
+            roll_size 10mb
+            roll_keep 5
+        }
+        format json
+    }
+}
+
+# Redirect www to naked domain
+www.carlytics.fr {
+    redir https://carlytics.fr{uri} permanent
+}

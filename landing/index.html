@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Carlytics — Trouvez les meilleures affaires VO en 2 minutes</title>
+  <meta name="description" content="Carlytics analyse Auto1, LeBonCoin et La Centrale pour les marchands VO. Identifiez les v&eacute;hicules sous-cot&eacute;s et maximisez vos marges automatiquement.">
+  <meta name="theme-color" content="#3b82f6">
+  <link rel="canonical" href="https://carlytics.fr">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://carlytics.fr">
+  <meta property="og:title" content="Carlytics — Trouvez les meilleures affaires VO">
+  <meta property="og:description" content="Analyse automatique Auto1 + LeBonCoin. Identifiez les deals rentables et maximisez vos marges.">
+  <meta property="og:locale" content="fr_FR">
+
+  <link rel="stylesheet" href="style.css">
+
+  <!-- Favicon (inline SVG) -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%233b82f6'/><text x='50' y='68' font-size='55' font-weight='bold' text-anchor='middle' fill='white' font-family='system-ui'>C</text></svg>">
+</head>
+<body>
+
+  <!-- ============================
+       Header
+       ============================ -->
+  <header class="header" id="header">
+    <div class="header__inner">
+      <a href="#" class="header__logo">
+        <span class="header__logo-icon">C</span>
+        Carlytics
+      </a>
+
+      <nav class="header__nav">
+        <a href="#features" class="header__link">Fonctionnalit&eacute;s</a>
+        <a href="#how-it-works" class="header__link">Comment &ccedil;a marche</a>
+        <a href="#pricing" class="header__link">Tarifs</a>
+        <a href="#faq" class="header__link">FAQ</a>
+      </nav>
+
+      <div class="header__cta">
+        <a href="https://app.carlytics.fr/login" class="btn btn--secondary btn--sm">Connexion</a>
+        <a href="#pricing" class="btn btn--primary btn--sm">Essai gratuit</a>
+      </div>
+
+      <button class="header__menu-toggle" id="menu-toggle" aria-label="Ouvrir le menu de navigation">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Mobile nav overlay -->
+  <div class="mobile-nav" id="mobile-nav">
+    <a href="#features" class="mobile-nav__link" data-mobile-link>Fonctionnalit&eacute;s</a>
+    <a href="#how-it-works" class="mobile-nav__link" data-mobile-link>Comment &ccedil;a marche</a>
+    <a href="#pricing" class="mobile-nav__link" data-mobile-link>Tarifs</a>
+    <a href="#faq" class="mobile-nav__link" data-mobile-link>FAQ</a>
+    <div class="mobile-nav__cta">
+      <a href="https://app.carlytics.fr/login" class="btn btn--secondary">Connexion</a>
+      <a href="#pricing" class="btn btn--primary" data-mobile-link>Essai gratuit</a>
+    </div>
+  </div>
+
+  <!-- ============================
+       Hero
+       ============================ -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero__inner">
+        <div class="hero__badge">
+          <span class="hero__badge-dot"></span>
+          Nouveau : D&eacute;tection IA des options premium
+        </div>
+
+        <h1 class="hero__title">
+          Trouvez les <span>meilleures affaires VO</span> en 2&nbsp;minutes
+        </h1>
+
+        <p class="hero__subtitle">
+          Carlytics analyse Auto1, LeBonCoin et La Centrale pour vous. Identifiez les v&eacute;hicules sous-cot&eacute;s et maximisez vos marges.
+        </p>
+
+        <div class="hero__cta">
+          <a href="#pricing" class="btn btn--primary btn--lg">
+            Essai gratuit 14 jours
+            <span aria-hidden="true">&rarr;</span>
+          </a>
+          <a href="#dashboard" class="btn btn--secondary btn--lg">
+            Voir une d&eacute;mo
+          </a>
+        </div>
+
+        <div class="hero__trust">
+          <div class="hero__trust-item">
+            <span class="hero__trust-icon" aria-hidden="true">&#128101;</span>
+            <span>Utilis&eacute; par <span class="hero__trust-value">+50 marchands VO</span></span>
+          </div>
+          <div class="hero__trust-item">
+            <span class="hero__trust-icon" aria-hidden="true">&#9201;</span>
+            <span><span class="hero__trust-value">10h gagn&eacute;es</span> par semaine</span>
+          </div>
+          <div class="hero__trust-item">
+            <span class="hero__trust-icon" aria-hidden="true">&#128200;</span>
+            <span><span class="hero__trust-value">+1 000&euro;</span> de marge moyenne par deal</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================
+       Problem
+       ============================ -->
+  <section class="problems" id="problems">
+    <div class="container">
+      <div class="text-center">
+        <span class="section-label">Le probl&egrave;me</span>
+        <h2 class="section-title">Vous passez des heures &agrave; chercher les bonnes affaires&nbsp;?</h2>
+        <p class="section-subtitle mx-auto">
+          La plupart des marchands VO perdent un temps consid&eacute;rable sur des t&acirc;ches r&eacute;p&eacute;titives qui pourraient &ecirc;tre automatis&eacute;es.
+        </p>
+      </div>
+
+      <div class="problems__grid">
+        <div class="problem-card">
+          <div class="problem-card__icon" aria-hidden="true">&#9200;</div>
+          <h3 class="problem-card__title">3h par jour &agrave; scroller manuellement</h3>
+          <p class="problem-card__text">
+            Vous parcourez Auto1 et LeBonCoin &agrave; la main, onglet par onglet, pour comparer les prix. Un travail fastidieux et chronophage.
+          </p>
+        </div>
+
+        <div class="problem-card">
+          <div class="problem-card__icon" aria-hidden="true">&#128168;</div>
+          <h3 class="problem-card__title">Des deals rentables qui vous &eacute;chappent</h3>
+          <p class="problem-card__text">
+            Le temps de faire vos calculs, les meilleures affaires sont d&eacute;j&agrave; parties. Vos concurrents qui agissent vite raflent les deals.
+          </p>
+        </div>
+
+        <div class="problem-card">
+          <div class="problem-card__icon" aria-hidden="true">&#128566;</div>
+          <h3 class="problem-card__title">Aucune visibilit&eacute; sur les vraies marges</h3>
+          <p class="problem-card__text">
+            Sans comparaison fiable, vous achetez &agrave; l'instinct. R&eacute;sultat : des marges incertaines et parfois des achats &agrave; perte.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================
+       Solution / Features
+       ============================ -->
+  <section class="features" id="features">
+    <div class="container">
+      <div class="text-center">
+        <span class="section-label">La solution</span>
+        <h2 class="section-title">Carlytics fait le travail pour vous</h2>
+        <p class="section-subtitle mx-auto">
+          Automatisez l'analyse de rentabilit&eacute; et concentrez-vous sur ce qui compte : acheter les bons v&eacute;hicules.
+        </p>
+      </div>
+
+      <div class="features__grid">
+        <div class="feature-card">
+          <div class="feature-card__icon" aria-hidden="true">&#9889;</div>
+          <h3 class="feature-card__title">Analyse automatique</h3>
+          <p class="feature-card__text">
+            Chaque v&eacute;hicule sur Auto1 est automatiquement compar&eacute; aux prix LeBonCoin et La Centrale. Marge calcul&eacute;e en temps r&eacute;el.
+          </p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-card__icon" aria-hidden="true">&#128276;</div>
+          <h3 class="feature-card__title">Alertes intelligentes</h3>
+          <p class="feature-card__text">
+            D&eacute;finissez vos crit&egrave;res : marque, budget, marge minimum. Recevez une notification d&egrave;s qu'un deal correspond &agrave; vos attentes.
+          </p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-card__icon" aria-hidden="true">&#129302;</div>
+          <h3 class="feature-card__title">D&eacute;tection d'options premium</h3>
+          <p class="feature-card__text">
+            Notre IA d&eacute;tecte les finitions premium (M-Sport, AMG, S-Line) et ajuste les estimations de prix en cons&eacute;quence.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================
+       How It Works
+       ============================ -->
+  <section class="how-it-works" id="how-it-works">
+    <div class="container">
+      <div class="text-center">
+        <span class="section-label">&Eacute;tape par &eacute;tape</span>
+        <h2 class="section-title">Comment &ccedil;a marche</h2>
+        <p class="section-subtitle mx-auto">
+          De l'installation &agrave; votre premier deal rentable, en moins de 5 minutes.
+        </p>
+      </div>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step__number">1</div>
+          <h3 class="step__title">Installez l'extension Chrome</h3>
+          <p class="step__text">2 minutes, gratuit. Aucune configuration technique requise.</p>
+        </div>
+
+        <div class="step">
+          <div class="step__number">2</div>
+          <h3 class="step__title">Naviguez sur Auto1</h3>
+          <p class="step__text">Comme d'habitude. L'extension analyse chaque v&eacute;hicule automatiquement.</p>
+        </div>
+
+        <div class="step">
+          <div class="step__number">3</div>
+          <h3 class="step__title">Voyez la marge instantan&eacute;ment</h3>
+          <p class="step__text">Prix d'achat vs prix de revente estim&eacute;, options d&eacute;tect&eacute;es, score de rentabilit&eacute;.</p>
+        </div>
+
+        <div class="step">
+          <div class="step__number">4</div>
+          <h3 class="step__title">Recevez les alertes</h3>
+          <p class="step__text">Les meilleurs deals arrivent directement dans votre bo&icirc;te mail.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================
+       Dashboard Preview
+       ============================ -->
+  <section class="dashboard-preview" id="dashboard">
+    <div class="container">
+      <div class="text-center">
+        <span class="section-label" style="color: var(--color-primary-light);">Aper&ccedil;u</span>
+        <h2 class="section-title">Votre cockpit de deals</h2>
+        <p class="section-subtitle mx-auto">
+          Toutes vos analyses, alertes et opportunit&eacute;s dans un seul dashboard. Pas de tableur, pas de calcul mental.
+        </p>
+      </div>
+
+      <div class="dashboard-preview__wrapper">
+        <div class="dashboard-mock">
+          <div class="dashboard-mock__topbar">
+            <span class="dashboard-mock__logo">Carlytics</span>
+            <div class="dashboard-mock__nav">
+              <span class="dashboard-mock__nav-item dashboard-mock__nav-item--active">Deals du jour</span>
+              <span class="dashboard-mock__nav-item">Alertes</span>
+              <span class="dashboard-mock__nav-item">Historique</span>
+              <span class="dashboard-mock__nav-item">Param&egrave;tres</span>
+            </div>
+          </div>
+
+          <div class="dashboard-mock__body">
+            <!-- Metrics row -->
+            <div class="dashboard-mock__metrics">
+              <div class="metric-card">
+                <div class="metric-card__label">Marge moyenne</div>
+                <div class="metric-card__value metric-card__value--green">+1 247&euro;</div>
+                <div class="metric-card__change">+12% vs semaine derni&egrave;re</div>
+              </div>
+              <div class="metric-card">
+                <div class="metric-card__label">Deals du jour</div>
+                <div class="metric-card__value metric-card__value--blue">23</div>
+                <div class="metric-card__change">8 avec marge &gt; 1 000&euro;</div>
+              </div>
+              <div class="metric-card">
+                <div class="metric-card__label">Alertes actives</div>
+                <div class="metric-card__value metric-card__value--orange">7</div>
+                <div class="metric-card__change">3 nouveaux matchs</div>
+              </div>
+              <div class="metric-card">
+                <div class="metric-card__label">V&eacute;hicules analys&eacute;s</div>
+                <div class="metric-card__value metric-card__value--white">1 842</div>
+                <div class="metric-card__change">ce mois</div>
+              </div>
+            </div>
+
+            <!-- Table -->
+            <div class="dashboard-mock__table">
+              <div class="dashboard-mock__table-header">
+                <span>V&eacute;hicule</span>
+                <span>Prix Auto1</span>
+                <span>Prix March&eacute;</span>
+                <span>Marge</span>
+                <span>Options</span>
+              </div>
+
+              <div class="dashboard-mock__table-row">
+                <span class="table-vehicle">BMW 320d 2021 &mdash; 45 000 km</span>
+                <span>18 500&euro;</span>
+                <span>21 200&euro;</span>
+                <span><span class="table-badge table-badge--green">+2 700&euro;</span></span>
+                <span class="table-options">
+                  <span class="table-option-tag">M-Sport</span>
+                </span>
+              </div>
+
+              <div class="dashboard-mock__table-row">
+                <span class="table-vehicle">Audi A4 Avant 2020 &mdash; 68 000 km</span>
+                <span>22 100&euro;</span>
+                <span>24 800&euro;</span>
+                <span><span class="table-badge table-badge--green">+2 700&euro;</span></span>
+                <span class="table-options">
+                  <span class="table-option-tag">S-Line</span>
+                </span>
+              </div>
+
+              <div class="dashboard-mock__table-row">
+                <span class="table-vehicle">Peugeot 3008 2022 &mdash; 32 000 km</span>
+                <span>24 900&euro;</span>
+                <span>26 100&euro;</span>
+                <span><span class="table-badge table-badge--orange">+1 200&euro;</span></span>
+                <span class="table-options">
+                  <span class="table-option-tag">GT</span>
+                </span>
+              </div>
+
+              <div class="dashboard-mock__table-row">
+                <span class="table-vehicle">Mercedes C220d 2019 &mdash; 89 000 km</span>
+                <span>26 800&euro;</span>
+                <span>27 200&euro;</span>
+                <span><span class="table-badge table-badge--red">+400&euro;</span></span>
+                <span class="table-options">
+                  <span class="table-option-tag">AMG Line</span>
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================
+       Pricing
+       ============================ -->
+  <section class="pricing" id="pricing">
+    <div class="container">
+      <div class="text-center">
+        <span class="section-label">Tarifs</span>
+        <h2 class="section-title">Un outil qui se rembourse d&egrave;s le premier deal</h2>
+        <p class="section-subtitle mx-auto">
+          14 jours d'essai gratuit, sans engagement. Un seul deal rentable couvre des mois d'abonnement.
+        </p>
+      </div>
+
+      <div class="pricing__grid">
+        <!-- Starter -->
+        <div class="pricing-card">
+          <h3 class="pricing-card__name">Starter</h3>
+          <p class="pricing-card__desc">Pour d&eacute;marrer et valider l'outil</p>
+          <div class="pricing-card__price">
+            <span class="pricing-card__amount">29</span>
+            <span class="pricing-card__currency">&euro;</span>
+            <span class="pricing-card__period">/mois</span>
+          </div>
+          <ul class="pricing-card__features">
+            <li class="pricing-card__feature">Dashboard + extension Chrome</li>
+            <li class="pricing-card__feature">50 analyses par jour</li>
+            <li class="pricing-card__feature">Alertes email basiques</li>
+            <li class="pricing-card__feature">Support par email</li>
+          </ul>
+          <a href="#" class="btn btn--secondary">Commencer l'essai gratuit</a>
+        </div>
+
+        <!-- Pro (featured) -->
+        <div class="pricing-card pricing-card--featured">
+          <div class="pricing-card__badge">Populaire</div>
+          <h3 class="pricing-card__name">Pro</h3>
+          <p class="pricing-card__desc">Pour les marchands actifs</p>
+          <div class="pricing-card__price">
+            <span class="pricing-card__amount">49</span>
+            <span class="pricing-card__currency">&euro;</span>
+            <span class="pricing-card__period">/mois</span>
+          </div>
+          <ul class="pricing-card__features">
+            <li class="pricing-card__feature">Tout Starter, plus :</li>
+            <li class="pricing-card__feature">Analyses illimit&eacute;es</li>
+            <li class="pricing-card__feature">Alertes temps r&eacute;el</li>
+            <li class="pricing-card__feature">D&eacute;tection IA des options premium</li>
+            <li class="pricing-card__feature">Historique complet des recherches</li>
+          </ul>
+          <a href="#" class="btn btn--primary">Commencer l'essai gratuit</a>
+        </div>
+
+        <!-- Agency -->
+        <div class="pricing-card">
+          <h3 class="pricing-card__name">Agency</h3>
+          <p class="pricing-card__desc">Pour les &eacute;quipes et n&eacute;gociants</p>
+          <div class="pricing-card__price">
+            <span class="pricing-card__amount">99</span>
+            <span class="pricing-card__currency">&euro;</span>
+            <span class="pricing-card__period">/mois</span>
+          </div>
+          <ul class="pricing-card__features">
+            <li class="pricing-card__feature">Tout Pro, plus :</li>
+            <li class="pricing-card__feature">Multi-utilisateurs (3 comptes)</li>
+            <li class="pricing-card__feature">Acc&egrave;s API</li>
+            <li class="pricing-card__feature">Support prioritaire</li>
+            <li class="pricing-card__feature">Export des donn&eacute;es</li>
+          </ul>
+          <a href="mailto:contact@carlytics.fr?subject=Carlytics Agency" class="btn btn--secondary">Nous contacter</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================
+       FAQ
+       ============================ -->
+  <section class="faq" id="faq">
+    <div class="container">
+      <div class="text-center">
+        <span class="section-label">FAQ</span>
+        <h2 class="section-title">Questions fr&eacute;quentes</h2>
+        <p class="section-subtitle mx-auto">
+          Tout ce que vous devez savoir avant de commencer.
+        </p>
+      </div>
+
+      <div class="faq__list">
+        <div class="faq-item">
+          <button class="faq-item__question" aria-expanded="false">
+            <span>Est-ce l&eacute;gal&nbsp;?</span>
+            <span class="faq-item__icon" aria-hidden="true">+</span>
+          </button>
+          <div class="faq-item__answer" role="region">
+            <div class="faq-item__answer-inner">
+              Carlytics analyse des donn&eacute;es publiquement accessibles. Nous respectons les CGU des plateformes et les r&eacute;glementations en vigueur, notamment le RGPD. Aucune donn&eacute;e personnelle n'est collect&eacute;e sur les plateformes tierces.
+            </div>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-item__question" aria-expanded="false">
+            <span>&Ccedil;a marche avec quels navigateurs&nbsp;?</span>
+            <span class="faq-item__icon" aria-hidden="true">+</span>
+          </button>
+          <div class="faq-item__answer" role="region">
+            <div class="faq-item__answer-inner">
+              Google Chrome uniquement pour le moment. Les navigateurs bas&eacute;s sur Chromium (Brave, Edge) sont &eacute;galement compatibles. Firefox arrive prochainement.
+            </div>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-item__question" aria-expanded="false">
+            <span>Je peux annuler &agrave; tout moment&nbsp;?</span>
+            <span class="faq-item__icon" aria-hidden="true">+</span>
+          </button>
+          <div class="faq-item__answer" role="region">
+            <div class="faq-item__answer-inner">
+              Oui, sans engagement. Vous pouvez annuler votre abonnement en un clic depuis votre dashboard. L'acc&egrave;s reste actif jusqu'&agrave; la fin de la p&eacute;riode en cours.
+            </div>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-item__question" aria-expanded="false">
+            <span>Combien de temps pour voir les premiers r&eacute;sultats&nbsp;?</span>
+            <span class="faq-item__icon" aria-hidden="true">+</span>
+          </button>
+          <div class="faq-item__answer" role="region">
+            <div class="faq-item__answer-inner">
+              Imm&eacute;diat. D&egrave;s l'installation, chaque v&eacute;hicule sur Auto1 est analys&eacute; automatiquement. Vous voyez les marges calcul&eacute;es en temps r&eacute;el sans rien configurer.
+            </div>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-item__question" aria-expanded="false">
+            <span>Et si LeBonCoin change son interface&nbsp;?</span>
+            <span class="faq-item__icon" aria-hidden="true">+</span>
+          </button>
+          <div class="faq-item__answer" role="region">
+            <div class="faq-item__answer-inner">
+              Notre &eacute;quipe technique maintient les connecteurs en permanence. Les mises &agrave; jour sont transparentes et automatiques, sans aucune action de votre part.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================
+       CTA Section
+       ============================ -->
+  <section class="cta-section">
+    <div class="container">
+      <h2 class="cta-section__title">Pr&ecirc;t &agrave; trouver votre prochain deal&nbsp;?</h2>
+      <p class="cta-section__text">
+        Rejoignez les marchands qui gagnent du temps et de l'argent avec Carlytics. Essai gratuit, sans carte bancaire.
+      </p>
+      <div class="cta-section__buttons">
+        <a href="#pricing" class="btn btn--white btn--lg">
+          Essai gratuit 14 jours
+          <span aria-hidden="true">&rarr;</span>
+        </a>
+        <a href="mailto:contact@carlytics.fr" class="btn btn--ghost btn--lg">
+          Nous contacter
+        </a>
+      </div>
+      <p class="cta-section__note">14 jours gratuits &middot; Sans engagement &middot; Sans carte bancaire</p>
+    </div>
+  </section>
+
+  <!-- ============================
+       Footer
+       ============================ -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer__inner">
+        <div class="footer__brand">
+          <div class="footer__logo">
+            <span class="footer__logo-icon">C</span>
+            Carlytics
+          </div>
+          <p class="footer__tagline">
+            Fait avec passion pour les pros du VO. Trouvez les deals, pas les maux de t&ecirc;te.
+          </p>
+        </div>
+
+        <div class="footer__links">
+          <div>
+            <div class="footer__col-title">Produit</div>
+            <ul class="footer__col-list">
+              <li><a href="#features">Fonctionnalit&eacute;s</a></li>
+              <li><a href="#pricing">Tarifs</a></li>
+              <li><a href="https://app.carlytics.fr" target="_blank" rel="noopener noreferrer">Dashboard</a></li>
+              <li><a href="#faq">FAQ</a></li>
+            </ul>
+          </div>
+          <div>
+            <div class="footer__col-title">L&eacute;gal</div>
+            <ul class="footer__col-list">
+              <li><a href="#">CGV</a></li>
+              <li><a href="#">Politique de confidentialit&eacute;</a></li>
+              <li><a href="#">Mentions l&eacute;gales</a></li>
+            </ul>
+          </div>
+          <div>
+            <div class="footer__col-title">Contact</div>
+            <ul class="footer__col-list">
+              <li><a href="mailto:contact@carlytics.fr">contact@carlytics.fr</a></li>
+              <li><a href="mailto:support@carlytics.fr">Support</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer__bottom">
+        <span class="footer__copy">&copy; 2026 Carlytics. Tous droits r&eacute;serv&eacute;s.</span>
+        <span class="footer__made">Fait avec passion pour les pros du VO</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ============================
+       Scripts
+       ============================ -->
+  <script>
+    (function () {
+      'use strict';
+
+      // --- Sticky header shadow on scroll ---
+      var header = document.getElementById('header');
+      var scrollThreshold = 10;
+
+      function onScroll() {
+        if (window.scrollY > scrollThreshold) {
+          header.classList.add('header--scrolled');
+        } else {
+          header.classList.remove('header--scrolled');
+        }
+      }
+      window.addEventListener('scroll', onScroll, { passive: true });
+
+      // --- Mobile menu toggle ---
+      var menuToggle = document.getElementById('menu-toggle');
+      var mobileNav = document.getElementById('mobile-nav');
+      var isMenuOpen = false;
+
+      function toggleMenu() {
+        isMenuOpen = !isMenuOpen;
+        if (isMenuOpen) {
+          mobileNav.classList.add('is-open');
+          menuToggle.setAttribute('aria-expanded', 'true');
+          document.body.style.overflow = 'hidden';
+        } else {
+          mobileNav.classList.remove('is-open');
+          menuToggle.setAttribute('aria-expanded', 'false');
+          document.body.style.overflow = '';
+        }
+      }
+
+      menuToggle.addEventListener('click', toggleMenu);
+
+      // Close mobile nav when a link is clicked
+      var mobileLinks = document.querySelectorAll('[data-mobile-link]');
+      mobileLinks.forEach(function (link) {
+        link.addEventListener('click', function () {
+          if (isMenuOpen) toggleMenu();
+        });
+      });
+
+      // --- FAQ accordion ---
+      var faqItems = document.querySelectorAll('.faq-item');
+
+      faqItems.forEach(function (item) {
+        var question = item.querySelector('.faq-item__question');
+
+        question.addEventListener('click', function () {
+          var isOpen = item.classList.contains('is-open');
+
+          // Close all items first
+          faqItems.forEach(function (other) {
+            other.classList.remove('is-open');
+            other.querySelector('.faq-item__question').setAttribute('aria-expanded', 'false');
+          });
+
+          // Open clicked item (if it was closed)
+          if (!isOpen) {
+            item.classList.add('is-open');
+            question.setAttribute('aria-expanded', 'true');
+          }
+        });
+      });
+
+      // --- Smooth scroll for anchor links (fallback for Safari) ---
+      document.querySelectorAll('a[href^="#"]').forEach(function (anchor) {
+        anchor.addEventListener('click', function (e) {
+          var targetId = this.getAttribute('href');
+          if (targetId === '#') return;
+          var target = document.querySelector(targetId);
+          if (target) {
+            e.preventDefault();
+            var headerHeight = header.offsetHeight;
+            var targetPosition = target.getBoundingClientRect().top + window.pageYOffset - headerHeight;
+            window.scrollTo({
+              top: targetPosition,
+              behavior: 'smooth'
+            });
+          }
+        });
+      });
+    })();
+  </script>
+
+</body>
+</html>

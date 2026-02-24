@@ -5,6 +5,7 @@
   "description": "Intelligence artificielle pour l'estimation des prix de voitures avec détection d'options premium",
   "permissions": ["scripting", "activeTab", "storage"],
   "host_permissions": [
+    "https://api.carlytics.fr/*",
     "http://localhost:9001/*",
     "http://127.0.0.1:9001/*"
   ],

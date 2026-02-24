@@ -1,0 +1,103 @@
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+      - static_files:/srv:ro
+      - ./landing:/srv/landing:ro
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - web
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    expose:
+      - "9001"
+    env_file:
+      - ./server/.env
+    environment:
+      - DATABASE_URL=postgres://cpf:${POSTGRES_PASSWORD:-cpf_secret}@postgres:5432/carpricefinder
+      - NODE_ENV=production
+      - PORT=9001
+    volumes:
+      - static_files:/static_output
+    # Copy built dashboard to shared volume on startup, then run the server
+    command: >
+      sh -c "
+        cp -r /app/public/dashboard /static_output/ 2>/dev/null || true;
+        exec node lbcScraper.js
+      "
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:9001/api/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
+    networks:
+      - web
+      - db
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: carpricefinder
+      POSTGRES_USER: cpf
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cpf_secret}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./server/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-EXEC", "pg_isready -U cpf -d carpricefinder"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - db
+
+  backup:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      PGHOST: postgres
+      PGUSER: cpf
+      PGPASSWORD: ${POSTGRES_PASSWORD:-cpf_secret}
+      PGDATABASE: carpricefinder
+    volumes:
+      - ./backups:/backups
+    entrypoint: >
+      sh -c "while true; do
+        pg_dump -Fc > /backups/cpf_$$(date +%Y%m%d_%H%M%S).dump;
+        find /backups -name '*.dump' -mtime +7 -delete;
+        sleep 21600;
+      done"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - db
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:
+  static_files:
+
+networks:
+  web:
+  db:

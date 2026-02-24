@@ -2,37 +2,21 @@
   // Settings and cache management
   let extensionSettings = {
     requestTimeout: 5000,
-    cacheTimeout: 86400000, // 24 hours
-    serverUrl: 'http://localhost:9001'
+    cacheTimeout: 86400000, // 24 hours (ONLY for successful results with LBC price)
+    serverUrl: 'http://localhost:9001',  // ✅ Changed to local for testing
+    apiKey: ''
   };
   
-  let cacheStats = { hits: 0, requests: 0 };
-  let forceRefreshMode = false;
+  // ✅ SIMPLIFIED: No cache stats needed - server handles caching
   
   // Load settings from chrome storage
   async function loadExtensionSettings() {
     try {
       if (typeof chrome !== 'undefined' && chrome.storage) {
-        const result = await chrome.storage.local.get(['carFinderSettings', 'carFinderStats', 'carFinderForceRefresh']);
+        const result = await chrome.storage.local.get(['carFinderSettings']);
         if (result.carFinderSettings) {
           extensionSettings = { ...extensionSettings, ...result.carFinderSettings };
           console.log('[⚙️ Settings] Loaded from storage:', extensionSettings);
-        }
-        if (result.carFinderStats) {
-          cacheStats = result.carFinderStats;
-        }
-        
-        // Check force refresh mode
-        if (result.carFinderForceRefresh) {
-          const now = Date.now();
-          // Force refresh mode expires after 5 minutes
-          if (now - result.carFinderForceRefresh.timestamp < 300000) {
-            forceRefreshMode = true;
-            console.log('[🔄 Force Refresh] Mode enabled - bypassing cache');
-          } else {
-            // Clean up expired force refresh flag
-            chrome.storage.local.remove(['carFinderForceRefresh']);
-          }
         }
       }
     } catch (error) {
@@ -47,281 +31,82 @@
         extensionSettings = { ...extensionSettings, ...message.settings };
         console.log('[⚙️ Settings] Updated from popup:', extensionSettings);
         sendResponse({ success: true });
-      } else if (message.type === 'CLEAR_CACHE') {
-        analysisCache.clear();
-        cacheStats = { hits: 0, requests: 0 };
-        console.log('[🗑️ Cache] Cleared from popup command');
-        sendResponse({ success: true });
-      } else if (message.type === 'FORCE_REFRESH') {
-        forceRefreshMode = true;
-        console.log('[🔄 Force Refresh] Enabled from popup - next analyses will bypass cache');
-        sendResponse({ success: true });
-        
-        // Auto-disable force refresh after 5 minutes
-        setTimeout(() => {
-          forceRefreshMode = false;
-          console.log('[🔄 Force Refresh] Auto-disabled after 5 minutes');
-        }, 300000);
       }
+      // ✅ CLEAR_CACHE and FORCE_REFRESH removed - server handles caching
     });
   }
 
-  // Cache system for car analysis
-  class CarAnalysisCache {
-    constructor() {
-      this.cache = new Map();
-      this.pendingRequests = new Map(); // ✅ FIX #1: Track requests in progress
-      this.loadFromStorage();
+  // ✅ SIMPLIFIED: No client cache - server handles all caching
+  // Simple fetch with retry logic
+  const pendingRequests = new Map(); // Track requests in progress to avoid duplicates
+
+  async function fetchAnalysis(fetchUrl) {
+    // Check if request already in progress for this URL
+    if (pendingRequests.has(fetchUrl)) {
+      console.log('[🔄] Request already in progress, waiting...');
+      return await pendingRequests.get(fetchUrl);
     }
 
-    async loadFromStorage() {
-      try {
-        if (typeof chrome !== 'undefined' && chrome.storage) {
-          const result = await chrome.storage.local.get(['carFinderCache']);
-          if (result.carFinderCache) {
-            this.cache = new Map(Object.entries(result.carFinderCache));
-            console.log(`[💾 Cache] Loaded ${this.cache.size} entries from storage`);
-          }
-        }
-      } catch (error) {
-        console.warn('[💾 Cache] Could not load from storage:', error.message);
-      }
-    }
+    // Create new request promise
+    const requestPromise = performFetch(fetchUrl);
+    pendingRequests.set(fetchUrl, requestPromise);
 
-    async saveToStorage() {
-      try {
-        if (typeof chrome !== 'undefined' && chrome.storage) {
-          const cacheObj = Object.fromEntries(this.cache);
-          const cacheString = JSON.stringify({ carFinderCache: cacheObj });
-          const cacheSize = new Blob([cacheString]).size;
-
-          // ✅ FIX #3: Check quota before saving (5MB limit, Chrome has 10MB)
-          const MAX_CACHE_SIZE = 5 * 1024 * 1024; // 5MB
-
-          if (cacheSize > MAX_CACHE_SIZE) {
-            console.warn(`[⚠️ Cache] Size excessive (${(cacheSize / 1024 / 1024).toFixed(2)}MB), nettoyage...`);
-            await this.cleanOldestEntries(MAX_CACHE_SIZE);
-            return; // Retry after cleanup
-          }
-
-          await chrome.storage.local.set({ carFinderCache: cacheObj });
-          console.log(`[💾 Cache] Saved ${(cacheSize / 1024).toFixed(2)}KB`);
-        }
-      } catch (error) {
-        // ✅ FIX #3: Handle quota exceeded errors
-        if (error.message && error.message.includes('QUOTA')) {
-          console.error('[🚨 Cache] Quota exceeded, emergency cleanup');
-          await this.clear();
-          this.showError('Cache plein, nettoyage automatique effectué');
-        } else {
-          console.warn('[💾 Cache] Could not save to storage:', error.message);
-        }
-      }
-    }
-
-    // ✅ FIX #3: New method to clean oldest entries when quota exceeded
-    async cleanOldestEntries(targetSize) {
-      const entries = Array.from(this.cache.entries())
-        .sort((a, b) => a[1].timestamp - b[1].timestamp); // Sort by timestamp (oldest first)
-
-      let removedCount = 0;
-      while (entries.length > 0) {
-        const [key] = entries.shift();
-        this.cache.delete(key);
-        removedCount++;
-
-        const currentSize = new Blob([JSON.stringify(Object.fromEntries(this.cache))]).size;
-        if (currentSize < targetSize * 0.8) break; // Keep 20% margin
-      }
-
-      await chrome.storage.local.set({ carFinderCache: Object.fromEntries(this.cache) });
-      console.log(`[🧹 Cache] Cleaned ${removedCount} oldest entries, ${this.cache.size} remaining`);
-    }
-
-    showError(message) {
-      // Display error notification to user
-      if (typeof chrome !== 'undefined' && chrome.notifications) {
-        chrome.notifications.create({
-          type: 'basic',
-          iconUrl: 'icon128.png',
-          title: 'CarPriceFinder',
-          message: message
-        });
-      }
-    }
-
-    generateKey(carData) {
-      // Create unique key based on car characteristics
-      const keyData = {
-        brand: carData.manufacturerName,
-        model: carData.mainType,
-        year: new Date(carData.firstRegistrationDate).getFullYear(),
-        km: carData.km,
-        fuel: carData.fuelType,
-        description: (carData.description || '').substring(0, 100), // First 100 chars
-        equipment: (carData.equipment || []).sort().join(',').substring(0, 100)
-      };
-      
-      return btoa(JSON.stringify(keyData)).replace(/[/+=]/g, ''); // Base64 encode and clean
-    }
-
-    get(carData) {
-      const key = this.generateKey(carData);
-      const entry = this.cache.get(key);
-      
-      if (!entry) {
-        return null;
-      }
-
-      // Check if cache entry is still valid
-      const now = Date.now();
-      if (now - entry.timestamp > extensionSettings.cacheTimeout) {
-        this.cache.delete(key);
-        this.saveToStorage();
-        console.log(`[💾 Cache] Expired entry removed for key: ${key.substring(0, 10)}...`);
-        return null;
-      }
-
-      cacheStats.hits++;
-      this.updateStats();
-      console.log(`[💾 Cache] HIT for ${entry.data.brand} ${entry.data.model} (age: ${Math.round((now - entry.timestamp) / 1000 / 60)}min)`);
-      return entry.data;
-    }
-
-    set(carData, analysisResult) {
-      const key = this.generateKey(carData);
-      const entry = {
-        timestamp: Date.now(),
-        data: {
-          brand: carData.manufacturerName,
-          model: carData.mainType,
-          stockNumber: carData.stockNumber,
-          analysisResult: analysisResult
-        }
-      };
-
-      this.cache.set(key, entry);
-      this.saveToStorage();
-      
-      console.log(`[💾 Cache] STORED analysis for ${carData.manufacturerName} ${carData.mainType} (${carData.stockNumber})`);
-      
-      // Cleanup old entries if cache gets too large
-      if (this.cache.size > 200) {
-        this.cleanup();
-      }
-    }
-
-    cleanup() {
-      const now = Date.now();
-      let removed = 0;
-      
-      for (const [key, entry] of this.cache.entries()) {
-        if (now - entry.timestamp > extensionSettings.cacheTimeout) {
-          this.cache.delete(key);
-          removed++;
-        }
-      }
-      
-      // If still too large, remove oldest entries
-      if (this.cache.size > 150) {
-        const entries = Array.from(this.cache.entries())
-          .sort((a, b) => a[1].timestamp - b[1].timestamp);
-        
-        const toRemove = this.cache.size - 150;
-        for (let i = 0; i < toRemove; i++) {
-          this.cache.delete(entries[i][0]);
-          removed++;
-        }
-      }
-      
-      if (removed > 0) {
-        this.saveToStorage();
-        console.log(`[💾 Cache] Cleaned up ${removed} entries, ${this.cache.size} remaining`);
-      }
-    }
-
-    updateStats() {
-      if (typeof chrome !== 'undefined' && chrome.storage) {
-        chrome.storage.local.set({ carFinderStats: cacheStats });
-      }
-    }
-
-    clear() {
-      this.cache.clear();
-      this.saveToStorage();
-      console.log('[💾 Cache] Cleared all entries');
-    }
-
-    // ✅ FIX #1: Prevent race conditions with pending request tracking
-    async fetchAnalysis(carData, fetchUrl, forceRefresh = false) {
-      const key = this.generateKey(carData);
-
-      // Check if request already in progress
-      if (this.pendingRequests.has(key)) {
-        console.log('[🔄 Cache] Request already in progress, waiting...');
-        return await this.pendingRequests.get(key);
-      }
-
-      // Check cache first (unless force refresh)
-      if (!forceRefresh) {
-        const cachedResult = this.get(carData);
-        if (cachedResult) {
-          return { ...cachedResult, fromCache: true };
-        }
-      }
-
-      // Create new request promise
-      const requestPromise = this._performFetch(carData, fetchUrl, key, forceRefresh);
-      this.pendingRequests.set(key, requestPromise);
-
-      try {
-        const result = await requestPromise;
-        return result;
-      } finally {
-        // ✅ Cleanup pending request after completion
-        this.pendingRequests.delete(key);
-      }
-    }
-
-    async _performFetch(carData, fetchUrl, key, forceRefresh) {
-      try {
-        const response = await fetch(fetchUrl);
-
-        // ✅ FIX #2: Handle 429 rate limit with exponential backoff
-        if (response.status === 429) {
-          const retryAfter = response.headers.get('Retry-After') || 2;
-          console.warn(`[⏳ Rate Limit] Waiting ${retryAfter}s before retry...`);
-
-          await this._sleep(retryAfter * 1000);
-          return await this._performFetch(carData, fetchUrl, key, forceRefresh); // Retry once
-        }
-
-        if (!response.ok) {
-          throw new Error(`Server error: ${response.status}`);
-        }
-
-        const data = await response.json();
-
-        // Cache the result (unless force refresh)
-        if (!forceRefresh) {
-          this.set(carData, data);
-        }
-
-        return { ...data, fromCache: false };
-
-      } catch (error) {
-        console.error('[❌ Fetch] Error:', error.message);
-        throw error;
-      }
-    }
-
-    _sleep(ms) {
-      return new Promise(resolve => setTimeout(resolve, ms));
+    try {
+      const result = await requestPromise;
+      return result;
+    } finally {
+      // Cleanup pending request after completion
+      pendingRequests.delete(fetchUrl);
     }
   }
 
-  // Initialize cache and settings
-  const analysisCache = new CarAnalysisCache();
+  async function performFetch(fetchUrl, retryCount = 0) {
+    const MAX_RETRIES = 1;
+
+    try {
+      const fetchOptions = {};
+      if (extensionSettings.apiKey) {
+        fetchOptions.headers = { 'X-API-Key': extensionSettings.apiKey };
+      }
+
+      const response = await fetch(fetchUrl, fetchOptions);
+
+      // Handle 401/403 auth errors with specific messages
+      if (response.status === 401) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || 'Clé API requise. Configurez-la dans les paramètres de l\'extension.');
+      }
+      if (response.status === 403) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || 'Abonnement expiré ou clé invalide.');
+      }
+
+      // Handle 429 rate limit with retry (max 1 retry)
+      if (response.status === 429 && retryCount < MAX_RETRIES) {
+        const retryAfter = response.headers.get('Retry-After') || 2;
+        console.warn(`[⏳ Rate Limit] Waiting ${retryAfter}s before retry (attempt ${retryCount + 1}/${MAX_RETRIES})...`);
+        await sleep(retryAfter * 1000);
+        return await performFetch(fetchUrl, retryCount + 1);
+      }
+
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data; // Server returns fromCache: true if cached
+
+    } catch (error) {
+      console.error('[❌ Fetch] Error:', error.message);
+      throw error;
+    }
+  }
+
+  function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  // Initialize settings
   loadExtensionSettings();
 
   // Interception XHR
@@ -506,6 +291,10 @@
       this.list.push(vehicleEntry);
       await this.saveList();
       console.log(`[📋 Liste] Véhicule ${carData.stockNumber} ajouté (${this.list.length} total)`);
+
+      // Sync to backend (non-blocking)
+      this.syncToBackend(vehicleEntry).catch(() => {});
+
       return true;
     }
 
@@ -516,6 +305,10 @@
       if (this.list.length < initialLength) {
         await this.saveList();
         console.log(`[📋 Liste] Véhicule ${stockNumber} retiré`);
+
+        // Delete from backend (non-blocking)
+        this.deleteFromBackend(stockNumber).catch(() => {});
+
         return true;
       }
       return false;
@@ -530,6 +323,121 @@
         await storageHelper.set({ carFinderSelectedList: this.list });
       } catch (error) {
         console.error('[📋 Liste] Erreur sauvegarde:', error.message);
+      }
+    }
+
+    // ✅ BACKEND SYNC METHODS
+    // Uses module-level extensionSettings (loaded at startup, updated via SETTINGS_UPDATED listener)
+
+    async syncToBackend(vehicle) {
+      try {
+        const apiKey = extensionSettings.apiKey;
+        if (!apiKey) return; // No API key configured, skip sync
+
+        const serverUrl = extensionSettings.serverUrl || 'https://api.carlytics.fr';
+
+        await fetch(`${serverUrl}/api/vehicles`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-API-Key': apiKey
+          },
+          body: JSON.stringify({
+            stockNumber: vehicle.stockNumber,
+            brand: vehicle.brand,
+            model: vehicle.model,
+            year: vehicle.year,
+            km: vehicle.km,
+            fuel: vehicle.fuel,
+            gearbox: vehicle.gearbox,
+            power: vehicle.power,
+            doors: vehicle.doors,
+            color: vehicle.color,
+            auto1Price: vehicle.auto1Price,
+            estimatedPrice: vehicle.estimatedPrice,
+            margin: vehicle.margin,
+            detectedOptions: vehicle.detectedOptions || [],
+            equipment: vehicle.equipment || [],
+            photos: vehicle.photos || [],
+            catboxUrls: vehicle.imgurAlbumUrl ? [vehicle.imgurAlbumUrl] : [],
+            notes: ''
+          })
+        });
+
+        console.log('[🔄 Sync] Vehicle synced to backend:', vehicle.stockNumber);
+      } catch (err) {
+        console.log('[🔄 Sync] Backend sync failed (non-critical):', err.message);
+      }
+    }
+
+    async deleteFromBackend(stockNumber) {
+      try {
+        const apiKey = extensionSettings.apiKey;
+        if (!apiKey) return; // No API key configured, skip sync
+
+        const serverUrl = extensionSettings.serverUrl || 'https://api.carlytics.fr';
+
+        await fetch(`${serverUrl}/api/vehicles/${encodeURIComponent(stockNumber)}`, {
+          method: 'DELETE',
+          headers: { 'X-API-Key': apiKey }
+        });
+
+        console.log('[🔄 Sync] Vehicle deleted from backend:', stockNumber);
+      } catch (err) {
+        console.log('[🔄 Sync] Backend delete failed (non-critical):', err.message);
+      }
+    }
+
+    async syncAllToBackend() {
+      try {
+        const apiKey = extensionSettings.apiKey;
+        if (!apiKey) return; // No API key configured, skip sync
+
+        const vehicles = this.list;
+        if (!vehicles || vehicles.length === 0) return;
+
+        const serverUrl = extensionSettings.serverUrl || 'https://api.carlytics.fr';
+
+        // Sync each vehicle (sequential to avoid rate limits)
+        let synced = 0;
+        for (const vehicle of vehicles) {
+          try {
+            await fetch(`${serverUrl}/api/vehicles`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-API-Key': apiKey
+              },
+              body: JSON.stringify({
+                stockNumber: vehicle.stockNumber,
+                brand: vehicle.brand,
+                model: vehicle.model,
+                year: vehicle.year,
+                km: vehicle.km,
+                fuel: vehicle.fuel,
+                gearbox: vehicle.gearbox,
+                power: vehicle.power,
+                doors: vehicle.doors,
+                color: vehicle.color,
+                auto1Price: vehicle.auto1Price,
+                estimatedPrice: vehicle.estimatedPrice,
+                margin: vehicle.margin,
+                detectedOptions: vehicle.detectedOptions || [],
+                equipment: vehicle.equipment || [],
+                photos: vehicle.photos || [],
+                catboxUrls: vehicle.imgurAlbumUrl ? [vehicle.imgurAlbumUrl] : [],
+                notes: ''
+              })
+            });
+            synced++;
+          } catch (e) {
+            // Skip individual failures, continue with next vehicle
+          }
+        }
+
+        console.log(`[🔄 Sync] Synced ${synced}/${vehicles.length} vehicles to backend`);
+      } catch (err) {
+        console.log('[🔄 Sync] Full sync failed:', err.message);
       }
     }
 
@@ -617,6 +525,32 @@
   function injectPluginPrices(hits) {
     console.log(`[🔍 injectPluginPrices] ${hits.length} véhicules à traiter (timeout: ${extensionSettings.requestTimeout}ms)`);
 
+    // ✅ PHASE 1: Afficher TOUS les indicateurs de loading IMMÉDIATEMENT
+    console.log('[⚡ PHASE 1] Affichage de tous les indicateurs de loading...');
+    hits.forEach((car, i) => {
+      const stockId = car.stockNumber;
+      const card = document.querySelector(`.big-car-card[data-qa-id="${stockId}"]`);
+
+      if (!card) {
+        console.log(`[❌ VEHICULE ${i}] Carte non trouvée pour stockNumber=${stockId}`);
+        return;
+      }
+
+      if (card.querySelector(".plugin-price") || card.querySelector(".plugin-loading")) {
+        console.log(`[🔁 VEHICULE ${i}] Bloc déjà présent pour ${stockId}`);
+        return;
+      }
+
+      // Show loading immediately
+      const loadingDiv = createLoadingIndicator(extensionSettings.requestTimeout);
+      const insertLocation = card.querySelector(".big-car-card__title");
+      if (insertLocation && insertLocation.parentNode) {
+        insertLocation.parentNode.insertBefore(loadingDiv, insertLocation.nextSibling);
+      }
+    });
+
+    // ✅ PHASE 2: Faire les requêtes avec délai entre elles
+    console.log('[⚡ PHASE 2] Lancement des requêtes avec délai...');
     hits.forEach((car, i) => {
       setTimeout(() => {
         const stockId = car.stockNumber;
@@ -632,11 +566,6 @@
 
         if (!card) {
           console.log(`[❌ VEHICULE ${i}] Carte non trouvée pour stockNumber=${stockId}`);
-          return;
-        }
-
-        if (card.querySelector(".plugin-price")) {
-          console.log(`[🔁 VEHICULE ${i}] Bloc déjà injecté pour ${stockId}`);
           return;
         }
 
@@ -663,13 +592,6 @@
           images: car.images || []  // ✅ FIX: Include images array for photo extraction
         };
 
-        // Show loading with timeout info and cache status
-        const loadingDiv = createLoadingIndicator(extensionSettings.requestTimeout, forceRefreshMode);
-        const insertLocation = card.querySelector(".big-car-card__title");
-        if (insertLocation && insertLocation.parentNode) {
-          insertLocation.parentNode.insertBefore(loadingDiv, insertLocation.nextSibling);
-        }
-
         // Prepare API request
         const searchModel = `${car.manufacturerName} ${car.mainType}`.trim();
         const year = new Date(car.firstRegistrationDate).getFullYear();
@@ -679,14 +601,14 @@
         const gearbox = (car.gearType || "").toLowerCase();
         const carModel = (car.mainType || "").trim();
         const doors = car.doors || "";
-        const vehicleType = mapBodyType(car.bodyType || "");
+        // ✅ FIX: Ne plus envoyer vehicle_type - incohérent entre Auto1 et LBC
+        // const vehicleType = mapBodyType(car.bodyType || "");
 
         let estUrl = `${extensionSettings.serverUrl}/api/estimation?model=${encodeURIComponent(searchModel)}&year=${year}&km=${km}&brand=${brand}&fuel=${fuel}&gearbox=${gearbox}&carModel=${encodeURIComponent(carModel)}&doors=${encodeURIComponent(doors)}&carData=${encodeURIComponent(JSON.stringify(carDataForAI))}`;
-        if (vehicleType) estUrl += `&vehicle_type=${encodeURIComponent(vehicleType)}`;
+        // if (vehicleType) estUrl += `&vehicle_type=${encodeURIComponent(vehicleType)}`;
 
-        // ✅ FIX #1 & #2: Use new fetchAnalysis method with race condition protection and 429 handling
-        cacheStats.requests++;
-        analysisCache.fetchAnalysis(carDataForAI, estUrl, forceRefreshMode)
+        // ✅ SIMPLIFIED: Direct server call - cache handled by server
+        fetchAnalysis(estUrl)
           .then(data => {
             // Remove loading indicator
             const loadingElement = card.querySelector(".plugin-loading");
@@ -695,10 +617,9 @@
             }
 
             // Render result
-            renderCarAnalysis(card, carDataForAI, data, euros, data.fromCache || false);
+            renderCarAnalysis(card, carDataForAI, data, euros);
 
-            const cacheStatus = data.fromCache ? '(from cache)' : '(fresh)';
-            console.log(`[✅ VEHICULE ${i}] Analysis complete for ${stockId} ${cacheStatus} (${data.aiAnalysis?.detectedOptions?.length || 0} options detected)`);
+            console.log(`[✅ VEHICULE ${i}] Analysis complete for ${stockId} (${data.aiAnalysis?.detectedOptions?.length || 0} options detected)`);
           })
           .catch(err => {
             // Remove loading indicator
@@ -714,7 +635,7 @@
     });
   }
 
-  function createLoadingIndicator(timeout, forceRefresh = false) {
+  function createLoadingIndicator(timeout) {
     const loadingDiv = document.createElement("div");
     loadingDiv.className = "plugin-loading";
     loadingDiv.style = `
@@ -727,8 +648,6 @@
     `;
 
     const timeoutSec = Math.round(timeout / 1000);
-    const refreshStatus = forceRefresh ? '<span style="background: rgba(255,193,7,0.2); color: #FFD700; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: 600; margin-left: 8px;">🔄 FORCE REFRESH</span>' : '';
-    const cacheCount = analysisCache.cache.size;
 
     loadingDiv.innerHTML = `
       <div style="display: flex; align-items: center; gap: 12px;">
@@ -745,7 +664,7 @@
             🤖 Analyse IA en cours...
           </div>
           <div style="font-size: 11px; color: rgba(255,255,255,0.7); font-weight: 500;">
-            ⏱️ Timeout: ${timeoutSec}s • 💾 Cache: ${cacheCount} entrées${refreshStatus}
+            ⏱️ Timeout: ${timeoutSec}s
           </div>
         </div>
       </div>
@@ -768,7 +687,7 @@
     return div.innerHTML;
   }
 
-  function renderCarAnalysis(card, carData, analysisData, euros, fromCache) {
+  function renderCarAnalysis(card, carData, analysisData, euros) {
     const pluginPriceDiv = document.createElement("div");
     pluginPriceDiv.className = "plugin-price";
     pluginPriceDiv.style = `
@@ -801,7 +720,7 @@
       isProfit = profit > 0;
     }
 
-    // Section gauche: Prix face à face
+    // Section gauche: Prix face à face avec badge CACHED
     const pricesSection = document.createElement('div');
     pricesSection.style = `
       display: flex;
@@ -975,11 +894,13 @@
           // Upload photos to Imgur if available
           if (photos && photos.length > 0) {
             try {
+              const uploadHeaders = { 'Content-Type': 'application/json' };
+              if (extensionSettings.apiKey) {
+                uploadHeaders['X-API-Key'] = extensionSettings.apiKey;
+              }
               const uploadResponse = await fetch(`${extensionSettings.serverUrl}/api/upload-images`, {
                 method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json'
-                },
+                headers: uploadHeaders,
                 body: JSON.stringify({
                   imageUrls: photos,
                   title: `${carData.manufacturerName} ${carData.mainType} - ${carData.firstRegistrationYear}`
@@ -1098,8 +1019,15 @@
       text = `${searchModel} ${premiumOptions}`.trim();
     }
 
-    // Add price filter (50% of Auto1 price) to the URL
-    const modelParam = encodeURIComponent(`${brand}_${frenchModel}`);
+    // ✅ FIX: Pour Mercedes avec -Klasse, générer les DEUX formats séparés par virgule
+    let modelParam;
+    if (brand === 'MERCEDES-BENZ' && originalModel.includes('-Klasse')) {
+      const base = originalModel.replace(/-Klasse$/, ''); // Ex: CLA-Klasse → CLA
+      modelParam = encodeURIComponent(`${brand}_${base},${brand}_Classe ${base}`);
+    } else {
+      modelParam = encodeURIComponent(`${brand}_${frenchModel}`);
+    }
+
     let lbcUrl = `https://www.leboncoin.fr/recherche?category=2&text=${encodeURIComponent(text)}&regdate=${year-2}-${year+2}&mileage=${Math.max(1, km - 30000)}-${km + 30000}&gearbox=${mapGearbox(gearbox)}&fuel=${mapFuelType(fuel)}&u_car_brand=${brand}&u_car_model=${modelParam}&doors=${doors}&sort=price&order=asc`;
     
     // Add minimum price filter if available
