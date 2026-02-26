@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Carlytics Beta — Testez gratuitement l'outil qui calcule vos marges VO</title>
+  <meta name="description" content="Rejoignez la beta gratuite de Carlytics. Extension Chrome qui affiche automatiquement la marge LeBonCoin sur chaque vehicule Auto1.">
+  <meta name="robots" content="noindex">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%233b82f6'/><text x='50' y='68' font-size='55' font-weight='bold' text-anchor='middle' fill='white' font-family='system-ui'>C</text></svg>">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --color-primary: #3b82f6;
+      --color-primary-dark: #2563eb;
+      --color-dark: #1a1a2e;
+      --color-light: #f8f9fa;
+      --color-white: #ffffff;
+      --color-gray-100: #f3f4f6;
+      --color-gray-300: #d1d5db;
+      --color-gray-500: #6b7280;
+      --color-gray-700: #374151;
+      --color-green: #10b981;
+      --color-green-bg: #ecfdf5;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-sans);
+      color: var(--color-gray-700);
+      background: var(--color-light);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    /* Header */
+    .header {
+      background: var(--color-white);
+      border-bottom: 1px solid var(--color-gray-100);
+      padding: 1rem 0;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header__inner {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .header__logo {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      text-decoration: none;
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--color-dark);
+    }
+
+    .header__logo-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      background: var(--color-primary);
+      color: white;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 800;
+    }
+
+    .header__badge {
+      background: var(--color-green-bg);
+      color: var(--color-green);
+      padding: 0.25rem 0.75rem;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    /* Hero */
+    .hero {
+      text-align: center;
+      padding: 3rem 1.5rem 2rem;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .hero__badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: #eff6ff;
+      color: var(--color-primary);
+      padding: 0.4rem 1rem;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 1.5rem;
+    }
+
+    .hero__badge-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--color-green);
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .hero h1 {
+      font-size: clamp(1.75rem, 4vw, 2.5rem);
+      color: var(--color-dark);
+      line-height: 1.2;
+      margin-bottom: 1rem;
+    }
+
+    .hero h1 span {
+      color: var(--color-primary);
+    }
+
+    .hero p {
+      font-size: 1.1rem;
+      color: var(--color-gray-500);
+      max-width: 600px;
+      margin: 0 auto 2rem;
+    }
+
+    /* Value props */
+    .values {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      max-width: 800px;
+      margin: 0 auto 2.5rem;
+      padding: 0 1.5rem;
+    }
+
+    .value-card {
+      background: var(--color-white);
+      border: 1px solid var(--color-gray-100);
+      border-radius: 12px;
+      padding: 1.25rem;
+      text-align: center;
+    }
+
+    .value-card__icon {
+      font-size: 1.75rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .value-card__title {
+      font-weight: 700;
+      color: var(--color-dark);
+      font-size: 0.95rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .value-card__desc {
+      color: var(--color-gray-500);
+      font-size: 0.85rem;
+    }
+
+    /* Form section */
+    .form-section {
+      max-width: 560px;
+      margin: 0 auto 3rem;
+      padding: 0 1.5rem;
+    }
+
+    .form-card {
+      background: var(--color-white);
+      border: 1px solid var(--color-gray-100);
+      border-radius: 16px;
+      padding: 2rem;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.07);
+    }
+
+    .form-card h2 {
+      font-size: 1.35rem;
+      color: var(--color-dark);
+      margin-bottom: 0.25rem;
+    }
+
+    .form-card__sub {
+      color: var(--color-gray-500);
+      font-size: 0.9rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .form-group {
+      margin-bottom: 1.25rem;
+    }
+
+    .form-group label {
+      display: block;
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: var(--color-dark);
+      margin-bottom: 0.35rem;
+    }
+
+    .form-group label .required {
+      color: #ef4444;
+    }
+
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      padding: 0.7rem 0.9rem;
+      border: 1.5px solid var(--color-gray-300);
+      border-radius: 10px;
+      font-size: 0.95rem;
+      font-family: var(--font-sans);
+      color: var(--color-dark);
+      background: var(--color-white);
+      transition: border-color 0.2s, box-shadow 0.2s;
+      outline: none;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+    }
+
+    .form-group input::placeholder {
+      color: var(--color-gray-300);
+    }
+
+    .btn-submit {
+      width: 100%;
+      padding: 0.85rem;
+      background: var(--color-primary);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 700;
+      font-family: var(--font-sans);
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+      margin-top: 0.5rem;
+    }
+
+    .btn-submit:hover { background: var(--color-primary-dark); }
+    .btn-submit:active { transform: scale(0.98); }
+    .btn-submit:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    /* Success state */
+    .success-msg {
+      display: none;
+      text-align: center;
+      padding: 2rem;
+    }
+
+    .success-msg.visible { display: block; }
+
+    .success-msg__icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+    }
+
+    .success-msg h3 {
+      font-size: 1.3rem;
+      color: var(--color-dark);
+      margin-bottom: 0.5rem;
+    }
+
+    .success-msg p {
+      color: var(--color-gray-500);
+      font-size: 0.95rem;
+    }
+
+    /* Error message */
+    .error-msg {
+      display: none;
+      background: #fef2f2;
+      color: #dc2626;
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      margin-bottom: 1rem;
+    }
+
+    .error-msg.visible { display: block; }
+
+    /* Trust bar */
+    .trust {
+      text-align: center;
+      padding: 1.5rem;
+      max-width: 600px;
+      margin: 0 auto 2rem;
+    }
+
+    .trust p {
+      color: var(--color-gray-500);
+      font-size: 0.85rem;
+      line-height: 1.5;
+    }
+
+    /* Footer */
+    .footer {
+      text-align: center;
+      padding: 2rem;
+      color: var(--color-gray-500);
+      font-size: 0.8rem;
+      border-top: 1px solid var(--color-gray-100);
+    }
+
+    @media (max-width: 640px) {
+      .values { grid-template-columns: 1fr; }
+      .form-card { padding: 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="header">
+    <div class="header__inner">
+      <a href="/" class="header__logo">
+        <span class="header__logo-icon">C</span>
+        Carlytics
+      </a>
+      <span class="header__badge">Beta gratuite</span>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="hero__badge">
+      <span class="hero__badge-dot"></span>
+      Places limitees — 10 testeurs max
+    </div>
+    <h1>Voyez la <span>marge sur chaque vehicule</span> Auto1 en 1 clic</h1>
+    <p>Extension Chrome qui affiche automatiquement le prix LeBonCoin et la marge potentielle directement sur Auto1. Gratuit pendant la beta.</p>
+  </section>
+
+  <div class="values">
+    <div class="value-card">
+      <div class="value-card__icon">⚡</div>
+      <div class="value-card__title">Marge instantanee</div>
+      <div class="value-card__desc">Prix LBC affiche directement sur la page Auto1</div>
+    </div>
+    <div class="value-card">
+      <div class="value-card__icon">🏷️</div>
+      <div class="value-card__title">Options premium</div>
+      <div class="value-card__desc">Detecte M-Sport, AMG, S-Line et ajuste le prix</div>
+    </div>
+    <div class="value-card">
+      <div class="value-card__icon">⏱️</div>
+      <div class="value-card__title">10h/semaine gagnees</div>
+      <div class="value-card__desc">Plus besoin de comparer a la main sur LBC</div>
+    </div>
+  </div>
+
+  <section class="form-section">
+    <div class="form-card">
+      <h2>Rejoindre la beta gratuite</h2>
+      <p class="form-card__sub">2 minutes a installer. On vous contacte pour l'onboarding.</p>
+
+      <div class="error-msg" id="errorMsg"></div>
+
+      <form id="betaForm">
+        <div class="form-group">
+          <label>Nom / Societe <span class="required">*</span></label>
+          <input type="text" name="name" placeholder="Ex: Jean Dupont / Auto Prestige 75" required>
+        </div>
+
+        <div class="form-group">
+          <label>Email <span class="required">*</span></label>
+          <input type="email" name="email" placeholder="jean@exemple.fr" required>
+        </div>
+
+        <div class="form-group">
+          <label>Telephone</label>
+          <input type="tel" name="phone" placeholder="06 12 34 56 78">
+        </div>
+
+        <div class="form-group">
+          <label>Combien de vehicules achetez-vous par mois sur Auto1 ?</label>
+          <select name="vehiclesPerMonth">
+            <option value="">-- Selectionnez --</option>
+            <option value="1-5">1 a 5</option>
+            <option value="5-15">5 a 15</option>
+            <option value="15-30">15 a 30</option>
+            <option value="30+">Plus de 30</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Combien de temps passez-vous a comparer les prix ?</label>
+          <select name="timeComparing">
+            <option value="">-- Selectionnez --</option>
+            <option value="<30min">Moins de 30 min / jour</option>
+            <option value="30min-1h">30 min a 1h / jour</option>
+            <option value="1h-2h">1 a 2h / jour</option>
+            <option value="2h+">Plus de 2h / jour</option>
+          </select>
+        </div>
+
+        <button type="submit" class="btn-submit" id="submitBtn">
+          Rejoindre la beta gratuite
+        </button>
+      </form>
+
+      <div class="success-msg" id="successMsg">
+        <div class="success-msg__icon">🎉</div>
+        <h3>Inscription enregistree !</h3>
+        <p>On vous contacte dans les 24h pour installer l'extension ensemble. A tres vite !</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="trust">
+    <p>🔒 Vos donnees restent privees — aucun partage avec des tiers.<br>
+    L'extension fonctionne uniquement sur Auto1.com et ne collecte aucune donnee personnelle.</p>
+  </div>
+
+  <footer class="footer">
+    &copy; 2026 Carlytics — Outil d'aide a la decision pour marchands VO
+  </footer>
+
+  <script>
+    const API_URL = window.location.origin;
+
+    document.getElementById('betaForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const btn = document.getElementById('submitBtn');
+      const errorEl = document.getElementById('errorMsg');
+      const successEl = document.getElementById('successMsg');
+      const form = e.target;
+
+      // Reset
+      errorEl.classList.remove('visible');
+      btn.disabled = true;
+      btn.textContent = 'Envoi en cours...';
+
+      const data = {
+        name: form.name.value.trim(),
+        email: form.email.value.trim(),
+        phone: form.phone.value.trim(),
+        vehiclesPerMonth: form.vehiclesPerMonth.value,
+        timeComparing: form.timeComparing.value,
+      };
+
+      try {
+        const res = await fetch(`${API_URL}/api/beta-signup`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        });
+
+        const json = await res.json();
+
+        if (!res.ok || !json.ok) {
+          throw new Error(json.error || 'Erreur inconnue');
+        }
+
+        // Success
+        form.style.display = 'none';
+        successEl.classList.add('visible');
+      } catch (err) {
+        errorEl.textContent = err.message;
+        errorEl.classList.add('visible');
+        btn.disabled = false;
+        btn.textContent = 'Rejoindre la beta gratuite';
+      }
+    });
+  </script>
+</body>
+</html>

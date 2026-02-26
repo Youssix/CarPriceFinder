@@ -131,3 +131,19 @@ CREATE TABLE IF NOT EXISTS auth_codes (
 
 CREATE INDEX IF NOT EXISTS idx_auth_codes_email ON auth_codes(email);
 CREATE INDEX IF NOT EXISTS idx_auth_codes_cleanup ON auth_codes(expires_at) WHERE used = FALSE;
+
+-- Beta testers signup
+CREATE TABLE IF NOT EXISTS beta_testers (
+  id BIGSERIAL PRIMARY KEY,
+  name TEXT NOT NULL,
+  email TEXT NOT NULL UNIQUE,
+  phone TEXT,
+  vehicles_per_month TEXT,
+  time_comparing TEXT,
+  status TEXT NOT NULL DEFAULT 'pending',
+  notes TEXT DEFAULT '',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_beta_testers_email ON beta_testers(email);
+CREATE INDEX IF NOT EXISTS idx_beta_testers_status ON beta_testers(status);

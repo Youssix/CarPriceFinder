@@ -318,6 +318,29 @@ async function markAlertMatchesSeen(subscriberId, matchIds) {
   );
 }
 
+// === Beta Testers Functions ===
+
+async function createBetaTester({ name, email, phone, vehiclesPerMonth, timeComparing }) {
+  const { rows } = await pool.query(
+    `INSERT INTO beta_testers (name, email, phone, vehicles_per_month, time_comparing)
+     VALUES ($1, $2, $3, $4, $5)
+     ON CONFLICT (email) DO UPDATE SET
+       name = EXCLUDED.name, phone = EXCLUDED.phone,
+       vehicles_per_month = EXCLUDED.vehicles_per_month,
+       time_comparing = EXCLUDED.time_comparing
+     RETURNING *`,
+    [name, email, phone || null, vehiclesPerMonth || null, timeComparing || null]
+  );
+  return rows[0];
+}
+
+async function getBetaTesters() {
+  const { rows } = await pool.query(
+    `SELECT * FROM beta_testers ORDER BY created_at DESC`
+  );
+  return rows;
+}
+
 module.exports = {
   pool,
   initDb,
@@ -357,4 +380,7 @@ module.exports = {
   getRecentDeals,
   getUnseenAlertMatches,
   markAlertMatchesSeen,
+  // Beta
+  createBetaTester,
+  getBetaTesters,
 };

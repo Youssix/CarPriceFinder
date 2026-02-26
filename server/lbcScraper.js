@@ -12,6 +12,7 @@ const {
   createAuthCode, verifyAuthCode,
   getObservationStats, getActiveAlertCount, getObservations,
   getRecentDeals, getUnseenAlertMatches, markAlertMatchesSeen,
+  createBetaTester, getBetaTesters,
   pool,
 } = require('./db');
 const { matchAlerts } = require('./alertMatcher');
@@ -880,6 +881,49 @@ app.post('/api/alert-matches/seen', apiKeyAuth, async (req, res) => {
     } catch (err) {
         console.error('[🔔 Matches] Error:', err.message);
         res.status(500).json({ ok: false, error: 'Failed to mark matches seen' });
+    }
+});
+
+// === Beta Signup ===
+
+// Serve beta signup page
+const betaPagePath = require('path').join(__dirname, '..', 'landing', 'beta.html');
+app.get('/beta', (req, res) => {
+    res.sendFile(betaPagePath);
+});
+
+// Beta signup API (public — no auth required)
+app.post('/api/beta-signup', async (req, res) => {
+    try {
+        const { name, email, phone, vehiclesPerMonth, timeComparing } = req.body;
+
+        if (!name || !email) {
+            return res.status(400).json({ ok: false, error: 'Nom et email requis.' });
+        }
+
+        // Basic email validation
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            return res.status(400).json({ ok: false, error: 'Email invalide.' });
+        }
+
+        const tester = await createBetaTester({ name, email, phone, vehiclesPerMonth, timeComparing });
+        console.log(`[🧪 Beta] New signup: ${name} <${email}>`);
+
+        res.json({ ok: true, message: 'Inscription enregistree ! On vous contacte tres vite.' });
+    } catch (err) {
+        console.error('[🧪 Beta] Signup error:', err.message);
+        res.status(500).json({ ok: false, error: 'Erreur lors de l\'inscription.' });
+    }
+});
+
+// List beta testers (admin — protected by API key)
+app.get('/api/beta-testers', apiKeyAuth, async (req, res) => {
+    try {
+        const testers = await getBetaTesters();
+        res.json({ ok: true, testers });
+    } catch (err) {
+        console.error('[🧪 Beta] List error:', err.message);
+        res.status(500).json({ ok: false, error: 'Erreur lors de la récupération.' });
     }
 });
 
