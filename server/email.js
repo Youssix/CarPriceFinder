@@ -142,38 +142,58 @@ async function sendWelcomeEmail(email, apiKey) {
     const { data, error } = await resend.emails.send({
       from: FROM_EMAIL,
       to: email,
-      subject: 'Bienvenue sur Carlytics ! Votre cle API',
+      subject: 'Bienvenue sur Carlytics ! Votre compte est actif',
       html: `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px;">
           <div style="text-align: center; margin-bottom: 32px;">
             <h1 style="color: #1a1a2e; font-size: 28px; margin: 0;">Bienvenue sur Carlytics !</h1>
+            <p style="color: #6b7280; margin-top: 4px;">Votre abonnement est actif</p>
           </div>
 
-          <p style="color: #374151; font-size: 16px; line-height: 1.6;">
-            Votre compte est actif. Voici votre cle API pour l'extension Chrome :
-          </p>
-
-          <div style="background: #1a1a2e; border-radius: 8px; padding: 16px; margin: 24px 0;">
-            <code style="color: #3b82f6; font-size: 14px; word-break: break-all;">${apiKey}</code>
+          <div style="background: #f0fdf4; border: 1px solid #86efac; border-radius: 10px; padding: 16px 20px; margin-bottom: 28px; text-align: center;">
+            <span style="color: #16a34a; font-size: 15px; font-weight: 600;">✓ Paiement confirmé</span>
           </div>
 
-          <h3 style="color: #1a1a2e;">Pour commencer :</h3>
-          <ol style="color: #374151; line-height: 1.8;">
-            <li>Installez l'extension Chrome CarPriceFinder</li>
-            <li>Collez votre cle API dans les parametres de l'extension</li>
-            <li>Naviguez sur Auto1.com — les analyses de prix apparaissent automatiquement</li>
-            <li>Consultez votre <a href="https://app.carlytics.fr" style="color: #3b82f6;">dashboard</a> pour suivre vos deals</li>
-          </ol>
+          <h3 style="color: #1a1a2e; margin-bottom: 16px;">Pour commencer en 3 étapes :</h3>
 
-          <div style="text-align: center; margin-top: 32px;">
-            <a href="https://app.carlytics.fr" style="display: inline-block; background: #3b82f6; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">
-              Acceder au dashboard
+          <div style="display: flex; flex-direction: column; gap: 16px;">
+
+            <div style="display: flex; gap: 14px; align-items: flex-start;">
+              <div style="background: #3b82f6; color: white; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; flex-shrink: 0; text-align: center; line-height: 28px;">1</div>
+              <div>
+                <p style="color: #1a1a2e; font-weight: 600; margin: 0 0 2px 0;">Installez l'extension Chrome</p>
+                <p style="color: #6b7280; font-size: 13px; margin: 0;">Disponible sur le Chrome Web Store (lien dans votre email de confirmation)</p>
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 14px; align-items: flex-start;">
+              <div style="background: #3b82f6; color: white; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; flex-shrink: 0; text-align: center; line-height: 28px;">2</div>
+              <div>
+                <p style="color: #1a1a2e; font-weight: 600; margin: 0 0 2px 0;">Connectez-vous avec votre email</p>
+                <p style="color: #6b7280; font-size: 13px; margin: 0;">Ouvrez l'extension → entrez <strong>${email}</strong> → un code vous sera envoyé par email</p>
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 14px; align-items: flex-start;">
+              <div style="background: #3b82f6; color: white; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; flex-shrink: 0; text-align: center; line-height: 28px;">3</div>
+              <div>
+                <p style="color: #1a1a2e; font-weight: 600; margin: 0 0 2px 0;">Analysez vos véhicules</p>
+                <p style="color: #6b7280; font-size: 13px; margin: 0;">Naviguez sur le site d'enchères — les analyses de marge apparaissent automatiquement</p>
+              </div>
+            </div>
+
+          </div>
+
+          <div style="text-align: center; margin-top: 36px;">
+            <a href="https://carlytics.fr" style="display: inline-block; background: #3b82f6; color: white; padding: 13px 28px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 15px;">
+              Accéder à Carlytics →
             </a>
           </div>
 
           <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 32px 0 16px 0;">
           <p style="color: #9ca3af; font-size: 12px; text-align: center;">
-            Carlytics - L'outil d'analyse de prix pour les professionnels VO
+            Carlytics — L'outil d'analyse de prix pour les professionnels VO<br>
+            Une question ? Répondez directement à cet email.
           </p>
         </div>
       `,
