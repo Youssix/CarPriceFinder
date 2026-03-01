@@ -45,8 +45,10 @@ if (!allowedOrigins.includes('http://localhost:9001')) allowedOrigins.push('http
 
 app.use(cors({
     origin: function (origin, callback) {
-        // Allow requests with no origin (curl, server-to-server, extensions)
+        // Allow requests with no origin (curl, server-to-server)
         if (!origin) return callback(null, true);
+        // Allow Chrome extensions (popup, background, content scripts)
+        if (origin.startsWith('chrome-extension://')) return callback(null, true);
         if (allowedOrigins.includes(origin)) return callback(null, true);
         callback(new Error('Not allowed by CORS'));
     },
