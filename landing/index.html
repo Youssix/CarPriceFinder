@@ -3,22 +3,27 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Carlytics — Trouvez les meilleures affaires VO en 2 minutes</title>
-  <meta name="description" content="Carlytics analyse Auto1, LeBonCoin et La Centrale pour les marchands VO. Identifiez les v&eacute;hicules sous-cot&eacute;s et maximisez vos marges automatiquement.">
+  <title>Carlytics : Trouvez les meilleures affaires VO en 2 minutes</title>
+  <meta name="description" content="Carlytics est un plugin Chrome qui analyse les annonces VO en temps r&eacute;el et compare automatiquement les prix du march&eacute;. Trouvez les v&eacute;hicules rentables sans effort.">
   <meta name="theme-color" content="#3b82f6">
   <link rel="canonical" href="https://carlytics.fr">
 
   <!-- Open Graph -->
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://carlytics.fr">
-  <meta property="og:title" content="Carlytics — Trouvez les meilleures affaires VO">
-  <meta property="og:description" content="Analyse automatique Auto1 + LeBonCoin. Identifiez les deals rentables et maximisez vos marges.">
+  <meta property="og:title" content="Carlytics : Trouvez les meilleures affaires VO">
+  <meta property="og:description" content="Plugin Chrome qui compare les prix des annonces VO en temps r&eacute;el. Voyez la marge de chaque voiture sans changer de page.">
   <meta property="og:locale" content="fr_FR">
+
+  <!-- Google Font : Space Grotesk (logo + titres) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
 
   <link rel="stylesheet" href="style.css">
 
-  <!-- Favicon (inline SVG) -->
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%233b82f6'/><text x='50' y='68' font-size='55' font-weight='bold' text-anchor='middle' fill='white' font-family='system-ui'>C</text></svg>">
+  <!-- Favicon — "C" stylisé sur fond sombre -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%231a1a2e'/><path d='M72 26 A30 30 0 1 0 72 74' stroke='url(%23g)' stroke-width='13' fill='none' stroke-linecap='round'/><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0%25' stop-color='%2360a5fa'/><stop offset='100%25' stop-color='%23a78bfa'/></linearGradient></defs></svg>">
 </head>
 <body>
 
@@ -28,8 +33,7 @@
   <header class="header" id="header">
     <div class="header__inner">
       <a href="#" class="header__logo">
-        <span class="header__logo-icon">C</span>
-        Carlytics
+        <span class="logo-car">Car</span><span class="logo-lytics">lytics</span>
       </a>
 
       <nav class="header__nav">
@@ -70,126 +74,196 @@
   <section class="hero">
     <div class="container">
       <div class="hero__inner">
-        <div class="hero__badge">
-          <span class="hero__badge-dot"></span>
-          Nouveau : D&eacute;tection IA des options premium
+
+        <!-- Texte gauche -->
+        <div class="hero__content">
+          <div class="hero__badge">
+            <span class="hero__badge-dot"></span>
+            Nouveau : D&eacute;tection IA des options premium
+          </div>
+
+          <h1 class="hero__title">
+            Trouvez les <span>meilleures affaires VO</span> en 2&nbsp;minutes
+          </h1>
+
+          <p class="hero__subtitle">
+            Carlytics se branche sur le site d&rsquo;ench&egrave;res et affiche la marge de chaque voiture en direct, compar&eacute;e aux prix du march&eacute;. Vous voyez tout sur la m&ecirc;me page, sans rien calculer.
+          </p>
+
+          <div class="hero__cta">
+            <a href="#pricing" class="btn btn--primary btn--lg">
+              Essai gratuit 14 jours
+              <span aria-hidden="true">&rarr;</span>
+            </a>
+            <a href="#how-it-works" class="btn btn--secondary btn--lg">
+              Comment &ccedil;a marche
+            </a>
+          </div>
+
+          <div class="hero__stats">
+            <div class="hero__stat">
+              <div class="hero__stat-value">10h</div>
+              <div class="hero__stat-label">gagn&eacute;es par semaine</div>
+            </div>
+            <div class="hero__stat">
+              <div class="hero__stat-value">+1 000&euro;</div>
+              <div class="hero__stat-label">de marge par deal</div>
+            </div>
+            <div class="hero__stat">
+              <div class="hero__stat-value">3 min</div>
+              <div class="hero__stat-label">pour s'installer</div>
+            </div>
+          </div>
         </div>
 
-        <h1 class="hero__title">
-          Trouvez les <span>meilleures affaires VO</span> en 2&nbsp;minutes
-        </h1>
+        <!-- Visuel droite : mockup navigateur avec l'extension inject&eacute;e -->
+        <div class="hero__visual">
+          <div class="hero__visual-glow"></div>
 
-        <p class="hero__subtitle">
-          Carlytics analyse Auto1, LeBonCoin et La Centrale pour vous. Identifiez les v&eacute;hicules sous-cot&eacute;s et maximisez vos marges.
-        </p>
+          <div class="app-mockup">
+            <!-- Chrome du navigateur -->
+            <div class="app-mockup__bar">
+              <div class="app-mockup__dots">
+                <span></span><span></span><span></span>
+              </div>
+              <div class="app-mockup__url">encheres.carlytics.fr &middot; analyse en cours...</div>
+            </div>
 
-        <div class="hero__cta">
-          <a href="#pricing" class="btn btn--primary btn--lg">
-            Essai gratuit 14 jours
-            <span aria-hidden="true">&rarr;</span>
-          </a>
-          <a href="#dashboard" class="btn btn--secondary btn--lg">
-            Voir une d&eacute;mo
-          </a>
+            <div class="app-mockup__content">
+
+              <!-- Listing 1 : BMW X3 M Sport -->
+              <div class="mock-listing">
+                <!-- Barre Carlytics inject&eacute;e -->
+                <div class="mock-banner">
+                  <div class="mock-banner__prices">
+                    <span class="mock-banner__label">Achat&nbsp;VO:</span>
+                    <span class="mock-banner__price">18 177&euro;</span>
+                    <span class="mock-banner__sep">|</span>
+                    <span class="mock-banner__label mock-banner__label--orange">LBC:</span>
+                    <span class="mock-banner__price">24 145&euro;</span>
+                    <span class="mock-banner__sep">|</span>
+                    <span class="mock-banner__label mock-banner__label--green">MARGE:</span>
+                    <span class="mock-banner__margin">+5 968&euro; (+33%)</span>
+                  </div>
+                  <div class="mock-banner__actions">
+                    <button class="mock-btn mock-btn--orange">&#128269; Voir sur LBC</button>
+                    <button class="mock-btn mock-btn--green">&#43; Ajouter</button>
+                  </div>
+                </div>
+                <!-- Corps du listing (fictif, pas de marque Auto1) -->
+                <div class="mock-listing__body">
+                  <div class="mock-listing__img">
+                    <svg viewBox="0 0 80 35" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <rect x="5" y="18" width="70" height="12" rx="3" fill="#8a99b0"/>
+                      <path d="M14 18 L20 8 L60 8 L66 18 Z" fill="#8a99b0"/>
+                      <circle cx="19" cy="30" r="5" fill="#6b7a8e" stroke="#aab5c4" stroke-width="1.5"/>
+                      <circle cx="61" cy="30" r="5" fill="#6b7a8e" stroke="#aab5c4" stroke-width="1.5"/>
+                    </svg>
+                  </div>
+                  <div class="mock-listing__info">
+                    <div class="mock-listing__title">Berline SUV 2020, M Sport</div>
+                    <div class="mock-listing__meta">
+                      <span>96 350 km</span>
+                      <span>10/2020</span>
+                      <span>Diesel &bull; Auto</span>
+                    </div>
+                    <div class="mock-listing__price">Offre en cours&nbsp;: <strong>18 177&euro;</strong></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Listing 2 : Berline compacte -->
+              <div class="mock-listing">
+                <div class="mock-banner">
+                  <div class="mock-banner__prices">
+                    <span class="mock-banner__label">Achat&nbsp;VO:</span>
+                    <span class="mock-banner__price">7 046&euro;</span>
+                    <span class="mock-banner__sep">|</span>
+                    <span class="mock-banner__label mock-banner__label--orange">LBC:</span>
+                    <span class="mock-banner__price">11 999&euro;</span>
+                    <span class="mock-banner__sep">|</span>
+                    <span class="mock-banner__label mock-banner__label--green">MARGE:</span>
+                    <span class="mock-banner__margin">+4 953&euro; (+70%)</span>
+                  </div>
+                  <div class="mock-banner__actions">
+                    <button class="mock-btn mock-btn--orange">&#128269; Voir sur LBC</button>
+                    <button class="mock-btn mock-btn--green">&#43; Ajouter</button>
+                  </div>
+                </div>
+                <div class="mock-listing__body">
+                  <div class="mock-listing__img mock-listing__img--warm">
+                    <svg viewBox="0 0 80 35" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <rect x="5" y="18" width="70" height="12" rx="3" fill="#a89880"/>
+                      <path d="M16 18 L22 10 L58 10 L64 18 Z" fill="#a89880"/>
+                      <circle cx="20" cy="30" r="5" fill="#8a7060" stroke="#c4b0a0" stroke-width="1.5"/>
+                      <circle cx="60" cy="30" r="5" fill="#8a7060" stroke="#c4b0a0" stroke-width="1.5"/>
+                    </svg>
+                  </div>
+                  <div class="mock-listing__info">
+                    <div class="mock-listing__title">Berline compacte 2018, S-Line</div>
+                    <div class="mock-listing__meta">
+                      <span>99 850 km</span>
+                      <span>Diesel</span>
+                    </div>
+                    <div class="mock-listing__price">Offre en cours&nbsp;: <strong>7 046&euro;</strong></div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
         </div>
 
-        <div class="hero__trust">
-          <div class="hero__trust-item">
-            <span class="hero__trust-icon" aria-hidden="true">&#128101;</span>
-            <span>Utilis&eacute; par <span class="hero__trust-value">+50 marchands VO</span></span>
-          </div>
-          <div class="hero__trust-item">
-            <span class="hero__trust-icon" aria-hidden="true">&#9201;</span>
-            <span><span class="hero__trust-value">10h gagn&eacute;es</span> par semaine</span>
-          </div>
-          <div class="hero__trust-item">
-            <span class="hero__trust-icon" aria-hidden="true">&#128200;</span>
-            <span><span class="hero__trust-value">+1 000&euro;</span> de marge moyenne par deal</span>
-          </div>
-        </div>
       </div>
     </div>
   </section>
 
   <!-- ============================
-       Problem
+       Bénéfices (style carte)
        ============================ -->
-  <section class="problems" id="problems">
+  <section class="benefits" id="features">
     <div class="container">
-      <div class="text-center">
-        <span class="section-label">Le probl&egrave;me</span>
-        <h2 class="section-title">Vous passez des heures &agrave; chercher les bonnes affaires&nbsp;?</h2>
+
+      <div class="text-center reveal">
+        <span class="section-label">Ce que &ccedil;a change</span>
+        <h2 class="section-title">Ce que vous gagnez au quotidien</h2>
         <p class="section-subtitle mx-auto">
-          La plupart des marchands VO perdent un temps consid&eacute;rable sur des t&acirc;ches r&eacute;p&eacute;titives qui pourraient &ecirc;tre automatis&eacute;es.
+          Plus besoin de jongler entre les onglets pour savoir si une voiture vaut le coup.
         </p>
       </div>
 
-      <div class="problems__grid">
-        <div class="problem-card">
-          <div class="problem-card__icon" aria-hidden="true">&#9200;</div>
-          <h3 class="problem-card__title">3h par jour &agrave; scroller manuellement</h3>
-          <p class="problem-card__text">
-            Vous parcourez Auto1 et LeBonCoin &agrave; la main, onglet par onglet, pour comparer les prix. Un travail fastidieux et chronophage.
-          </p>
+      <div class="benefits__grid">
+
+        <div class="benefit-card reveal reveal--delay-1">
+          <span class="benefit-card__icon" aria-hidden="true">&#9201;</span>
+          <h3 class="benefit-card__title">Temps</h3>
+          <p class="benefit-card__desc">Comparaison automatis&eacute;e en arri&egrave;re-plan, pendant que vous naviguez</p>
+          <div class="benefit-card__divider"></div>
+          <div class="benefit-card__stat">10h</div>
+          <p class="benefit-card__stat-label">gagn&eacute;es par semaine*</p>
         </div>
 
-        <div class="problem-card">
-          <div class="problem-card__icon" aria-hidden="true">&#128168;</div>
-          <h3 class="problem-card__title">Des deals rentables qui vous &eacute;chappent</h3>
-          <p class="problem-card__text">
-            Le temps de faire vos calculs, les meilleures affaires sont d&eacute;j&agrave; parties. Vos concurrents qui agissent vite raflent les deals.
-          </p>
+        <div class="benefit-card benefit-card--featured reveal reveal--delay-2">
+          <span class="benefit-card__icon" aria-hidden="true">&#128200;</span>
+          <h3 class="benefit-card__title">Marge</h3>
+          <p class="benefit-card__desc">D&eacute;tection des v&eacute;hicules sous-cot&eacute;s avec estimation du prix de revente</p>
+          <div class="benefit-card__divider"></div>
+          <div class="benefit-card__stat">+1&nbsp;000&euro;</div>
+          <p class="benefit-card__stat-label">de marge par deal*</p>
         </div>
 
-        <div class="problem-card">
-          <div class="problem-card__icon" aria-hidden="true">&#128566;</div>
-          <h3 class="problem-card__title">Aucune visibilit&eacute; sur les vraies marges</h3>
-          <p class="problem-card__text">
-            Sans comparaison fiable, vous achetez &agrave; l'instinct. R&eacute;sultat : des marges incertaines et parfois des achats &agrave; perte.
-          </p>
+        <div class="benefit-card reveal reveal--delay-3">
+          <span class="benefit-card__icon" aria-hidden="true">&#9889;</span>
+          <h3 class="benefit-card__title">R&eacute;activit&eacute;</h3>
+          <p class="benefit-card__desc">Analyse en temps r&eacute;el sur chaque annonce, sans changer de page</p>
+          <div class="benefit-card__divider"></div>
+          <div class="benefit-card__stat">&lt;&thinsp;3s</div>
+          <p class="benefit-card__stat-label">pour analyser une annonce</p>
         </div>
-      </div>
-    </div>
-  </section>
 
-  <!-- ============================
-       Solution / Features
-       ============================ -->
-  <section class="features" id="features">
-    <div class="container">
-      <div class="text-center">
-        <span class="section-label">La solution</span>
-        <h2 class="section-title">Carlytics fait le travail pour vous</h2>
-        <p class="section-subtitle mx-auto">
-          Automatisez l'analyse de rentabilit&eacute; et concentrez-vous sur ce qui compte : acheter les bons v&eacute;hicules.
-        </p>
       </div>
 
-      <div class="features__grid">
-        <div class="feature-card">
-          <div class="feature-card__icon" aria-hidden="true">&#9889;</div>
-          <h3 class="feature-card__title">Analyse automatique</h3>
-          <p class="feature-card__text">
-            Chaque v&eacute;hicule sur Auto1 est automatiquement compar&eacute; aux prix LeBonCoin et La Centrale. Marge calcul&eacute;e en temps r&eacute;el.
-          </p>
-        </div>
-
-        <div class="feature-card">
-          <div class="feature-card__icon" aria-hidden="true">&#128276;</div>
-          <h3 class="feature-card__title">Alertes intelligentes</h3>
-          <p class="feature-card__text">
-            D&eacute;finissez vos crit&egrave;res : marque, budget, marge minimum. Recevez une notification d&egrave;s qu'un deal correspond &agrave; vos attentes.
-          </p>
-        </div>
-
-        <div class="feature-card">
-          <div class="feature-card__icon" aria-hidden="true">&#129302;</div>
-          <h3 class="feature-card__title">D&eacute;tection d'options premium</h3>
-          <p class="feature-card__text">
-            Notre IA d&eacute;tecte les finitions premium (M-Sport, AMG, S-Line) et ajuste les estimations de prix en cons&eacute;quence.
-          </p>
-        </div>
-      </div>
+      <p class="benefits__footnote">*R&eacute;sultats mesur&eacute;s lors de nos propres tests. Les r&eacute;sultats individuels peuvent varier.</p>
     </div>
   </section>
 
@@ -199,53 +273,147 @@
   <section class="how-it-works" id="how-it-works">
     <div class="container">
       <div class="text-center">
-        <span class="section-label">&Eacute;tape par &eacute;tape</span>
-        <h2 class="section-title">Comment &ccedil;a marche</h2>
+        <span class="section-label">Simple &agrave; utiliser</span>
+        <h2 class="section-title">Pr&ecirc;t en 3 minutes</h2>
         <p class="section-subtitle mx-auto">
-          De l'installation &agrave; votre premier deal rentable, en moins de 5 minutes.
+          Pas de configuration, pas de compte &agrave; cr&eacute;er sur un autre site. Juste installer et naviguer.
         </p>
       </div>
 
-      <div class="steps">
-        <div class="step">
-          <div class="step__number">1</div>
-          <h3 class="step__title">Installez l'extension Chrome</h3>
-          <p class="step__text">2 minutes, gratuit. Aucune configuration technique requise.</p>
+      <div class="steps-new">
+
+        <!-- Étape 1 -->
+        <div class="step-new">
+          <div class="step-new__header">
+            <span class="step-new__num">1</span>
+            <h3 class="step-new__title">Installez le plugin Chrome</h3>
+            <p class="step-new__text">
+              Deux clics depuis le Chrome Web Store. Aucune comp&eacute;tence technique n&eacute;cessaire, le plugin s&rsquo;active tout seul.
+            </p>
+          </div>
+          <div class="step-new__visual">
+            <div class="sv-install">
+              <div class="sv-install__card">
+                <span class="sv-install__icon">
+                  <svg viewBox="0 0 32 32" width="32" height="32" fill="none">
+                    <rect width="32" height="32" rx="7" fill="#3b82f6"/>
+                    <rect x="6" y="20" width="6" height="8" rx="1.5" fill="white"/>
+                    <rect x="13" y="14" width="6" height="14" rx="1.5" fill="white"/>
+                    <rect x="20" y="8"  width="6" height="20" rx="1.5" fill="white"/>
+                  </svg>
+                </span>
+                <div class="sv-install__info">
+                  <div class="sv-install__name">Carlytics</div>
+                  <div class="sv-install__sub">Plugin Chrome &middot; Gratuit</div>
+                </div>
+                <span class="sv-install__check">&#10003;</span>
+              </div>
+              <div class="sv-install__btn">Ajout&eacute; &agrave; Chrome</div>
+              <div class="sv-install__perms">
+                <span>&#128274; Aucun acc&egrave;s &agrave; vos donn&eacute;es</span>
+                <span>&#11088; 4,9 / 5</span>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <div class="step">
-          <div class="step__number">2</div>
-          <h3 class="step__title">Naviguez sur Auto1</h3>
-          <p class="step__text">Comme d'habitude. L'extension analyse chaque v&eacute;hicule automatiquement.</p>
+        <!-- Étape 2 -->
+        <div class="step-new">
+          <div class="step-new__header">
+            <span class="step-new__num">2</span>
+            <h3 class="step-new__title">Naviguez normalement</h3>
+            <p class="step-new__text">
+              Ouvrez le site d&rsquo;ench&egrave;res comme chaque matin. Le plugin travaille en arri&egrave;re-plan, sans rien changer &agrave; vos habitudes.
+            </p>
+          </div>
+          <div class="step-new__visual">
+            <div class="sv-browse">
+              <div class="sv-browse__bar">
+                <div class="sv-browse__dots"><span></span><span></span><span></span></div>
+                <div class="sv-browse__url">encheres.exemple.fr</div>
+                <div class="sv-browse__badge">&#9679; Carlytics actif</div>
+              </div>
+              <div class="sv-browse__rows">
+                <div class="sv-browse__row">
+                  <div class="sv-browse__thumb"></div>
+                  <div class="sv-browse__lines">
+                    <span style="width:68%"></span>
+                    <span style="width:42%"></span>
+                  </div>
+                  <div class="sv-browse__spinner"><span></span><span></span><span></span></div>
+                </div>
+                <div class="sv-browse__row sv-browse__row--active">
+                  <div class="sv-browse__thumb sv-browse__thumb--warm"></div>
+                  <div class="sv-browse__lines">
+                    <span style="width:55%"></span>
+                    <span style="width:35%"></span>
+                  </div>
+                  <span class="sv-browse__done">&#10003;</span>
+                </div>
+                <div class="sv-browse__row">
+                  <div class="sv-browse__thumb sv-browse__thumb--cool"></div>
+                  <div class="sv-browse__lines">
+                    <span style="width:72%"></span>
+                    <span style="width:48%"></span>
+                  </div>
+                  <div class="sv-browse__spinner"><span></span><span></span><span></span></div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <div class="step">
-          <div class="step__number">3</div>
-          <h3 class="step__title">Voyez la marge instantan&eacute;ment</h3>
-          <p class="step__text">Prix d'achat vs prix de revente estim&eacute;, options d&eacute;tect&eacute;es, score de rentabilit&eacute;.</p>
+        <!-- Étape 3 -->
+        <div class="step-new">
+          <div class="step-new__header">
+            <span class="step-new__num">3</span>
+            <h3 class="step-new__title">Lisez la marge sur chaque annonce</h3>
+            <p class="step-new__text">
+              Prix d&rsquo;achat, prix du march&eacute;, marge estim&eacute;e et options d&eacute;tect&eacute;es s&rsquo;affichent directement sur la page.
+            </p>
+          </div>
+          <div class="step-new__visual">
+            <div class="sv-margin">
+              <div class="sv-margin__banner">
+                <div class="sv-margin__col">
+                  <span class="sv-margin__label">Achat VO</span>
+                  <span class="sv-margin__val">18&nbsp;177&euro;</span>
+                </div>
+                <div class="sv-margin__sep"></div>
+                <div class="sv-margin__col">
+                  <span class="sv-margin__label sv-margin__label--orange">March&eacute;</span>
+                  <span class="sv-margin__val">24&nbsp;145&euro;</span>
+                </div>
+                <div class="sv-margin__sep"></div>
+                <div class="sv-margin__col">
+                  <span class="sv-margin__label sv-margin__label--green">Marge</span>
+                  <span class="sv-margin__val sv-margin__val--green">+5&nbsp;968&euro; <small>(+33&nbsp;%)</small></span>
+                </div>
+              </div>
+              <div class="sv-margin__listing">
+                <svg class="sv-margin__car-svg" viewBox="0 0 56 24" fill="none">
+                  <rect x="3" y="13" width="50" height="8" rx="2" fill="#8a99b0"/>
+                  <path d="M9 13 L14 6 L42 6 L47 13 Z" fill="#8a99b0"/>
+                  <circle cx="13" cy="21" r="3.5" fill="#6b7a8e" stroke="#aab5c4" stroke-width="1"/>
+                  <circle cx="43" cy="21" r="3.5" fill="#6b7a8e" stroke="#aab5c4" stroke-width="1"/>
+                </svg>
+                <div class="sv-margin__car-info">
+                  <div class="sv-margin__car-title">Berline SUV 2020 &middot; M Sport</div>
+                  <div class="sv-margin__car-meta">96&nbsp;350&nbsp;km &middot; Diesel &middot; 18&nbsp;177&euro;</div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <div class="step">
-          <div class="step__number">4</div>
-          <h3 class="step__title">Recevez les alertes</h3>
-          <p class="step__text">Les meilleurs deals arrivent directement dans votre bo&icirc;te mail.</p>
-        </div>
       </div>
     </div>
   </section>
 
-  <!-- ============================
-       Dashboard Preview
-       ============================ -->
-  <section class="dashboard-preview" id="dashboard">
+  <!-- Dashboard section removed — plugin only for now -->
+  <section class="dashboard-preview" id="dashboard" style="display:none">
     <div class="container">
       <div class="text-center">
-        <span class="section-label" style="color: var(--color-primary-light);">Aper&ccedil;u</span>
-        <h2 class="section-title">Votre cockpit de deals</h2>
-        <p class="section-subtitle mx-auto">
-          Toutes vos analyses, alertes et opportunit&eacute;s dans un seul dashboard. Pas de tableur, pas de calcul mental.
-        </p>
-      </div>
 
       <div class="dashboard-preview__wrapper">
         <div class="dashboard-mock">
@@ -295,7 +463,7 @@
               </div>
 
               <div class="dashboard-mock__table-row">
-                <span class="table-vehicle">BMW 320d 2021 &mdash; 45 000 km</span>
+                <span class="table-vehicle">BMW 320d 2021 &middot; 45 000 km</span>
                 <span>18 500&euro;</span>
                 <span>21 200&euro;</span>
                 <span><span class="table-badge table-badge--green">+2 700&euro;</span></span>
@@ -305,7 +473,7 @@
               </div>
 
               <div class="dashboard-mock__table-row">
-                <span class="table-vehicle">Audi A4 Avant 2020 &mdash; 68 000 km</span>
+                <span class="table-vehicle">Audi A4 Avant 2020 &middot; 68 000 km</span>
                 <span>22 100&euro;</span>
                 <span>24 800&euro;</span>
                 <span><span class="table-badge table-badge--green">+2 700&euro;</span></span>
@@ -315,7 +483,7 @@
               </div>
 
               <div class="dashboard-mock__table-row">
-                <span class="table-vehicle">Peugeot 3008 2022 &mdash; 32 000 km</span>
+                <span class="table-vehicle">Peugeot 3008 2022 &middot; 32 000 km</span>
                 <span>24 900&euro;</span>
                 <span>26 100&euro;</span>
                 <span><span class="table-badge table-badge--orange">+1 200&euro;</span></span>
@@ -325,7 +493,7 @@
               </div>
 
               <div class="dashboard-mock__table-row">
-                <span class="table-vehicle">Mercedes C220d 2019 &mdash; 89 000 km</span>
+                <span class="table-vehicle">Mercedes C220d 2019 &middot; 89 000 km</span>
                 <span>26 800&euro;</span>
                 <span>27 200&euro;</span>
                 <span><span class="table-badge table-badge--red">+400&euro;</span></span>
@@ -364,7 +532,7 @@
             <span class="pricing-card__period">/mois</span>
           </div>
           <ul class="pricing-card__features">
-            <li class="pricing-card__feature">Dashboard + extension Chrome</li>
+            <li class="pricing-card__feature">Plugin Chrome + acc&egrave;s &agrave; l'historique</li>
             <li class="pricing-card__feature">50 analyses par jour</li>
             <li class="pricing-card__feature">Alertes email basiques</li>
             <li class="pricing-card__feature">Support par email</li>
@@ -403,10 +571,10 @@
           </div>
           <ul class="pricing-card__features">
             <li class="pricing-card__feature">Tout Pro, plus :</li>
-            <li class="pricing-card__feature">Multi-utilisateurs (3 comptes)</li>
-            <li class="pricing-card__feature">Acc&egrave;s API</li>
-            <li class="pricing-card__feature">Support prioritaire</li>
-            <li class="pricing-card__feature">Export des donn&eacute;es</li>
+            <li class="pricing-card__feature">3 comptes utilisateurs</li>
+            <li class="pricing-card__feature">Param&egrave;tres d&rsquo;&eacute;quipe partag&eacute;s</li>
+            <li class="pricing-card__feature">Support prioritaire (r&eacute;ponse sous 4h)</li>
+            <li class="pricing-card__feature">Onboarding personnalis&eacute;</li>
           </ul>
           <a href="mailto:contact@carlytics.fr?subject=Carlytics Agency" class="btn btn--secondary">Nous contacter</a>
         </div>
@@ -459,7 +627,7 @@
           </button>
           <div class="faq-item__answer" role="region">
             <div class="faq-item__answer-inner">
-              Oui, sans engagement. Vous pouvez annuler votre abonnement en un clic depuis votre dashboard. L'acc&egrave;s reste actif jusqu'&agrave; la fin de la p&eacute;riode en cours.
+              Oui, sans engagement. Vous pouvez annuler votre abonnement en un clic depuis votre espace client. L'acc&egrave;s reste actif jusqu'&agrave; la fin de la p&eacute;riode en cours.
             </div>
           </div>
         </div>
@@ -471,14 +639,14 @@
           </button>
           <div class="faq-item__answer" role="region">
             <div class="faq-item__answer-inner">
-              Imm&eacute;diat. D&egrave;s l'installation, chaque v&eacute;hicule sur Auto1 est analys&eacute; automatiquement. Vous voyez les marges calcul&eacute;es en temps r&eacute;el sans rien configurer.
+              Imm&eacute;diat. D&egrave;s l'installation, chaque annonce est analys&eacute;e automatiquement. Vous voyez les marges calcul&eacute;es en temps r&eacute;el sans rien configurer.
             </div>
           </div>
         </div>
 
         <div class="faq-item">
           <button class="faq-item__question" aria-expanded="false">
-            <span>Et si LeBonCoin change son interface&nbsp;?</span>
+            <span>Et si les sites sources changent leur interface&nbsp;?</span>
             <span class="faq-item__icon" aria-hidden="true">+</span>
           </button>
           <div class="faq-item__answer" role="region">
@@ -498,7 +666,7 @@
     <div class="container">
       <h2 class="cta-section__title">Pr&ecirc;t &agrave; trouver votre prochain deal&nbsp;?</h2>
       <p class="cta-section__text">
-        Rejoignez les marchands qui gagnent du temps et de l'argent avec Carlytics. Essai gratuit, sans carte bancaire.
+        On a construit cet outil pour notre propre usage. Il nous fait gagner du temps et d&eacute;tect&eacute; de vraies opportunit&eacute;s. Testez-le gratuitement, sans carte bancaire.
       </p>
       <div class="cta-section__buttons">
         <a href="#pricing" class="btn btn--white btn--lg">
@@ -521,8 +689,7 @@
       <div class="footer__inner">
         <div class="footer__brand">
           <div class="footer__logo">
-            <span class="footer__logo-icon">C</span>
-            Carlytics
+            <span class="logo-car">Car</span><span class="logo-lytics">lytics</span>
           </div>
           <p class="footer__tagline">
             Fait avec passion pour les pros du VO. Trouvez les deals, pas les maux de t&ecirc;te.
@@ -535,7 +702,7 @@
             <ul class="footer__col-list">
               <li><a href="#features">Fonctionnalit&eacute;s</a></li>
               <li><a href="#pricing">Tarifs</a></li>
-              <li><a href="https://app.carlytics.fr" target="_blank" rel="noopener noreferrer">Dashboard</a></li>
+              <li><a href="#how-it-works">Comment &ccedil;a marche</a></li>
               <li><a href="#faq">FAQ</a></li>
             </ul>
           </div>
@@ -635,6 +802,20 @@
         });
       });
 
+      // --- Scroll reveal animations ---
+      var revealEls = document.querySelectorAll('.reveal');
+      if (revealEls.length && 'IntersectionObserver' in window) {
+        var revealObserver = new IntersectionObserver(function (entries) {
+          entries.forEach(function (entry) {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('is-visible');
+              revealObserver.unobserve(entry.target);
+            }
+          });
+        }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+        revealEls.forEach(function (el) { revealObserver.observe(el); });
+      }
+
       // --- Smooth scroll for anchor links (fallback for Safari) ---
       document.querySelectorAll('a[href^="#"]').forEach(function (anchor) {
         anchor.addEventListener('click', function (e) {
@@ -653,6 +834,115 @@
         });
       });
     })();
+  </script>
+
+  <!-- ============================
+       Exit-intent Popup
+       ============================ -->
+  <div class="ep" id="exitPopup" role="dialog" aria-modal="true" aria-labelledby="epTitle">
+    <div class="ep__overlay" id="epOverlay"></div>
+    <div class="ep__card">
+
+      <button class="ep__close" id="epClose" aria-label="Fermer">&#x2715;</button>
+
+      <div class="ep__body">
+
+        <!-- Gauche : texte -->
+        <div class="ep__content">
+          <h2 class="ep__title" id="epTitle">
+            Vous h&eacute;sitez avant d&rsquo;essayer Carlytics&nbsp;?
+          </h2>
+          <p class="ep__text">
+            Aucun probl&egrave;me. Testez-le pendant <strong class="ep__hl">14&nbsp;jours, gratuitement</strong> et sans engagement.
+          </p>
+          <div class="ep__actions">
+            <a href="#pricing" class="ep__btn-primary" id="epCTA">Essai gratuit &rarr;</a>
+            <button class="ep__btn-dismiss" id="epDismiss">Non merci</button>
+          </div>
+        </div>
+
+        <!-- Droite : animation -->
+        <div class="ep__visual">
+
+          <!-- Voiture flottante -->
+          <div class="ep-car">
+            <svg viewBox="0 0 160 70" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <!-- carrosserie -->
+              <rect x="10" y="36" width="140" height="22" rx="5" fill="#2563eb"/>
+              <!-- toit -->
+              <path d="M30 36 L46 18 L114 18 L130 36 Z" fill="#3b82f6"/>
+              <!-- vitres -->
+              <path d="M50 33 L58 21 L82 21 L82 33 Z" fill="#bfdbfe" opacity="0.85"/>
+              <path d="M86 33 L86 21 L106 21 L114 33 Z" fill="#bfdbfe" opacity="0.85"/>
+              <!-- reflets -->
+              <path d="M54 27 L57 22 L68 22 L65 27 Z" fill="white" opacity="0.3"/>
+              <!-- roues -->
+              <circle cx="45"  cy="58" r="11" fill="#0f172a"/>
+              <circle cx="45"  cy="58" r="5"  fill="#64748b"/>
+              <circle cx="115" cy="58" r="11" fill="#0f172a"/>
+              <circle cx="115" cy="58" r="5"  fill="#64748b"/>
+              <!-- phares -->
+              <ellipse cx="148" cy="44" rx="6" ry="4" fill="#fde68a" opacity="0.9"/>
+              <ellipse cx="12"  cy="44" rx="5" ry="3" fill="#fee2e2" opacity="0.6"/>
+            </svg>
+          </div>
+
+          <!-- Bandeau marge qui pop -->
+          <div class="ep-banner">
+            <span class="ep-banner__label">Marge d&eacute;tect&eacute;e</span>
+            <span class="ep-banner__value">+1&nbsp;000&nbsp;&euro;</span>
+          </div>
+
+          <!-- Coins flottants -->
+          <div class="ep-coins" aria-hidden="true">
+            <span class="ep-coin">+&euro;</span>
+            <span class="ep-coin">+&euro;</span>
+            <span class="ep-coin">+&euro;</span>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* --- Exit-intent popup --- */
+    (function () {
+      var popup    = document.getElementById('exitPopup');
+      var overlay  = document.getElementById('epOverlay');
+      var closeBtn = document.getElementById('epClose');
+      var dismiss  = document.getElementById('epDismiss');
+      var cta      = document.getElementById('epCTA');
+      var shown    = false;
+
+      function show() {
+        if (shown) return;
+        shown = true;
+        popup.classList.add('ep--visible');
+        document.body.style.overflow = 'hidden';
+      }
+
+      function hide() {
+        popup.classList.remove('ep--visible');
+        document.body.style.overflow = '';
+      }
+
+      /* Déclencher quand la souris quitte vers le haut */
+      document.addEventListener('mouseleave', function (e) {
+        if (e.clientY <= 2) show();
+      });
+
+      /* Déclencher aussi après 15 secondes sans interaction */
+      setTimeout(show, 15000);
+
+      overlay.addEventListener('click', hide);
+      closeBtn.addEventListener('click', hide);
+      dismiss.addEventListener('click', hide);
+      cta.addEventListener('click', hide);
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') hide();
+      });
+    }());
   </script>
 
 </body>
