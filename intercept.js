@@ -550,6 +550,12 @@
 
   // Enhanced injection with caching and dynamic timeout
   function injectPluginPrices(hits) {
+    // 🔐 Guard: ne pas analyser si l'utilisateur n'est pas connecté
+    if (!extensionSettings.apiKey || extensionSettings.apiKey.trim() === '') {
+      console.log('[🔐 Auth] Utilisateur non connecté — analyse désactivée');
+      return;
+    }
+
     console.log(`[🔍 injectPluginPrices] ${hits.length} véhicules à traiter (timeout: ${extensionSettings.requestTimeout}ms)`);
 
     // ✅ PHASE 1: Afficher TOUS les indicateurs de loading IMMÉDIATEMENT
