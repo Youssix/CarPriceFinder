@@ -24,11 +24,20 @@ document.addEventListener('DOMContentLoaded', async function() {
     document.getElementById('generateEmail').addEventListener('click', generateEmail);
     document.getElementById('clearList').addEventListener('click', clearVehicleList);
 
-    // Event listeners - Login screen
-    document.getElementById('loginActivateBtn').addEventListener('click', handleLoginActivate);
-    document.getElementById('loginApiKeyInput').addEventListener('keydown', function(e) {
-        if (e.key === 'Enter') handleLoginActivate();
+    // Event listeners - Auth screen 1
+    document.getElementById('googleLoginBtn').addEventListener('click', handleGoogleLogin);
+    document.getElementById('emailContinueBtn').addEventListener('click', handleEmailContinue);
+    document.getElementById('emailInput').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') handleEmailContinue();
     });
+
+    // Event listeners - OTP screen 2
+    document.getElementById('otpVerifyBtn').addEventListener('click', handleOTPVerify);
+    document.getElementById('otpInput').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') handleOTPVerify();
+    });
+    document.getElementById('backToAuthBtn').addEventListener('click', () => showAuthScreen());
+    document.getElementById('otpResendBtn').addEventListener('click', handleOTPResend);
 });
 
 // Default settings
@@ -41,140 +50,269 @@ const DEFAULT_SETTINGS = {
 
 // ===== AUTH GATE =====
 
+let pendingEmail = ''; // Email en attente de vérification OTP
+
+// Serveurs à essayer dans l'ordre
+const AUTH_SERVERS = ['http://localhost:9001', 'https://api.carlytics.fr'];
+
+// Trouver un serveur disponible et appeler l'endpoint donné
+async function callAuthServer(path, method = 'GET', body = null) {
+    for (const server of AUTH_SERVERS) {
+        try {
+            const opts = {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                signal: AbortSignal.timeout(4000)
+            };
+            if (body) opts.body = JSON.stringify(body);
+
+            const response = await fetch(`${server}${path}`, opts);
+            const data = await response.json().catch(() => ({}));
+            return { ok: response.ok, status: response.status, data, server };
+        } catch (e) {
+            console.log(`[Auth] ${server} not reachable, trying next...`);
+        }
+    }
+    return null; // Aucun serveur disponible
+}
+
+async function saveAuthToStorage(apiKey, email, serverUrl) {
+    const result = await chrome.storage.local.get(['carFinderSettings']);
+    const settings = result.carFinderSettings || DEFAULT_SETTINGS;
+    const updatedSettings = {
+        ...DEFAULT_SETTINGS,
+        ...settings,
+        apiKey,
+        email: email || '',
+        debugMode: serverUrl.includes('localhost'),
+        serverUrl,
+        lastUpdated: Date.now()
+    };
+    await chrome.storage.local.set({ carFinderSettings: updatedSettings });
+}
+
 async function checkAuthState() {
     try {
         const result = await chrome.storage.local.get(['carFinderSettings']);
         const settings = result.carFinderSettings || {};
-        const apiKey = settings.apiKey;
-
-        if (apiKey && apiKey.trim().length > 0) {
+        if (settings.apiKey && settings.apiKey.trim().length > 0) {
             showMainUI();
             loadAccountInfo();
         } else {
-            showLoginScreen();
+            showAuthScreen();
         }
     } catch (error) {
         console.error('Error checking auth state:', error);
-        showLoginScreen();
+        showAuthScreen();
     }
 }
 
-function showLoginScreen() {
-    document.getElementById('loginScreen').style.display = 'flex';
+function showAuthScreen() {
+    document.getElementById('authScreen').classList.remove('hidden');
+    document.getElementById('otpScreen').classList.add('hidden');
     document.querySelector('.header').style.display = 'none';
     document.getElementById('mainTabs').style.display = 'none';
     document.getElementById('listTab').style.display = 'none';
     document.getElementById('accountTab').style.display = 'none';
     document.getElementById('settingsPanel').classList.remove('active');
+    document.getElementById('authError').textContent = '';
+}
+
+function showOTPScreen(email) {
+    document.getElementById('authScreen').classList.add('hidden');
+    document.getElementById('otpScreen').classList.remove('hidden');
+    document.getElementById('otpEmailDisplay').textContent = email;
+    document.getElementById('otpInput').value = '';
+    document.getElementById('otpError').textContent = '';
+    document.getElementById('otpInput').focus();
 }
 
 function showMainUI() {
-    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('authScreen').classList.add('hidden');
+    document.getElementById('otpScreen').classList.add('hidden');
     document.querySelector('.header').style.display = 'flex';
     document.getElementById('mainTabs').style.display = 'flex';
-    // Show active tab content
     document.querySelectorAll('.tab-content').forEach(content => {
         content.style.display = content.classList.contains('active') ? 'block' : 'none';
     });
 }
 
-async function handleLoginActivate() {
-    const input = document.getElementById('loginApiKeyInput');
-    const errorEl = document.getElementById('loginError');
-    const btn = document.getElementById('loginActivateBtn');
-    const apiKey = input.value.trim();
+// Étape 1 : Demander le code OTP par email
+async function handleEmailContinue() {
+    const email = document.getElementById('emailInput').value.trim();
+    const errorEl = document.getElementById('authError');
+    const btn = document.getElementById('emailContinueBtn');
 
     errorEl.textContent = '';
 
-    if (!apiKey) {
-        errorEl.textContent = 'Entrez votre cle API';
+    if (!email || !email.includes('@')) {
+        errorEl.textContent = 'Entrez une adresse email valide';
         return;
     }
 
     btn.disabled = true;
-    btn.textContent = 'Verification...';
+    btn.textContent = '…';
+
+    const result = await callAuthServer('/api/auth/request-code', 'POST', { email });
+
+    btn.disabled = false;
+    btn.textContent = '→';
+
+    if (!result) {
+        errorEl.textContent = 'Serveur inaccessible. Vérifiez votre connexion.';
+        return;
+    }
+
+    if (result.status === 404) {
+        errorEl.innerHTML = 'Aucun compte trouvé. <a href="https://carlytics.fr" target="_blank" style="color:#3b82f6">Créer un compte →</a>';
+        return;
+    }
+
+    if (!result.ok) {
+        errorEl.textContent = result.data.error || 'Erreur lors de l\'envoi du code';
+        return;
+    }
+
+    // Code envoyé — afficher l'écran OTP
+    pendingEmail = email;
+    showOTPScreen(email);
+}
+
+// Étape 2 : Vérifier le code OTP
+async function handleOTPVerify() {
+    const code = document.getElementById('otpInput').value.trim();
+    const errorEl = document.getElementById('otpError');
+    const btn = document.getElementById('otpVerifyBtn');
+
+    errorEl.textContent = '';
+
+    if (code.length !== 6 || !/^\d+$/.test(code)) {
+        errorEl.textContent = 'Le code doit contenir 6 chiffres';
+        return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Vérification…';
+
+    const result = await callAuthServer('/api/auth/verify-code', 'POST', { email: pendingEmail, code });
+
+    btn.disabled = false;
+    btn.textContent = 'Vérifier';
+
+    if (!result) {
+        errorEl.textContent = 'Serveur inaccessible';
+        return;
+    }
+
+    if (!result.ok) {
+        errorEl.textContent = result.data.error || 'Code invalide ou expiré';
+        return;
+    }
+
+    // Succès — sauvegarder et afficher le main UI
+    await saveAuthToStorage(result.data.apiKey, result.data.email, result.server);
+    showMainUI();
+    loadAccountInfo();
+    await loadSettings();
+    await checkServerStatus();
+    await loadVehicleList();
+}
+
+// Renvoyer le code OTP
+async function handleOTPResend() {
+    const btn = document.getElementById('otpResendBtn');
+    const errorEl = document.getElementById('otpError');
+
+    btn.disabled = true;
+    btn.textContent = 'Envoi…';
+
+    const result = await callAuthServer('/api/auth/request-code', 'POST', { email: pendingEmail });
+
+    btn.disabled = false;
+
+    if (!result || !result.ok) {
+        errorEl.textContent = 'Erreur lors du renvoi du code';
+        btn.textContent = 'Renvoyer le code';
+        return;
+    }
+
+    btn.textContent = 'Code renvoyé ✓';
+    setTimeout(() => { btn.textContent = 'Renvoyer le code'; }, 3000);
+}
+
+// Google SSO
+async function handleGoogleLogin() {
+    const btn = document.getElementById('googleLoginBtn');
+    const errorEl = document.getElementById('authError');
+
+    errorEl.textContent = '';
+    btn.disabled = true;
+    btn.querySelector('span') ? null : null;
+    const originalHTML = btn.innerHTML;
+    btn.innerHTML = '<span style="font-size:13px">Connexion Google…</span>';
 
     try {
-        // Try localhost first (dev), then production
-        const servers = [
-            'http://localhost:9001',
-            'https://api.carlytics.fr'
-        ];
+        // Obtenir le token Google via Chrome Identity API
+        const token = await new Promise((resolve, reject) => {
+            chrome.identity.getAuthToken({ interactive: true }, (token) => {
+                if (chrome.runtime.lastError) reject(new Error(chrome.runtime.lastError.message));
+                else resolve(token);
+            });
+        });
 
-        let data = null;
-        let workingServer = null;
+        // Envoyer le token au serveur
+        const result = await callAuthServer('/api/auth/google', 'POST', { token });
 
-        for (const server of servers) {
-            try {
-                const response = await fetch(`${server}/api/check-subscription`, {
-                    headers: { 'X-API-Key': apiKey },
-                    signal: AbortSignal.timeout(3000)
-                });
-                const json = await response.json();
-                if (json.active) {
-                    data = json;
-                    workingServer = server;
-                    break;
-                } else if (response.ok) {
-                    data = json;
-                    workingServer = server;
-                    break;
-                }
-            } catch (e) {
-                console.log(`[Auth] ${server} not reachable, trying next...`);
-            }
-        }
-
-        if (!workingServer) {
-            errorEl.textContent = 'Aucun serveur disponible';
+        if (!result) {
+            errorEl.textContent = 'Serveur inaccessible';
             btn.disabled = false;
-            btn.textContent = 'Se connecter';
+            btn.innerHTML = originalHTML;
             return;
         }
 
-        if (data && data.active) {
-            const isLocal = workingServer.includes('localhost');
-            const result = await chrome.storage.local.get(['carFinderSettings']);
-            const settings = result.carFinderSettings || DEFAULT_SETTINGS;
-            const updatedSettings = {
-                ...DEFAULT_SETTINGS,
-                ...settings,
-                apiKey: apiKey,
-                email: data.email || '',
-                debugMode: isLocal,
-                serverUrl: workingServer,
-                lastUpdated: Date.now()
-            };
-            await chrome.storage.local.set({ carFinderSettings: updatedSettings });
-
-            showMainUI();
-            loadAccountInfo();
-            await loadSettings();
-            await checkServerStatus();
-            await loadVehicleList();
-        } else {
-            errorEl.textContent = 'Cle invalide ou abonnement expire';
+        if (result.status === 404) {
+            errorEl.innerHTML = 'Aucun compte trouvé. <a href="https://carlytics.fr" target="_blank" style="color:#3b82f6">Créer un compte →</a>';
+            btn.disabled = false;
+            btn.innerHTML = originalHTML;
+            return;
         }
-    } catch (error) {
-        console.error('Login activation error:', error);
-        errorEl.textContent = 'Erreur de connexion au serveur';
-    }
 
-    btn.disabled = false;
-    btn.textContent = 'Se connecter';
+        if (!result.ok) {
+            errorEl.textContent = result.data.error || 'Erreur Google SSO';
+            btn.disabled = false;
+            btn.innerHTML = originalHTML;
+            return;
+        }
+
+        // Succès
+        await saveAuthToStorage(result.data.apiKey, result.data.email, result.server);
+        showMainUI();
+        loadAccountInfo();
+        await loadSettings();
+        await checkServerStatus();
+        await loadVehicleList();
+
+    } catch (err) {
+        console.error('[Auth] Google SSO error:', err.message);
+        if (err.message.includes('OAuth2 not granted') || err.message.includes('client_id')) {
+            errorEl.textContent = 'Google SSO non configuré (client_id requis)';
+        } else {
+            errorEl.textContent = 'Connexion Google annulée ou échouée';
+        }
+        btn.disabled = false;
+        btn.innerHTML = originalHTML;
+    }
 }
 
 async function handleDisconnect() {
     try {
         const result = await chrome.storage.local.get(['carFinderSettings']);
         const settings = result.carFinderSettings || DEFAULT_SETTINGS;
-
         settings.apiKey = '';
         settings.email = '';
         settings.lastUpdated = Date.now();
         await chrome.storage.local.set({ carFinderSettings: settings });
-
-        showLoginScreen();
+        showAuthScreen();
         console.log('[Auth] User disconnected');
     } catch (error) {
         console.error('Error during disconnect:', error);

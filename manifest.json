@@ -3,7 +3,14 @@
   "name": "CarPriceFinder AI",
   "version": "2.0",
   "description": "Intelligence artificielle pour l'estimation des prix de voitures avec détection d'options premium",
-  "permissions": ["scripting", "activeTab", "storage"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "oauth2": {
+    "client_id": "GOOGLE_CLIENT_ID.apps.googleusercontent.com",
+    "scopes": ["openid", "email", "profile"]
+  },
+  "permissions": ["scripting", "activeTab", "storage", "identity"],
   "host_permissions": [
     "https://api.carlytics.fr/*",
     "http://localhost:9001/*",

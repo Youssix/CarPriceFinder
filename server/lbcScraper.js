@@ -327,6 +327,54 @@ app.post('/api/auth/verify-code', async (req, res) => {
     }
 });
 
+// POST /api/auth/google - Google SSO authentication
+app.post('/api/auth/google', express.json(), async (req, res) => {
+    try {
+        const { token } = req.body;
+        if (!token) {
+            return res.status(400).json({ ok: false, error: 'Token Google manquant' });
+        }
+
+        // Vérifier le token avec l'API Google
+        const googleRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+
+        if (!googleRes.ok) {
+            return res.status(401).json({ ok: false, error: 'Token Google invalide ou expiré' });
+        }
+
+        const googleData = await googleRes.json();
+        const email = googleData.email;
+
+        if (!email) {
+            return res.status(401).json({ ok: false, error: 'Email non récupérable depuis Google' });
+        }
+
+        // Chercher le subscriber par email
+        const subscriber = await getSubscriberByEmail(email);
+
+        if (!subscriber) {
+            return res.status(404).json({
+                ok: false,
+                error: 'Aucun compte trouvé pour cet email. Créez votre compte sur carlytics.fr',
+                signupUrl: 'https://carlytics.fr'
+            });
+        }
+
+        if (subscriber.subscription_status !== 'active') {
+            return res.status(403).json({ ok: false, error: 'Abonnement inactif ou expiré' });
+        }
+
+        console.log(`[🔐 Auth] Google SSO login: ${email}`);
+        res.json({ ok: true, apiKey: subscriber.api_key, email: subscriber.email });
+
+    } catch (err) {
+        console.error('[🔐 Auth] Google SSO error:', err.message);
+        res.status(500).json({ ok: false, error: 'Erreur serveur' });
+    }
+});
+
 // === Dashboard Routes ===
 
 // GET /api/dashboard/stats - Get dashboard overview stats

@@ -60,41 +60,68 @@
     }
   }
 
+  // Relay fetch through content-bridge.js (extension context) to bypass mixed content blocks
+  function fetchViaBridge(url, headers = {}) {
+    return new Promise((resolve, reject) => {
+      const requestId = Math.random().toString(36).substr(2, 9);
+      const timeout = extensionSettings.requestTimeout || 10000;
+
+      const timer = setTimeout(() => {
+        window.removeEventListener('message', handler);
+        reject(new Error('Failed to fetch'));
+      }, timeout);
+
+      function handler(event) {
+        if (event.source !== window) return;
+        const msg = event.data;
+        if (!msg || msg.type !== 'FETCH_RESPONSE' || msg.requestId !== requestId) return;
+        clearTimeout(timer);
+        window.removeEventListener('message', handler);
+        resolve(msg);
+      }
+
+      window.addEventListener('message', handler);
+      window.postMessage({ type: 'FETCH_REQUEST', url, headers, requestId }, '*');
+    });
+  }
+
   async function performFetch(fetchUrl, retryCount = 0) {
     const MAX_RETRIES = 1;
 
     try {
-      const fetchOptions = {};
+      const headers = {};
       if (extensionSettings.apiKey) {
-        fetchOptions.headers = { 'X-API-Key': extensionSettings.apiKey };
+        headers['X-API-Key'] = extensionSettings.apiKey;
       }
 
-      const response = await fetch(fetchUrl, fetchOptions);
+      // Route through content-bridge.js to bypass mixed content (HTTPS page → HTTP localhost)
+      const resp = await fetchViaBridge(fetchUrl, headers);
+
+      if (resp.error) {
+        throw new Error(resp.error);
+      }
 
       // Handle 401/403 auth errors with specific messages
-      if (response.status === 401) {
-        const data = await response.json().catch(() => ({}));
-        throw new Error(data.error || 'Clé API requise. Configurez-la dans les paramètres de l\'extension.');
+      if (resp.status === 401) {
+        throw new Error((resp.data && resp.data.error) || 'Clé API requise. Configurez-la dans les paramètres de l\'extension.');
       }
-      if (response.status === 403) {
-        const data = await response.json().catch(() => ({}));
-        throw new Error(data.error || 'Abonnement expiré ou clé invalide.');
+      if (resp.status === 403) {
+        throw new Error((resp.data && resp.data.error) || 'Abonnement expiré ou clé invalide.');
       }
 
       // Handle 429 rate limit with retry (max 1 retry)
-      if (response.status === 429 && retryCount < MAX_RETRIES) {
-        const retryAfter = response.headers.get('Retry-After') || 2;
+      if (resp.status === 429 && retryCount < MAX_RETRIES) {
+        const retryAfter = resp.retryAfter || 2;
         console.warn(`[⏳ Rate Limit] Waiting ${retryAfter}s before retry (attempt ${retryCount + 1}/${MAX_RETRIES})...`);
         await sleep(retryAfter * 1000);
         return await performFetch(fetchUrl, retryCount + 1);
       }
 
-      if (!response.ok) {
-        throw new Error(`Server error: ${response.status}`);
+      if (!resp.ok) {
+        throw new Error(`Server error: ${resp.status}`);
       }
 
-      const data = await response.json();
-      return data; // Server returns fromCache: true if cached
+      return resp.data; // Server returns fromCache: true if cached
 
     } catch (error) {
       console.error('[❌ Fetch] Error:', error.message);

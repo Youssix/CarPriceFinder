@@ -1,5 +1,6 @@
-// Content script bridge for storage access
+// Content script bridge for storage access AND fetch relay
 // This runs in the extension context and has access to chrome.storage
+// It also relays fetch() calls from intercept.js to bypass mixed content restrictions
 
 console.log('[🌉 Bridge] Content bridge initialized');
 
@@ -9,9 +10,36 @@ window.addEventListener('message', async (event) => {
   if (event.source !== window) return;
 
   const message = event.data;
+  if (!message || !message.type) return;
+
+  // --- FETCH RELAY via background service worker (bypasses mixed content HTTPS→HTTP) ---
+  if (message.type === 'FETCH_REQUEST') {
+    const { url, headers, requestId } = message;
+    try {
+      // Forward to background service worker which has no mixed content restrictions
+      const response = await chrome.runtime.sendMessage({
+        type: 'FETCH_REQUEST_BG',
+        url,
+        headers
+      });
+      window.postMessage({
+        type: 'FETCH_RESPONSE',
+        requestId,
+        ...response
+      }, '*');
+    } catch (error) {
+      window.postMessage({
+        type: 'FETCH_RESPONSE',
+        requestId,
+        ok: false,
+        error: error.message
+      }, '*');
+    }
+    return;
+  }
 
   // Check if it's a storage message
-  if (!message || message.type !== 'STORAGE_REQUEST') return;
+  if (message.type !== 'STORAGE_REQUEST') return;
 
   console.log('[🌉 Bridge] Received storage request:', message.action);
 
