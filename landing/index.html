@@ -22,10 +22,10 @@
   </script>
 
   <!-- GA4 -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-N04E6XJ3ZM"></script>
   <script>
     gtag('js', new Date());
-    gtag('config', 'G-XXXXXXXXXX');
+    gtag('config', 'G-N04E6XJ3ZM');
   </script>
 
   <!-- PostHog Analytics -->
@@ -931,6 +931,7 @@
           if (!isOpen) {
             item.classList.add('is-open');
             question.setAttribute('aria-expanded', 'true');
+            if (window.posthog) posthog.capture('faq_opened', { question: question.querySelector('span').textContent.trim() });
           }
         });
       });
@@ -1062,9 +1063,15 @@
           'ad_user_data': 'granted',
           'ad_personalization': 'granted'
         });
-        if (window.posthog) posthog.opt_in_capturing();
+        if (window.posthog) {
+          posthog.opt_in_capturing();
+          posthog.capture('cookie_consent', { action: 'accepted' });
+        }
       } else {
-        if (window.posthog) posthog.opt_out_capturing();
+        if (window.posthog) {
+          posthog.capture('cookie_consent', { action: 'refused' });
+          posthog.opt_out_capturing();
+        }
       }
     }
     (function() {
@@ -1100,9 +1107,12 @@
 
       document.querySelectorAll('.stripe-checkout-btn').forEach(function (btn) {
         btn.addEventListener('click', async function () {
+          var plan = btn.dataset.plan || 'pro';
           var original = btn.textContent;
           btn.disabled = true;
           btn.textContent = 'Redirection...';
+
+          if (window.posthog) posthog.capture('checkout_clicked', { plan: plan });
 
           // Build UTM data from sessionStorage
           var utm = {};
@@ -1176,6 +1186,38 @@
         if (e.key === 'Escape') hide();
       });
     }());
+  </script>
+
+  <script>
+    /* --- PostHog: Section visibility + CTA tracking --- */
+    (function () {
+      if (!('IntersectionObserver' in window)) return;
+
+      var tracked = {};
+      var sectionObserver = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          if (entry.isIntersecting && !tracked[entry.target.id]) {
+            tracked[entry.target.id] = true;
+            if (window.posthog) posthog.capture('section_viewed', { section: entry.target.id });
+          }
+        });
+      }, { threshold: 0.3 });
+
+      ['features', 'how-it-works', 'pricing', 'faq'].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) sectionObserver.observe(el);
+      });
+
+      // CTA click tracking (hero + CTA section + exit popup)
+      document.querySelectorAll('.hero__cta a, .cta-section__buttons a, .ep__btn-primary').forEach(function (el) {
+        el.addEventListener('click', function () {
+          if (window.posthog) posthog.capture('cta_clicked', {
+            text: el.textContent.trim(),
+            location: el.closest('section, .ep') ? (el.closest('section') || el.closest('.ep')).className.split(' ')[0] : 'unknown'
+          });
+        });
+      });
+    })();
   </script>
 
 </body>

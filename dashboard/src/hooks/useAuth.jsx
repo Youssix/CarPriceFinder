@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import posthog from 'posthog-js';
 import { api } from '../api/client';
 
 const AuthContext = createContext(null);
@@ -20,6 +21,7 @@ export function AuthProvider({ children }) {
         .then(data => {
           if (data.active) {
             setUser({ email: data.email, status: data.status, apiKey });
+            posthog.identify(data.email, { plan: data.status });
           } else {
             localStorage.removeItem('apiKey');
           }
@@ -37,11 +39,14 @@ export function AuthProvider({ children }) {
   const login = useCallback((apiKey, email) => {
     localStorage.setItem('apiKey', apiKey);
     setUser({ email, apiKey, status: 'active' });
+    posthog.identify(email, { plan: 'active' });
+    posthog.capture('user_logged_in');
   }, []);
 
   const logout = useCallback(() => {
     localStorage.removeItem('apiKey');
     setUser(null);
+    posthog.reset();
   }, []);
 
   return (

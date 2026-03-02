@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import posthog from 'posthog-js';
 import { api } from '../api/client';
 import AlertForm from '../components/AlertForm';
 import { Plus, Trash2, Pause, Play } from 'lucide-react';
@@ -15,20 +16,27 @@ export default function Alerts() {
 
   const createMutation = useMutation({
     mutationFn: (alert) => api.createAlert(alert),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['alerts'] });
       setShowForm(false);
+      posthog.capture('alert_created', { brand: variables.brand, model: variables.model });
     },
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id) => api.deleteAlert(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['alerts'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['alerts'] });
+      posthog.capture('alert_deleted');
+    },
   });
 
   const toggleMutation = useMutation({
     mutationFn: ({ id, isActive }) => api.updateAlert(id, { isActive }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['alerts'] }),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['alerts'] });
+      posthog.capture('alert_toggled', { active: variables.isActive });
+    },
   });
 
   const alerts = data?.alerts || [];

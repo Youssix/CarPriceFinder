@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import posthog from 'posthog-js';
 import { api } from '../api/client';
 import VehicleCard from '../components/VehicleCard';
 
@@ -11,7 +12,10 @@ export default function Vehicles() {
 
   const deleteMutation = useMutation({
     mutationFn: (stockNumber) => api.deleteVehicle(stockNumber),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['vehicles'] }),
+    onSuccess: (_, stockNumber) => {
+      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+      posthog.capture('vehicle_deleted', { stock_number: stockNumber });
+    },
   });
 
   const vehicles = data?.vehicles || [];
