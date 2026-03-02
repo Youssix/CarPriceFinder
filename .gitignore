@@ -8,6 +8,7 @@ pnpm-debug.log*
 
 # Environment variables
 .env
+.deploy.env
 .env.local
 .env.development.local
 .env.test.local
