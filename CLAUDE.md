@@ -202,6 +202,18 @@ This is being productized as a **SaaS platform** for car dealers:
 - Comments in French for business logic, English for technical details
 - Console logs: `console.log('[🎯 Component] Message')` with emoji prefixes
 
+## Production Server
+
+```bash
+ssh root@72.61.96.39
+# Password: 9DQpTIpx5;Dbd&(t
+```
+
+- **Domains**: carlytics.fr / api.carlytics.fr / app.carlytics.fr
+- **Stack**: Docker Compose (Caddy + Node API + Postgres)
+- **Path**: `/opt/carlytics/`
+- **Deploy**: `git pull && docker compose build api && docker compose up -d`
+
 ## Environment Variables
 
 ```bash

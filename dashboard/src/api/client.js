@@ -7,25 +7,32 @@ class ApiClient {
 
   async request(endpoint, options = {}) {
     const apiKey = localStorage.getItem('apiKey');
-    const res = await fetch(`${this.baseUrl}${endpoint}`, {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...(apiKey && { 'X-API-Key': apiKey }),
-        ...options.headers,
-      },
-      credentials: 'include',
-    });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
 
-    if (res.status === 401 || res.status === 403) {
-      localStorage.removeItem('apiKey');
-      window.location.href = '/login';
-      throw new Error('Non autorise');
+    try {
+      const res = await fetch(`${this.baseUrl}${endpoint}`, {
+        ...options,
+        signal: controller.signal,
+        headers: {
+          'Content-Type': 'application/json',
+          ...(apiKey && { 'X-API-Key': apiKey }),
+          ...options.headers,
+        },
+      });
+
+      if (res.status === 401 || res.status === 403) {
+        localStorage.removeItem('apiKey');
+        window.location.href = '/login';
+        throw new Error('Non autorise');
+      }
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Erreur serveur');
+      return data;
+    } finally {
+      clearTimeout(timeout);
     }
-
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Erreur serveur');
-    return data;
   }
 
   // Auth

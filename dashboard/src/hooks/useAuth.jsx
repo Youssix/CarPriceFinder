@@ -10,6 +10,12 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const apiKey = localStorage.getItem('apiKey');
     if (apiKey) {
+      // Safety timeout: never stay loading forever
+      const safetyTimer = setTimeout(() => {
+        console.warn('[Auth] Safety timeout — forcing loading=false');
+        setLoading(false);
+      }, 5000);
+
       api.checkSubscription()
         .then(data => {
           if (data.active) {
@@ -19,7 +25,10 @@ export function AuthProvider({ children }) {
           }
         })
         .catch(() => localStorage.removeItem('apiKey'))
-        .finally(() => setLoading(false));
+        .finally(() => {
+          clearTimeout(safetyTimer);
+          setLoading(false);
+        });
     } else {
       setLoading(false);
     }

@@ -8,12 +8,55 @@
   <meta name="theme-color" content="#3b82f6">
   <link rel="canonical" href="https://carlytics.fr">
 
+  <!-- Google Consent Mode v2 (CNIL: deny all by default) -->
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('consent', 'default', {
+      'analytics_storage': 'denied',
+      'ad_storage': 'denied',
+      'ad_user_data': 'denied',
+      'ad_personalization': 'denied',
+      'wait_for_update': 500
+    });
+  </script>
+
+  <!-- GA4 -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+  <script>
+    gtag('js', new Date());
+    gtag('config', 'G-XXXXXXXXXX');
+  </script>
+
+  <!-- PostHog Analytics -->
+  <script>
+    !function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.crossOrigin="anonymous",p.async=!0,p.src=s.api_host.replace(".i.posthog.com","-assets.i.posthog.com")+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},u.people.toString=function(){return u.toString(1)+".people (stub)"},o="init capture register register_once register_for_session unregister opt_out_capturing has_opted_out_capturing opt_in_capturing reset isFeatureEnabled onFeatureFlags getFeatureFlag getFeatureFlagPayload reloadFeatureFlags group identify setPersonProperties setPersonPropertiesForFlags resetPersonPropertiesForFlags setGroupPropertiesForFlags resetGroupPropertiesForFlags".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
+    posthog.init('phc_qhlPEwMgrqobgLV7A01T8uaJXd9BZ40RVFLNfGtDDdG', {
+      api_host: 'https://eu.i.posthog.com',
+      person_profiles: 'identified_only',
+      autocapture: true,
+      capture_pageview: true,
+      capture_pageleave: true,
+      opt_out_capturing_by_default: true
+    });
+  </script>
+
   <!-- Open Graph -->
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://carlytics.fr">
   <meta property="og:title" content="Carlytics : Trouvez les meilleures affaires VO">
   <meta property="og:description" content="Plugin Chrome qui compare les prix des annonces VO en temps r&eacute;el. Voyez la marge de chaque voiture sans changer de page.">
   <meta property="og:locale" content="fr_FR">
+  <meta property="og:image" content="https://carlytics.fr/og-image.svg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Carlytics — Trouvez les meilleures affaires VO en 2 minutes">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Carlytics : Trouvez les meilleures affaires VO">
+  <meta name="twitter:description" content="Plugin Chrome qui compare les prix des annonces VO en temps r&eacute;el. Voyez la marge de chaque voiture sans changer de page.">
+  <meta name="twitter:image" content="https://carlytics.fr/og-image.svg">
 
   <!-- Google Font : Space Grotesk (logo + titres) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -24,6 +67,102 @@
 
   <!-- Favicon — "C" stylisé sur fond sombre -->
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%231a1a2e'/><path d='M72 26 A30 30 0 1 0 72 74' stroke='url(%23g)' stroke-width='13' fill='none' stroke-linecap='round'/><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0%25' stop-color='%2360a5fa'/><stop offset='100%25' stop-color='%23a78bfa'/></linearGradient></defs></svg>">
+
+  <!-- JSON-LD: Organization -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "Carlytics",
+    "url": "https://carlytics.fr",
+    "email": "contact@carlytics.fr",
+    "description": "Plugin Chrome qui analyse les annonces VO en temps r\u00e9el et compare automatiquement les prix du march\u00e9."
+  }
+  </script>
+
+  <!-- JSON-LD: SoftwareApplication -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Carlytics",
+    "operatingSystem": "Chrome",
+    "applicationCategory": "BusinessApplication",
+    "offers": [
+      {
+        "@type": "Offer",
+        "name": "Starter",
+        "price": "29",
+        "priceCurrency": "EUR",
+        "priceValidUntil": "2026-12-31"
+      },
+      {
+        "@type": "Offer",
+        "name": "Pro",
+        "price": "49",
+        "priceCurrency": "EUR",
+        "priceValidUntil": "2026-12-31"
+      },
+      {
+        "@type": "Offer",
+        "name": "Agency",
+        "price": "99",
+        "priceCurrency": "EUR",
+        "priceValidUntil": "2026-12-31"
+      }
+    ]
+  }
+  </script>
+
+  <!-- JSON-LD: FAQPage -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Est-ce l\u00e9gal ?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Carlytics analyse des donn\u00e9es publiquement accessibles. Nous respectons les CGU des plateformes et les r\u00e9glementations en vigueur, notamment le RGPD. Aucune donn\u00e9e personnelle n'est collect\u00e9e sur les plateformes tierces."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "\u00c7a marche avec quels navigateurs ?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Google Chrome uniquement pour le moment. Les navigateurs bas\u00e9s sur Chromium (Brave, Edge) sont \u00e9galement compatibles. Firefox arrive prochainement."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Je peux annuler \u00e0 tout moment ?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Oui, sans engagement. Vous pouvez annuler votre abonnement en un clic depuis votre espace client. L'acc\u00e8s reste actif jusqu'\u00e0 la fin de la p\u00e9riode en cours."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Combien de temps pour voir les premiers r\u00e9sultats ?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Imm\u00e9diat. D\u00e8s l'installation, chaque annonce est analys\u00e9e automatiquement. Vous voyez les marges calcul\u00e9es en temps r\u00e9el sans rien configurer."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Et si les sites sources changent leur interface ?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Notre \u00e9quipe technique maintient les connecteurs en permanence. Les mises \u00e0 jour sont transparentes et automatiques, sans aucune action de votre part."
+        }
+      }
+    ]
+  }
+  </script>
 </head>
 <body>
 
@@ -905,9 +1044,62 @@
     </div>
   </div>
 
+  <!-- Cookie Consent Banner (CNIL) -->
+  <div id="cookieConsent" style="display:none; position:fixed; bottom:0; left:0; right:0; z-index:9999; background:#1a1a2e; border-top:1px solid rgba(255,255,255,0.1); padding:16px 24px; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; font-size:14px; color:rgba(255,255,255,0.7);">
+    <div style="max-width:1200px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+      <p style="margin:0; flex:1; min-width:280px;">
+        Nous utilisons des cookies analytiques pour am&eacute;liorer votre exp&eacute;rience.
+        <a href="mailto:contact@carlytics.fr" style="color:#60a5fa; text-decoration:underline;">En savoir plus</a>
+      </p>
+      <div style="display:flex; gap:8px; flex-shrink:0;">
+        <button onclick="handleConsent(false)" style="background:transparent; border:1px solid rgba(255,255,255,0.2); color:rgba(255,255,255,0.6); padding:8px 20px; border-radius:8px; cursor:pointer; font-size:14px;">Refuser</button>
+        <button onclick="handleConsent(true)" style="background:linear-gradient(135deg,#3b82f6,#8b5cf6); border:none; color:#fff; padding:8px 20px; border-radius:8px; cursor:pointer; font-size:14px; font-weight:600;">Accepter</button>
+      </div>
+    </div>
+  </div>
   <script>
-    /* --- Stripe Checkout --- */
+    function handleConsent(accepted) {
+      localStorage.setItem('cookie_consent', accepted ? 'granted' : 'denied');
+      document.getElementById('cookieConsent').style.display = 'none';
+      if (accepted) {
+        gtag('consent', 'update', {
+          'analytics_storage': 'granted',
+          'ad_storage': 'granted',
+          'ad_user_data': 'granted',
+          'ad_personalization': 'granted'
+        });
+        if (window.posthog) posthog.opt_in_capturing();
+      } else {
+        if (window.posthog) posthog.opt_out_capturing();
+      }
+    }
+    (function() {
+      var consent = localStorage.getItem('cookie_consent');
+      if (!consent) {
+        document.getElementById('cookieConsent').style.display = 'block';
+      } else if (consent === 'granted') {
+        gtag('consent', 'update', {
+          'analytics_storage': 'granted',
+          'ad_storage': 'granted',
+          'ad_user_data': 'granted',
+          'ad_personalization': 'granted'
+        });
+        if (window.posthog) posthog.opt_in_capturing();
+      }
+    })();
+  </script>
+
+  <script>
+    /* --- UTM Capture + Stripe Checkout --- */
     (function () {
+      // Capture UTM params on page load
+      var params = new URLSearchParams(window.location.search);
+      var utmKeys = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'gclid'];
+      utmKeys.forEach(function (key) {
+        var val = params.get(key);
+        if (val) sessionStorage.setItem(key, val);
+      });
+
       // En local (localhost / 127.0.0.1) → serveur dev, sinon API prod
       var isLocal = ['localhost', '127.0.0.1'].includes(location.hostname);
       var API_URL = isLocal ? 'http://localhost:9001' : 'https://api.carlytics.fr';
@@ -918,11 +1110,21 @@
           btn.disabled = true;
           btn.textContent = 'Redirection...';
 
+          // Build UTM data from sessionStorage
+          var utm = {};
+          utmKeys.forEach(function (key) {
+            var val = sessionStorage.getItem(key);
+            if (val) utm[key] = val;
+          });
+
           try {
             var res = await fetch(API_URL + '/api/create-checkout-session', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ plan: btn.dataset.plan || 'pro' })
+              body: JSON.stringify({
+                plan: btn.dataset.plan || 'pro',
+                utm: Object.keys(utm).length > 0 ? utm : undefined
+              })
             });
             var data = await res.json();
             if (data.url) {

@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+
+Disallow: /beta.html
+Disallow: /success.html
+Disallow: /cancel.html
+Disallow: /reset-password.html
+Disallow: /set-password.html
+
+Sitemap: https://carlytics.fr/sitemap.xml

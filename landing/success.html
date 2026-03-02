@@ -8,6 +8,44 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%231a1a2e'/><path d='M72 26 A30 30 0 1 0 72 74' stroke='url(%23g)' stroke-width='13' fill='none' stroke-linecap='round'/><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0%25' stop-color='%2360a5fa'/><stop offset='100%25' stop-color='%23a78bfa'/></linearGradient></defs></svg>">
+
+  <!-- Google Consent Mode v2 (CNIL: deny all by default) -->
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('consent', 'default', {
+      'analytics_storage': 'denied',
+      'ad_storage': 'denied',
+      'ad_user_data': 'denied',
+      'ad_personalization': 'denied'
+    });
+  </script>
+
+  <!-- GA4 -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+  <script>
+    gtag('js', new Date());
+    gtag('config', 'G-XXXXXXXXXX');
+
+    // Restore consent from landing page choice
+    var consent = localStorage.getItem('cookie_consent');
+    if (consent === 'granted') {
+      gtag('consent', 'update', {
+        'analytics_storage': 'granted',
+        'ad_storage': 'granted',
+        'ad_user_data': 'granted',
+        'ad_personalization': 'granted'
+      });
+    }
+
+    // Fire conversion event
+    var sessionId = new URLSearchParams(window.location.search).get('session_id');
+    gtag('event', 'purchase', {
+      transaction_id: sessionId || 'unknown',
+      send_to: 'G-XXXXXXXXXX'
+    });
+  </script>
+
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
