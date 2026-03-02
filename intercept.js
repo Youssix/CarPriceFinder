@@ -9,32 +9,63 @@
   
   // ✅ SIMPLIFIED: No cache stats needed - server handles caching
   
-  // Load settings from chrome storage
-  async function loadExtensionSettings() {
-    try {
-      if (typeof chrome !== 'undefined' && chrome.storage) {
-        const result = await chrome.storage.local.get(['carFinderSettings']);
-        if (result.carFinderSettings) {
-          extensionSettings = { ...extensionSettings, ...result.carFinderSettings };
-          console.log('[⚙️ Settings] Loaded from storage:', extensionSettings);
-        }
-      }
-    } catch (error) {
-      console.warn('[⚙️ Settings] Could not load from storage, using defaults:', error.message);
-    }
-  }
+  // Load settings via content-bridge.js (STORAGE_REQUEST postMessage bridge)
+  // intercept.js runs in PAGE context → no direct chrome.storage access
+  function loadExtensionSettings() {
+    return new Promise((resolve) => {
+      const requestId = 'settings_' + Math.random().toString(36).substr(2, 9);
+      const timer = setTimeout(() => {
+        window.removeEventListener('message', handler);
+        console.warn('[⚙️ Settings] Bridge timeout — using defaults');
+        resolve();
+      }, 2000);
 
-  // Listen for settings updates from popup
-  if (typeof chrome !== 'undefined' && chrome.runtime) {
-    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-      if (message.type === 'SETTINGS_UPDATED') {
-        extensionSettings = { ...extensionSettings, ...message.settings };
-        console.log('[⚙️ Settings] Updated from popup:', extensionSettings);
-        sendResponse({ success: true });
+      function handler(event) {
+        if (event.source !== window) return;
+        const msg = event.data;
+        if (!msg || msg.type !== 'STORAGE_RESPONSE' || msg.requestId !== requestId) return;
+        clearTimeout(timer);
+        window.removeEventListener('message', handler);
+        if (msg.data && msg.data.carFinderSettings) {
+          extensionSettings = { ...extensionSettings, ...msg.data.carFinderSettings };
+          console.log('[⚙️ Settings] Loaded via bridge:', extensionSettings);
+        }
+        resolve();
       }
-      // ✅ CLEAR_CACHE and FORCE_REFRESH removed - server handles caching
+
+      window.addEventListener('message', handler);
+      window.postMessage({
+        type: 'STORAGE_REQUEST',
+        action: 'get',
+        keys: ['carFinderSettings'],
+        requestId
+      }, '*');
     });
   }
+
+  // Listen for messages pushed by content-bridge.js (relayed from popup)
+  window.addEventListener('message', (event) => {
+    if (event.source !== window) return;
+    const msg = event.data;
+
+    if (msg && msg.type === 'SETTINGS_PUSH') {
+      extensionSettings = { ...extensionSettings, ...msg.settings };
+      console.log('[⚙️ Settings] Updated via bridge push:', extensionSettings);
+    }
+
+    if (msg && msg.type === 'VEHICLE_REMOVED' && msg.stockNumber) {
+      // Mettre à jour la liste en mémoire
+      vehicleListManager.removeVehicle(msg.stockNumber);
+      // Remettre le bouton "Ajouter" sur la page si le véhicule est visible
+      const btn = document.querySelector(`[data-add-stock="${msg.stockNumber}"]`);
+      if (btn) {
+        btn.innerHTML = '<span style="color: #27ae60; font-size: 14px;">➕</span> <strong>Ajouter</strong>';
+        btn.disabled = false;
+        btn.style.cssText = 'padding: 6px 12px; background: #d5f4e6; color: #27ae60; border: 1px solid #27ae60; cursor: pointer; border-radius: 3px; font-size: 12px; font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,0.1); transition: all 0.2s ease; white-space: nowrap;';
+        console.log(`[📋 Liste] Bouton réinitialisé pour ${msg.stockNumber}`);
+      }
+    }
+  });
 
   // ✅ SIMPLIFIED: No client cache - server handles all caching
   // Simple fetch with retry logic
@@ -133,8 +164,8 @@
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
-  // Initialize settings
-  loadExtensionSettings();
+  // Initialize settings — store promise so injectPluginPrices can await it
+  const settingsReady = loadExtensionSettings();
 
   // Interception XHR
   const originalXHR = window.XMLHttpRequest;
@@ -549,7 +580,10 @@
   }
 
   // Enhanced injection with caching and dynamic timeout
-  function injectPluginPrices(hits) {
+  async function injectPluginPrices(hits) {
+    // Attendre que les settings soient chargés via le bridge (max 2s)
+    await settingsReady;
+
     // 🔐 Guard: ne pas analyser si l'utilisateur n'est pas connecté
     if (!extensionSettings.apiKey || extensionSettings.apiKey.trim() === '') {
       console.log('[🔐 Auth] Utilisateur non connecté — analyse désactivée');
@@ -864,6 +898,7 @@
 
   function createAddToListButton(card, carData, analysisData) {
     const addButton = document.createElement("button");
+    addButton.dataset.addStock = carData.stockNumber; // pour pouvoir retrouver le bouton depuis VEHICLE_REMOVED
     const isInList = vehicleListManager.isInList(carData.stockNumber);
 
     // Style based on whether vehicle is already in list

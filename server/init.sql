@@ -119,7 +119,24 @@ CREATE INDEX IF NOT EXISTS idx_alert_matches_unseen ON alert_matches(seen) WHERE
 -- Prevent duplicate matches
 CREATE UNIQUE INDEX IF NOT EXISTS idx_alert_matches_unique ON alert_matches(alert_id, observation_id);
 
--- Auth codes for magic link login
+-- Password auth: add column to existing subscribers table
+ALTER TABLE subscribers ADD COLUMN IF NOT EXISTS password_hash VARCHAR(255);
+
+-- Password setup/reset tokens
+CREATE TABLE IF NOT EXISTS password_tokens (
+  id BIGSERIAL PRIMARY KEY,
+  email TEXT NOT NULL,
+  token VARCHAR(128) NOT NULL UNIQUE,
+  type VARCHAR(20) NOT NULL DEFAULT 'setup',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  expires_at TIMESTAMPTZ NOT NULL,
+  used_at TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_password_tokens_token ON password_tokens(token);
+CREATE INDEX IF NOT EXISTS idx_password_tokens_email ON password_tokens(email);
+
+-- Auth codes for magic link login (kept for possible future use)
 CREATE TABLE IF NOT EXISTS auth_codes (
   id BIGSERIAL PRIMARY KEY,
   email TEXT NOT NULL,

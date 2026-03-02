@@ -9,6 +9,9 @@
     "server:start": "cd server && npm start",
     "server:dev": "cd server && npm run dev",
     "server:install": "cd server && npm install",
+    "landing:dev": "npx -y serve landing -p 3000 --no-clipboard",
+    "dashboard:dev": "cd dashboard && npm run dev",
+    "dev:all": "concurrently --kill-others-on-fail --names \"API,LANDING,DASHBOARD\" --prefix-colors \"cyan,yellow,magenta\" \"npm run server:dev\" \"npm run landing:dev\" \"npm run dashboard:dev\"",
     "clean": "rm -rf server/node_modules package-lock.json server/package-lock.json",
     "clean:cache": "echo 'Open chrome://extensions and click extension icon to clear cache'",
     "build:extension": "npm run clean:obsolete && echo 'Extension ready - load in chrome://extensions'",
@@ -34,5 +37,8 @@
   "engines": {
     "node": ">=18.0.0",
     "npm": ">=9.0.0"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
   }
 }

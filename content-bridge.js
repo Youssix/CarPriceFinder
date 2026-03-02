@@ -4,6 +4,20 @@
 
 console.log('[🌉 Bridge] Content bridge initialized');
 
+// Relayer les mises à jour de settings du popup vers intercept.js (page context)
+// Le popup envoie chrome.tabs.sendMessage → content-bridge reçoit → window.postMessage → intercept.js reçoit
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === 'SETTINGS_UPDATED') {
+    window.postMessage({ type: 'SETTINGS_PUSH', settings: message.settings }, '*');
+    sendResponse({ success: true });
+  } else if (message.type === 'VEHICLE_REMOVED') {
+    // Relayer vers intercept.js (page context) pour remettre le bouton "Ajouter"
+    window.postMessage({ type: 'VEHICLE_REMOVED', stockNumber: message.stockNumber }, '*');
+    sendResponse({ success: true });
+  }
+  return false;
+});
+
 // Listen for messages from the page (intercept.js)
 window.addEventListener('message', async (event) => {
   // Only accept messages from same origin

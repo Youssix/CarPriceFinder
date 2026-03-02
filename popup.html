@@ -335,39 +335,52 @@
             background: rgba(255,255,255,0.12);
         }
 
-        /* Email row */
-        .auth-email-row {
+        /* Email / Password fields */
+        .auth-fields {
             display: flex;
+            flex-direction: column;
             gap: 8px;
             width: 100%;
             margin-bottom: 0;
         }
 
         .auth-input {
-            flex: 1;
+            width: 100%;
             padding: 11px 14px;
             border: 1px solid rgba(255,255,255,0.12);
             border-radius: 8px;
             font-size: 14px;
             background: rgba(255,255,255,0.08);
             color: white;
+            box-sizing: border-box;
         }
         .auth-input::placeholder { color: rgba(255,255,255,0.3); }
         .auth-input:focus { outline: none; border-color: #3b82f6; }
 
-        .btn-auth-arrow {
-            padding: 0 14px;
+        .btn-login {
+            width: 100%;
+            padding: 12px;
             background: #3b82f6;
             color: white;
             border: none;
             border-radius: 8px;
-            font-size: 18px;
+            font-size: 14px;
+            font-weight: 600;
             cursor: pointer;
             transition: background 0.15s;
-            flex-shrink: 0;
+            margin-top: 4px;
         }
-        .btn-auth-arrow:hover { background: #2563eb; }
-        .btn-auth-arrow:disabled { background: #374151; cursor: not-allowed; }
+        .btn-login:hover { background: #2563eb; }
+        .btn-login:disabled { background: #374151; cursor: not-allowed; }
+
+        .forgot-link {
+            margin-top: 10px;
+            font-size: 12px;
+            color: rgba(255,255,255,0.4);
+            cursor: pointer;
+            text-align: center;
+        }
+        .forgot-link:hover { color: #3b82f6; }
 
         /* Auth errors */
         .auth-error {
@@ -387,73 +400,7 @@
         .login-link a { color: #3b82f6; text-decoration: none; }
         .login-link a:hover { text-decoration: underline; }
 
-        /* OTP screen */
-        .otp-back {
-            align-self: flex-start;
-            background: none;
-            border: none;
-            color: rgba(255,255,255,0.5);
-            font-size: 13px;
-            cursor: pointer;
-            padding: 0;
-            margin-bottom: 24px;
-        }
-        .otp-back:hover { color: white; }
-
-        .otp-sent-label {
-            font-size: 13px;
-            color: rgba(255,255,255,0.6);
-            margin-bottom: 4px;
-        }
-        .otp-email-display {
-            font-size: 14px;
-            font-weight: 600;
-            color: white;
-            margin-bottom: 24px;
-            word-break: break-all;
-        }
-
-        .otp-input {
-            width: 100%;
-            padding: 16px;
-            text-align: center;
-            font-size: 28px;
-            font-weight: 700;
-            letter-spacing: 10px;
-            border: 1px solid rgba(255,255,255,0.12);
-            border-radius: 10px;
-            background: rgba(255,255,255,0.08);
-            color: white;
-            margin-bottom: 14px;
-        }
-        .otp-input:focus { outline: none; border-color: #3b82f6; }
-
-        .btn-activate {
-            width: 100%;
-            padding: 12px;
-            background: #3b82f6;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background 0.15s;
-        }
-        .btn-activate:hover { background: #2563eb; }
-        .btn-activate:disabled { background: #374151; cursor: not-allowed; }
-
-        .otp-resend {
-            margin-top: 14px;
-            background: none;
-            border: none;
-            color: #3b82f6;
-            font-size: 12px;
-            cursor: pointer;
-            padding: 0;
-        }
-        .otp-resend:hover { text-decoration: underline; }
-        .otp-resend:disabled { color: rgba(255,255,255,0.3); cursor: default; }
+        /* (OTP screen removed — using email + password auth) */
 
         /* === SETTINGS PANEL (hidden by default) === */
         #settingsPanel {
@@ -522,7 +469,7 @@
 </head>
 <body>
 
-    <!-- AUTH SCREEN 1 : Choix de méthode -->
+    <!-- AUTH SCREEN : Email + Mot de passe -->
     <div id="authScreen" class="auth-screen">
         <div class="login-logo">Carlytics</div>
         <p class="login-subtitle">Analysez les prix VO en temps réel</p>
@@ -540,27 +487,19 @@
 
         <div class="auth-divider">ou</div>
 
-        <!-- Email + flèche -->
-        <div class="auth-email-row">
+        <!-- Email + Mot de passe -->
+        <div class="auth-fields">
             <input type="email" id="emailInput" class="auth-input" placeholder="votre@email.com" autocomplete="email" />
-            <button class="btn-auth-arrow" id="emailContinueBtn" title="Continuer">→</button>
+            <input type="password" id="passwordInput" class="auth-input" placeholder="Mot de passe" autocomplete="current-password" />
+            <button class="btn-login" id="loginBtn">Se connecter</button>
         </div>
         <div class="auth-error" id="authError"></div>
+
+        <div class="forgot-link" id="forgotPasswordLink">Mot de passe oublié ?</div>
 
         <div class="login-link">
             Pas de compte ? <a href="https://carlytics.fr" target="_blank">Essai gratuit 14 jours →</a>
         </div>
-    </div>
-
-    <!-- AUTH SCREEN 2 : Vérification OTP -->
-    <div id="otpScreen" class="auth-screen hidden">
-        <button class="otp-back" id="backToAuthBtn">← Retour</button>
-        <p class="otp-sent-label">Code envoyé à</p>
-        <p class="otp-email-display" id="otpEmailDisplay"></p>
-        <input type="text" id="otpInput" class="otp-input" placeholder="000000" maxlength="6" inputmode="numeric" autocomplete="one-time-code" />
-        <button class="btn-activate" id="otpVerifyBtn">Vérifier</button>
-        <div class="auth-error" id="otpError"></div>
-        <button class="otp-resend" id="otpResendBtn">Renvoyer le code</button>
     </div>
 
     <!-- MAIN UI -->

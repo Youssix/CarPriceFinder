@@ -537,7 +537,7 @@
             <li class="pricing-card__feature">Alertes email basiques</li>
             <li class="pricing-card__feature">Support par email</li>
           </ul>
-          <a href="#" class="btn btn--secondary">Commencer l'essai gratuit</a>
+          <button class="btn btn--secondary stripe-checkout-btn" data-plan="starter">Commencer l'essai gratuit</button>
         </div>
 
         <!-- Pro (featured) -->
@@ -557,7 +557,7 @@
             <li class="pricing-card__feature">D&eacute;tection IA des options premium</li>
             <li class="pricing-card__feature">Historique complet des recherches</li>
           </ul>
-          <a href="#" class="btn btn--primary">Commencer l'essai gratuit</a>
+          <button class="btn btn--primary stripe-checkout-btn" data-plan="pro">Commencer l'essai gratuit</button>
         </div>
 
         <!-- Agency -->
@@ -904,6 +904,43 @@
       </div>
     </div>
   </div>
+
+  <script>
+    /* --- Stripe Checkout --- */
+    (function () {
+      // En local (localhost / 127.0.0.1) → serveur dev, sinon API prod
+      var isLocal = ['localhost', '127.0.0.1'].includes(location.hostname);
+      var API_URL = isLocal ? 'http://localhost:9001' : 'https://api.carlytics.fr';
+
+      document.querySelectorAll('.stripe-checkout-btn').forEach(function (btn) {
+        btn.addEventListener('click', async function () {
+          var original = btn.textContent;
+          btn.disabled = true;
+          btn.textContent = 'Redirection...';
+
+          try {
+            var res = await fetch(API_URL + '/api/create-checkout-session', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ plan: btn.dataset.plan || 'pro' })
+            });
+            var data = await res.json();
+            if (data.url) {
+              window.location.href = data.url;
+            } else {
+              alert('Erreur lors de la redirection vers le paiement. Réessayez.');
+              btn.disabled = false;
+              btn.textContent = original;
+            }
+          } catch (e) {
+            alert('Serveur inaccessible. Réessayez dans quelques instants.');
+            btn.disabled = false;
+            btn.textContent = original;
+          }
+        });
+      });
+    }());
+  </script>
 
   <script>
     /* --- Exit-intent popup --- */

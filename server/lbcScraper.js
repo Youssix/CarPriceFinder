@@ -4,7 +4,7 @@ const cors = require("cors");
 const cron = require('node-cron');
 const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
 const {
-  initDb, getSubscriberByApiKey, closePool,
+  initDb, getSubscriberByApiKey, getSubscriberByEmail, closePool,
   getCachedEstimation, setCachedEstimation, cleanExpiredCache,
   logPriceObservation,
   getSavedVehicles, saveVehicle, deleteSavedVehicle,
@@ -13,6 +13,8 @@ const {
   getObservationStats, getActiveAlertCount, getObservations,
   getRecentDeals, getUnseenAlertMatches, markAlertMatchesSeen,
   createBetaTester, getBetaTesters,
+  createPasswordToken, verifyAndConsumePasswordToken,
+  setSubscriberPassword, verifySubscriberPassword,
   pool,
 } = require('./db');
 const { matchAlerts } = require('./alertMatcher');
@@ -373,6 +375,91 @@ app.post('/api/auth/google', express.json(), async (req, res) => {
 
     } catch (err) {
         console.error('[🔐 Auth] Google SSO error:', err.message);
+        res.status(500).json({ ok: false, error: 'Erreur serveur' });
+    }
+});
+
+// POST /api/auth/login - Email + password login
+app.post('/api/auth/login', express.json(), async (req, res) => {
+    try {
+        const { email, password } = req.body;
+        if (!email || !password) {
+            return res.status(400).json({ ok: false, error: 'Email et mot de passe requis' });
+        }
+
+        const sub = await verifySubscriberPassword(email, password);
+        if (!sub) {
+            return res.status(401).json({ ok: false, error: 'Email ou mot de passe incorrect' });
+        }
+
+        if (sub.subscription_status !== 'active') {
+            return res.status(403).json({ ok: false, error: 'Abonnement inactif' });
+        }
+
+        console.log(`[🔐 Auth] Password login: ${email}`);
+        res.json({ ok: true, apiKey: sub.api_key, email: sub.email });
+
+    } catch (err) {
+        console.error('[🔐 Auth] Login error:', err.message);
+        res.status(500).json({ ok: false, error: 'Erreur serveur' });
+    }
+});
+
+// POST /api/auth/set-password - Set or reset password via token
+app.post('/api/auth/set-password', express.json(), async (req, res) => {
+    try {
+        const { token, password } = req.body;
+        if (!token || !password) {
+            return res.status(400).json({ ok: false, error: 'Token et mot de passe requis' });
+        }
+        if (password.length < 8) {
+            return res.status(400).json({ ok: false, error: 'Mot de passe trop court (8 caractères minimum)' });
+        }
+
+        const tokenData = await verifyAndConsumePasswordToken(token);
+        if (!tokenData) {
+            return res.status(400).json({ ok: false, error: 'Lien invalide ou expiré. Demandez un nouveau lien.' });
+        }
+
+        const ok = await setSubscriberPassword(tokenData.email, password);
+        if (!ok) {
+            return res.status(404).json({ ok: false, error: 'Compte introuvable' });
+        }
+
+        console.log(`[🔐 Auth] Password set for: ${tokenData.email} (${tokenData.type})`);
+        res.json({ ok: true, message: 'Mot de passe défini avec succès' });
+
+    } catch (err) {
+        console.error('[🔐 Auth] Set-password error:', err.message);
+        res.status(500).json({ ok: false, error: 'Erreur serveur' });
+    }
+});
+
+// POST /api/auth/forgot-password - Send password reset email
+app.post('/api/auth/forgot-password', express.json(), async (req, res) => {
+    try {
+        const { email } = req.body;
+        if (!email) {
+            return res.status(400).json({ ok: false, error: 'Email requis' });
+        }
+
+        const sub = await getSubscriberByEmail(email);
+        // Toujours retourner 200 pour éviter l'énumération d'emails
+        if (!sub) {
+            return res.json({ ok: true });
+        }
+
+        const token = await createPasswordToken(email, 'reset');
+        const { sendPasswordResetEmail } = require('./email');
+        sendPasswordResetEmail(email, token).catch(err =>
+            console.error('[📧 Email] Password reset email failed:', err.message)
+        );
+
+        console.log(`[🔐 Auth] Password reset requested for: ${email}`);
+        res.json({ ok: true });
+
+    } catch (err) {
+        console.error('[🔐 Auth] Forgot-password error:', err.message);
         res.status(500).json({ ok: false, error: 'Erreur serveur' });
     }
 });

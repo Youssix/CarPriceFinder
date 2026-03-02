@@ -1,5 +1,6 @@
 const { Pool } = require('pg');
 const crypto = require('crypto');
+const bcrypt = require('bcryptjs');
 const fs = require('fs');
 const path = require('path');
 
@@ -341,6 +342,53 @@ async function getBetaTesters() {
   return rows;
 }
 
+// === Password Auth Functions ===
+
+async function createPasswordToken(email, type = 'setup') {
+  const token = crypto.randomBytes(32).toString('hex'); // 64 char hex
+  const expiresAt = type === 'reset'
+    ? new Date(Date.now() + 60 * 60 * 1000)        // reset: 1h
+    : new Date(Date.now() + 24 * 60 * 60 * 1000);  // setup: 24h
+
+  await pool.query(
+    `INSERT INTO password_tokens (email, token, type, expires_at) VALUES ($1, $2, $3, $4)`,
+    [email, token, type, expiresAt]
+  );
+  return token;
+}
+
+async function verifyAndConsumePasswordToken(token) {
+  const result = await pool.query(
+    `UPDATE password_tokens
+     SET used_at = NOW()
+     WHERE token = $1 AND used_at IS NULL AND expires_at > NOW()
+     RETURNING email, type`,
+    [token]
+  );
+  return result.rows[0] || null; // { email, type } ou null si invalide/expiré
+}
+
+async function setSubscriberPassword(email, plainPassword) {
+  const hash = await bcrypt.hash(plainPassword, 12);
+  const result = await pool.query(
+    `UPDATE subscribers SET password_hash = $1, updated_at = CURRENT_TIMESTAMP WHERE email = $2 RETURNING id`,
+    [hash, email]
+  );
+  return result.rowCount > 0;
+}
+
+async function verifySubscriberPassword(email, plainPassword) {
+  const result = await pool.query(
+    `SELECT api_key, email, subscription_status, password_hash
+     FROM subscribers WHERE email = $1`,
+    [email]
+  );
+  const sub = result.rows[0];
+  if (!sub || !sub.password_hash) return null;
+  const ok = await bcrypt.compare(plainPassword, sub.password_hash);
+  return ok ? sub : null;
+}
+
 module.exports = {
   pool,
   initDb,
@@ -383,4 +431,9 @@ module.exports = {
   // Beta
   createBetaTester,
   getBetaTesters,
+  // Password auth
+  createPasswordToken,
+  verifyAndConsumePasswordToken,
+  setSubscriberPassword,
+  verifySubscriberPassword,
 };

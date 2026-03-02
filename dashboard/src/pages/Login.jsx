@@ -4,59 +4,23 @@ import { useAuth } from '../hooks/useAuth';
 import { api } from '../api/client';
 
 export default function Login() {
-  const [step, setStep] = useState('email');
   const [email, setEmail] = useState('');
-  const [code, setCode] = useState('');
-  const [apiKey, setApiKey] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const handleEmailSubmit = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
     try {
-      await api.requestCode(email);
-      setStep('code');
-    } catch (err) {
-      setError(err.message);
-    }
-    setLoading(false);
-  };
-
-  const handleCodeSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
-    try {
-      const data = await api.verifyCode(email, code);
-      login(data.apiKey, email);
+      const data = await api.loginWithPassword(email, password);
+      login(data.apiKey, data.email);
       navigate('/');
     } catch (err) {
-      setError(err.message);
-    }
-    setLoading(false);
-  };
-
-  const handleApiKeyLogin = async (e) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
-    try {
-      localStorage.setItem('apiKey', apiKey);
-      const data = await api.checkSubscription();
-      if (data.active) {
-        login(apiKey, data.email);
-        navigate('/');
-      } else {
-        setError('Cle API inactive ou expiree');
-        localStorage.removeItem('apiKey');
-      }
-    } catch (err) {
-      setError('Cle API invalide');
-      localStorage.removeItem('apiKey');
+      setError(err.message || 'Email ou mot de passe incorrect');
     }
     setLoading(false);
   };
@@ -65,112 +29,83 @@ export default function Login() {
     <div className="login-page">
       <div className="login-card">
         <h1 className="login-logo">Carlytics</h1>
-        <p className="login-subtitle">Trouvez les meilleures affaires VO</p>
+        <p className="login-subtitle">Tableau de bord</p>
 
         {error && (
           <div className="error-message" role="alert">{error}</div>
         )}
 
-        {step === 'email' && (
-          <>
-            <form onSubmit={handleEmailSubmit}>
-              <div className="form-group">
-                <label htmlFor="login-email">Email</label>
-                <input
-                  id="login-email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="votre@email.fr"
-                  required
-                  autoComplete="email"
-                />
-              </div>
-              <button
-                type="submit"
-                className="btn btn-primary btn-full"
-                disabled={loading}
-              >
-                {loading ? 'Envoi...' : 'Recevoir le code'}
-              </button>
-            </form>
-            <div className="login-divider"><span>ou</span></div>
-            <button
-              className="btn btn-secondary btn-full"
-              onClick={() => setStep('apikey')}
-              type="button"
-            >
-              Connexion avec cle API
-            </button>
-          </>
-        )}
+        <form onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label htmlFor="login-email">Email</label>
+            <input
+              id="login-email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="votre@email.fr"
+              required
+              autoComplete="email"
+              autoFocus
+            />
+          </div>
 
-        {step === 'code' && (
-          <form onSubmit={handleCodeSubmit}>
-            <p className="code-info">
-              Un code a 6 chiffres a ete envoye a <strong>{email}</strong>
-            </p>
-            <div className="form-group">
-              <label htmlFor="login-code">Code de verification</label>
-              <input
-                id="login-code"
-                type="text"
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-                placeholder="123456"
-                maxLength={6}
-                autoFocus
-                required
-                autoComplete="one-time-code"
-                inputMode="numeric"
-              />
-            </div>
-            <button
-              type="submit"
-              className="btn btn-primary btn-full"
-              disabled={loading}
-            >
-              {loading ? 'Verification...' : 'Se connecter'}
-            </button>
-            <button
-              type="button"
-              className="btn btn-link"
-              onClick={() => setStep('email')}
-            >
-              Retour
-            </button>
-          </form>
-        )}
+          <div className="form-group">
+            <label htmlFor="login-password">Mot de passe</label>
+            <input
+              id="login-password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              required
+              autoComplete="current-password"
+            />
+          </div>
 
-        {step === 'apikey' && (
-          <form onSubmit={handleApiKeyLogin}>
-            <div className="form-group">
-              <label htmlFor="login-apikey">Cle API</label>
-              <input
-                id="login-apikey"
-                type="text"
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                placeholder="cpf_live_..."
-                required
-              />
-            </div>
-            <button
-              type="submit"
-              className="btn btn-primary btn-full"
-              disabled={loading}
-            >
-              {loading ? 'Verification...' : 'Se connecter'}
-            </button>
-            <button
-              type="button"
-              className="btn btn-link"
-              onClick={() => setStep('email')}
-            >
-              Retour
-            </button>
-          </form>
-        )}
+          <button
+            type="submit"
+            className="btn btn-primary btn-full"
+            disabled={loading}
+          >
+            {loading ? 'Connexion...' : 'Se connecter'}
+          </button>
+        </form>
+
+        <div style={{ textAlign: 'center', marginTop: '16px' }}>
+          <a
+            href="https://carlytics.fr/reset-password"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn btn-link"
+          >
+            Mot de passe oublié ?
+          </a>
+        </div>
+
+        <div style={{ textAlign: 'center', marginTop: '24px', paddingTop: '20px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+          <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.4)', marginBottom: '8px' }}>
+            Pas encore de compte ?
+          </p>
+          <a
+            href="https://carlytics.fr/#pricing"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn btn-link"
+            style={{ fontSize: '13px' }}
+          >
+            Commencer l'essai gratuit 14 jours →
+          </a>
+        </div>
+
+        <div style={{ textAlign: 'center', marginTop: '12px' }}>
+          <a
+            href="https://carlytics.fr"
+            style={{ fontSize: '12px', color: 'rgba(255,255,255,0.25)', textDecoration: 'none' }}
+          >
+            ← Retour à carlytics.fr
+          </a>
+        </div>
       </div>
     </div>
   );

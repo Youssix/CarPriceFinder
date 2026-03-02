@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Carlytics — Paiement confirmé ✓</title>
+  <meta name="robots" content="noindex">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%231a1a2e'/><path d='M72 26 A30 30 0 1 0 72 74' stroke='url(%23g)' stroke-width='13' fill='none' stroke-linecap='round'/><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0%25' stop-color='%2360a5fa'/><stop offset='100%25' stop-color='%23a78bfa'/></linearGradient></defs></svg>">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0f0f1a;
+      color: #fff;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .card {
+      background: #1a1a2e;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 20px;
+      padding: 48px 40px;
+      max-width: 480px;
+      width: 100%;
+      text-align: center;
+    }
+    .icon {
+      width: 72px; height: 72px;
+      background: rgba(34,197,94,0.15);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 24px;
+      font-size: 32px;
+    }
+    .logo { font-family: 'Space Grotesk', sans-serif; font-size: 20px; margin-bottom: 32px; }
+    .logo span:first-child { color: #60a5fa; }
+    .logo span:last-child  { color: #a78bfa; }
+    h1 { font-size: 26px; font-weight: 700; margin-bottom: 12px; }
+    p  { color: rgba(255,255,255,0.55); line-height: 1.6; margin-bottom: 8px; }
+    .highlight { color: #60a5fa; font-weight: 600; }
+    .steps {
+      background: rgba(255,255,255,0.04);
+      border-radius: 12px;
+      padding: 20px 24px;
+      margin: 28px 0;
+      text-align: left;
+    }
+    .step { display: flex; align-items: flex-start; gap: 12px; padding: 8px 0; color: rgba(255,255,255,0.7); font-size: 14px; }
+    .step-num { background: #3b82f6; color: white; border-radius: 50%; width: 22px; height: 22px; min-width: 22px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; margin-top: 1px; }
+    .btn {
+      display: inline-block;
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      color: white;
+      text-decoration: none;
+      padding: 14px 32px;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 15px;
+      margin-top: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo"><span>Car</span><span>lytics</span></div>
+
+    <div class="icon">✓</div>
+
+    <h1>Paiement confirmé !</h1>
+    <p>Bienvenue dans Carlytics. Votre abonnement est actif.</p>
+    <p style="margin-top:8px">Vérifiez votre boîte mail — vous allez recevoir un email <span class="highlight">dans les prochaines secondes</span> pour créer votre mot de passe.</p>
+
+    <div class="steps">
+      <div class="step">
+        <span class="step-num">1</span>
+        <span>Ouvrez l'email <strong>"Créez votre mot de passe Carlytics"</strong></span>
+      </div>
+      <div class="step">
+        <span class="step-num">2</span>
+        <span>Cliquez sur le lien et choisissez votre mot de passe</span>
+      </div>
+      <div class="step">
+        <span class="step-num">3</span>
+        <span>Connectez-vous au dashboard et installez l'extension Chrome</span>
+      </div>
+    </div>
+
+    <a href="https://app.carlytics.fr/login" class="btn">Accéder au dashboard →</a>
+  </div>
+</body>
+</html>

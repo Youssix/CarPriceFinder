@@ -29,17 +29,16 @@ class ApiClient {
   }
 
   // Auth
-  requestCode(email) {
-    return this.request('/api/auth/request-code', {
+  loginWithPassword(email, password) {
+    // Fetch direct (sans header auth) pour éviter la redirection auto sur 401
+    return fetch(`${this.baseUrl}/api/auth/login`, {
       method: 'POST',
-      body: JSON.stringify({ email }),
-    });
-  }
-
-  verifyCode(email, code) {
-    return this.request('/api/auth/verify-code', {
-      method: 'POST',
-      body: JSON.stringify({ email, code }),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    }).then(async (res) => {
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Email ou mot de passe incorrect');
+      return data;
     });
   }
 

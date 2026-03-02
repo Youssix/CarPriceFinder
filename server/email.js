@@ -211,4 +211,117 @@ async function sendWelcomeEmail(email, apiKey) {
   }
 }
 
-module.exports = { sendAuthCode, sendAlertNotification, sendWelcomeEmail };
+async function sendSetPasswordEmail(email, token) {
+  const setupUrl = `https://carlytics.fr/set-password?token=${token}`;
+
+  if (!resend) {
+    console.log(`[📧 Email] No RESEND_API_KEY. Set-password link for ${email}: ${setupUrl}`);
+    return { success: true, fallback: true };
+  }
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: FROM_EMAIL,
+      to: email,
+      subject: 'Bienvenue sur Carlytics ! Créez votre mot de passe',
+      html: `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px;">
+          <div style="text-align: center; margin-bottom: 32px;">
+            <h1 style="color: #1a1a2e; font-size: 28px; margin: 0;">Bienvenue sur Carlytics !</h1>
+            <p style="color: #6b7280; margin-top: 4px;">Votre abonnement est actif</p>
+          </div>
+
+          <div style="background: #f0fdf4; border: 1px solid #86efac; border-radius: 10px; padding: 16px 20px; margin-bottom: 28px; text-align: center;">
+            <span style="color: #16a34a; font-size: 15px; font-weight: 600;">✓ Paiement confirmé</span>
+          </div>
+
+          <p style="color: #374151; font-size: 15px;">Dernière étape : créez votre mot de passe pour accéder à l'extension Chrome.</p>
+
+          <div style="text-align: center; margin: 32px 0;">
+            <a href="${setupUrl}" style="display: inline-block; background: #3b82f6; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 15px;">
+              Créer mon mot de passe →
+            </a>
+          </div>
+
+          <p style="color: #6b7280; font-size: 13px; text-align: center;">
+            Ce lien expire dans <strong>24h</strong>.<br>
+            Si vous n'avez pas effectué d'achat sur carlytics.fr, ignorez cet email.
+          </p>
+
+          <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 32px 0 16px 0;">
+          <p style="color: #9ca3af; font-size: 12px; text-align: center; margin: 0;">
+            Carlytics — L'outil d'analyse de prix pour les professionnels VO<br>
+            Une question ? Répondez directement à cet email.
+          </p>
+        </div>
+      `,
+    });
+
+    if (error) {
+      console.error('[📧 Email] Set-password email error:', error);
+      return { success: false, error };
+    }
+
+    console.log(`[📧 Email] Set-password email sent to ${email} (id: ${data.id})`);
+    return { success: true, id: data.id };
+  } catch (err) {
+    console.error('[📧 Email] Set-password send failed:', err.message);
+    return { success: false, error: err.message };
+  }
+}
+
+async function sendPasswordResetEmail(email, token) {
+  const resetUrl = `https://carlytics.fr/set-password?token=${token}`;
+
+  if (!resend) {
+    console.log(`[📧 Email] No RESEND_API_KEY. Reset link for ${email}: ${resetUrl}`);
+    return { success: true, fallback: true };
+  }
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: FROM_EMAIL,
+      to: email,
+      subject: 'Réinitialisez votre mot de passe Carlytics',
+      html: `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px;">
+          <div style="text-align: center; margin-bottom: 32px;">
+            <h1 style="color: #1a1a2e; font-size: 24px; margin: 0;">Réinitialisation du mot de passe</h1>
+            <p style="color: #6b7280; margin-top: 4px;">Carlytics</p>
+          </div>
+
+          <p style="color: #374151; font-size: 15px;">Vous avez demandé à réinitialiser votre mot de passe. Cliquez sur le bouton ci-dessous pour en définir un nouveau.</p>
+
+          <div style="text-align: center; margin: 32px 0;">
+            <a href="${resetUrl}" style="display: inline-block; background: #3b82f6; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 15px;">
+              Réinitialiser mon mot de passe →
+            </a>
+          </div>
+
+          <p style="color: #6b7280; font-size: 13px; text-align: center;">
+            Ce lien expire dans <strong>1h</strong>.<br>
+            Si vous n'avez pas demandé de réinitialisation, ignorez cet email — votre mot de passe reste inchangé.
+          </p>
+
+          <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 32px 0 16px 0;">
+          <p style="color: #9ca3af; font-size: 12px; text-align: center; margin: 0;">
+            Carlytics — L'outil d'analyse de prix pour les professionnels VO
+          </p>
+        </div>
+      `,
+    });
+
+    if (error) {
+      console.error('[📧 Email] Reset email error:', error);
+      return { success: false, error };
+    }
+
+    console.log(`[📧 Email] Password reset email sent to ${email} (id: ${data.id})`);
+    return { success: true, id: data.id };
+  } catch (err) {
+    console.error('[📧 Email] Reset send failed:', err.message);
+    return { success: false, error: err.message };
+  }
+}
+
+module.exports = { sendAuthCode, sendAlertNotification, sendWelcomeEmail, sendSetPasswordEmail, sendPasswordResetEmail };

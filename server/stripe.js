@@ -9,7 +9,8 @@ const {
   isEventProcessed,
   markEventProcessed,
 } = require('./db');
-const { sendWelcomeEmail } = require('./email');
+const { sendSetPasswordEmail } = require('./email');
+const { createPasswordToken } = require('./db');
 
 // Lazy-load stripe to avoid crash if key not set
 function getStripe() {
@@ -19,13 +20,22 @@ function getStripe() {
   return require('stripe')(process.env.STRIPE_SECRET_KEY);
 }
 
+// Mapping plan → variable d'environnement
+const PLAN_PRICE_MAP = {
+  starter: process.env.STRIPE_PRICE_ID_STARTER,
+  pro:     process.env.STRIPE_PRICE_ID_PRO,
+  agency:  process.env.STRIPE_PRICE_ID_AGENCY,
+};
+
 // POST /api/create-checkout-session
 router.post('/api/create-checkout-session', express.json(), async (req, res) => {
   try {
     const stripe = getStripe();
+    const plan = (req.body.plan || 'pro').toLowerCase();
+    const priceId = PLAN_PRICE_MAP[plan];
 
-    if (!process.env.STRIPE_PRICE_ID) {
-      return res.status(500).json({ error: 'STRIPE_PRICE_ID not configured' });
+    if (!priceId || priceId.startsWith('price_...')) {
+      return res.status(500).json({ error: `STRIPE_PRICE_ID_${plan.toUpperCase()} non configuré dans .env` });
     }
 
     const frontendUrl = process.env.FRONTEND_URL || 'https://carlytics.fr';
@@ -33,15 +43,13 @@ router.post('/api/create-checkout-session', express.json(), async (req, res) => 
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
       payment_method_types: ['card'],
-      line_items: [{
-        price: process.env.STRIPE_PRICE_ID,
-        quantity: 1,
-      }],
-      success_url: `${frontendUrl}/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${frontendUrl}/cancel`,
+      line_items: [{ price: priceId, quantity: 1 }],
+      success_url: `${frontendUrl}/success.html?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url:  `${frontendUrl}/cancel.html`,
+      metadata: { plan },
     });
 
-    console.log(`[💳 Stripe] Checkout session created: ${session.id}`);
+    console.log(`[💳 Stripe] Checkout session créée : ${session.id} (plan: ${plan})`);
     res.json({ url: session.url });
   } catch (error) {
     console.error('[💳 Stripe] Checkout error:', error.message);
@@ -102,9 +110,15 @@ router.post('/api/webhook', express.raw({ type: 'application/json' }), async (re
           });
           console.log(`[💳 Webhook] New subscriber created: ${email}, API key: ${subscriber.apiKey}`);
 
-          // Send welcome email with API key (non-blocking)
-          sendWelcomeEmail(email, subscriber.apiKey).catch(err =>
-            console.error('[📧 Email] Welcome email failed:', err.message)
+          // Send set-password email so user can create their password (non-blocking)
+          createPasswordToken(email, 'setup').then(token => {
+            const frontendUrl = process.env.FRONTEND_URL || 'https://carlytics.fr';
+            console.log(`[📧 Email] Set-password URL: ${frontendUrl}/set-password?token=${token}`);
+            return sendSetPasswordEmail(email, token).catch(err =>
+              console.error('[📧 Email] Set-password email failed:', err.message)
+            );
+          }).catch(err =>
+            console.error('[📧 Email] Token creation failed:', err.message)
           );
         }
         break;
