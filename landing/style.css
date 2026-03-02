@@ -290,6 +290,21 @@ img {
   color: var(--color-gray-900);
 }
 
+.header__link--demo {
+  color: #3b82f6;
+  font-weight: 600;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 20px;
+  padding: 4px 12px;
+  transition: all 0.15s;
+}
+
+.header__link--demo:hover {
+  background: rgba(59, 130, 246, 0.08);
+  border-color: #3b82f6;
+  color: #2563eb;
+}
+
 .header__cta {
   display: flex;
   align-items: center;
