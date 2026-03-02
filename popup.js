@@ -19,13 +19,13 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     // Event listeners - Account
     document.getElementById('disconnectBtn').addEventListener('click', handleDisconnect);
+    document.getElementById('disconnectBtnHeader').addEventListener('click', handleDisconnect);
 
     // Event listeners - Vehicle List
     document.getElementById('generateEmail').addEventListener('click', generateEmail);
     document.getElementById('clearList').addEventListener('click', clearVehicleList);
 
     // Event listeners - Auth screen
-    document.getElementById('googleLoginBtn').addEventListener('click', handleGoogleLogin);
     document.getElementById('loginBtn').addEventListener('click', handlePasswordLogin);
     document.getElementById('passwordInput').addEventListener('keydown', function(e) {
         if (e.key === 'Enter') handlePasswordLogin();
@@ -196,69 +196,6 @@ async function handlePasswordLogin() {
     }
 }
 
-// Google SSO
-async function handleGoogleLogin() {
-    const btn = document.getElementById('googleLoginBtn');
-    const errorEl = document.getElementById('authError');
-
-    errorEl.textContent = '';
-    btn.disabled = true;
-    btn.querySelector('span') ? null : null;
-    const originalHTML = btn.innerHTML;
-    btn.innerHTML = '<span style="font-size:13px">Connexion Google…</span>';
-
-    try {
-        // Obtenir le token Google via Chrome Identity API
-        const token = await new Promise((resolve, reject) => {
-            chrome.identity.getAuthToken({ interactive: true }, (token) => {
-                if (chrome.runtime.lastError) reject(new Error(chrome.runtime.lastError.message));
-                else resolve(token);
-            });
-        });
-
-        // Envoyer le token au serveur
-        const result = await callAuthServer('/api/auth/google', 'POST', { token });
-
-        if (!result) {
-            errorEl.textContent = 'Serveur inaccessible';
-            btn.disabled = false;
-            btn.innerHTML = originalHTML;
-            return;
-        }
-
-        if (result.status === 404) {
-            errorEl.innerHTML = 'Aucun compte trouvé. <a href="https://carlytics.fr" target="_blank" style="color:#3b82f6">Créer un compte →</a>';
-            btn.disabled = false;
-            btn.innerHTML = originalHTML;
-            return;
-        }
-
-        if (!result.ok) {
-            errorEl.textContent = result.data.error || 'Erreur Google SSO';
-            btn.disabled = false;
-            btn.innerHTML = originalHTML;
-            return;
-        }
-
-        // Succès
-        await saveAuthToStorage(result.data.apiKey, result.data.email, result.server);
-        showMainUI();
-        loadAccountInfo();
-        await loadSettings();
-        await checkServerStatus();
-        await loadVehicleList();
-
-    } catch (err) {
-        console.error('[Auth] Google SSO error:', err.message);
-        if (err.message.includes('OAuth2 not granted') || err.message.includes('client_id')) {
-            errorEl.textContent = 'Google SSO non configuré (client_id requis)';
-        } else {
-            errorEl.textContent = 'Connexion Google annulée ou échouée';
-        }
-        btn.disabled = false;
-        btn.innerHTML = originalHTML;
-    }
-}
 
 async function handleDisconnect() {
     try {
