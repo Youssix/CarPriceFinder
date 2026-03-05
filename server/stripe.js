@@ -44,6 +44,7 @@ router.post('/api/create-checkout-session', express.json(), async (req, res) => 
       mode: 'subscription',
       payment_method_types: ['card'],
       line_items: [{ price: priceId, quantity: 1 }],
+      allow_promotion_codes: true,
       success_url: `${frontendUrl}/success.html?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url:  `${frontendUrl}/cancel.html`,
       metadata: { plan },
