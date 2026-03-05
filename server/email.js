@@ -212,7 +212,7 @@ async function sendWelcomeEmail(email, apiKey) {
 }
 
 async function sendSetPasswordEmail(email, token) {
-  const setupUrl = `https://carlytics.fr/set-password?token=${token}`;
+  const setupUrl = `https://carlytics.fr/set-password.html?token=${token}`;
 
   if (!resend) {
     console.log(`[📧 Email] No RESEND_API_KEY. Set-password link for ${email}: ${setupUrl}`);
@@ -271,7 +271,7 @@ async function sendSetPasswordEmail(email, token) {
 }
 
 async function sendPasswordResetEmail(email, token) {
-  const resetUrl = `https://carlytics.fr/set-password?token=${token}`;
+  const resetUrl = `https://carlytics.fr/set-password.html?token=${token}`;
 
   if (!resend) {
     console.log(`[📧 Email] No RESEND_API_KEY. Reset link for ${email}: ${resetUrl}`);
