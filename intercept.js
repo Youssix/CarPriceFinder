@@ -508,6 +508,30 @@
 
   const vehicleListManager = new VehicleListManager();
 
+  // 🆓 FREE TRIAL MANAGEMENT
+  const FREE_ANALYSES_LIMIT = 5;
+
+  async function getTrialCount() {
+    try {
+      const result = await storageHelper.get(['carFinderTrialCount']);
+      return result.carFinderTrialCount || 0;
+    } catch (e) {
+      return 0;
+    }
+  }
+
+  async function incrementTrialCount() {
+    try {
+      const count = await getTrialCount();
+      const newCount = count + 1;
+      await storageHelper.set({ carFinderTrialCount: newCount });
+      console.log(`[🆓 Trial] Analyse ${newCount}/${FREE_ANALYSES_LIMIT} utilisée`);
+      return newCount;
+    } catch (e) {
+      return 0;
+    }
+  }
+
   // Function to extract photos from Auto1 API data
   function extractVehiclePhotos(carData, card) {
     const photos = [];
@@ -584,10 +608,21 @@
     // Attendre que les settings soient chargés via le bridge (max 2s)
     await settingsReady;
 
-    // 🔐 Guard: ne pas analyser si l'utilisateur n'est pas connecté
-    if (!extensionSettings.apiKey || extensionSettings.apiKey.trim() === '') {
-      console.log('[🔐 Auth] Utilisateur non connecté — analyse désactivée');
-      return;
+    // 🔐 Vérification abonnement ou essai gratuit
+    const isPaid = extensionSettings.apiKey && extensionSettings.apiKey.trim() !== '';
+    if (!isPaid) {
+      const trialCount = await getTrialCount();
+      if (trialCount >= FREE_ANALYSES_LIMIT) {
+        console.log(`[🔒 Trial] Limite atteinte (${trialCount}/${FREE_ANALYSES_LIMIT}) — affichage paywall`);
+        hits.slice(0, 3).forEach(car => {
+          const card = document.querySelector(`.big-car-card[data-qa-id="${car.stockNumber}"]`);
+          if (card && !card.querySelector('.plugin-paywall') && !card.querySelector('.plugin-price')) {
+            renderPaywallCard(card);
+          }
+        });
+        return;
+      }
+      console.log(`[🆓 Trial] ${FREE_ANALYSES_LIMIT - trialCount} analyse(s) gratuite(s) restante(s)`);
     }
 
     console.log(`[🔍 injectPluginPrices] ${hits.length} véhicules à traiter (timeout: ${extensionSettings.requestTimeout}ms)`);
@@ -676,11 +711,16 @@
 
         // ✅ SIMPLIFIED: Direct server call - cache handled by server
         fetchAnalysis(estUrl)
-          .then(data => {
+          .then(async data => {
             // Remove loading indicator
             const loadingElement = card.querySelector(".plugin-loading");
             if (loadingElement) {
               loadingElement.remove();
+            }
+
+            // Incrémenter le compteur d'essai si non abonné
+            if (!isPaid) {
+              await incrementTrialCount();
             }
 
             // Render result
@@ -1142,6 +1182,45 @@
     };
 
     return lbcButton;
+  }
+
+  function renderPaywallCard(card) {
+    const paywallDiv = document.createElement('div');
+    paywallDiv.className = 'plugin-paywall';
+    paywallDiv.style = `
+      margin: 8px 0;
+      padding: 16px;
+      border-radius: 4px;
+      background: #2c3e50;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      border: 2px solid #e74c3c;
+      text-align: center;
+    `;
+
+    paywallDiv.innerHTML = `
+      <div style="color: white; font-size: 15px; font-weight: 700; margin-bottom: 6px;">
+        🔒 Tu as utilisé tes ${FREE_ANALYSES_LIMIT} analyses gratuites
+      </div>
+      <div style="color: rgba(255,255,255,0.7); font-size: 12px; margin-bottom: 12px;">
+        Passe à Pro pour continuer à trouver des marges — <strong style="color: #f39c12;">29€/mois</strong>
+      </div>
+      <a href="https://carlytics.fr" target="_blank" style="
+        display: inline-block;
+        padding: 8px 20px;
+        background: #e74c3c;
+        color: white;
+        border-radius: 4px;
+        font-weight: 700;
+        font-size: 13px;
+        text-decoration: none;
+        transition: background 0.2s;
+      ">🚀 S'abonner à Carlytics</a>
+    `;
+
+    const insertLocation = card.querySelector('.big-car-card__title');
+    if (insertLocation && insertLocation.parentNode) {
+      insertLocation.parentNode.insertBefore(paywallDiv, insertLocation.nextSibling);
+    }
   }
 
   function renderErrorMessage(card, errorMessage) {
