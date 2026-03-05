@@ -3,7 +3,7 @@
   let extensionSettings = {
     requestTimeout: 5000,
     cacheTimeout: 86400000, // 24 hours (ONLY for successful results with LBC price)
-    serverUrl: 'http://localhost:9001',  // ✅ Changed to local for testing
+    serverUrl: 'https://api.carlytics.fr',
     apiKey: ''
   };
   

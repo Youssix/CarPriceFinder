@@ -1,24 +1,27 @@
 {
   "manifest_version": 3,
-  "name": "CarPriceFinder AI",
+  "name": "Carlytics – Analyse VO Auto1",
   "version": "2.0",
-  "description": "Intelligence artificielle pour l'estimation des prix de voitures avec détection d'options premium",
+  "description": "Comparez les prix Auto1 avec LeBonCoin en temps réel. Détection IA des options premium (M-Sport, AMG, S-Line). 5 analyses gratuites.",
   "background": {
     "service_worker": "background.js"
   },
-  "oauth2": {
-    "client_id": "GOOGLE_CLIENT_ID.apps.googleusercontent.com",
-    "scopes": ["openid", "email", "profile"]
-  },
-  "permissions": ["scripting", "activeTab", "storage", "identity"],
+  "permissions": ["scripting", "activeTab", "storage"],
   "host_permissions": [
-    "https://api.carlytics.fr/*",
-    "http://localhost:9001/*",
-    "http://127.0.0.1:9001/*"
+    "https://api.carlytics.fr/*"
   ],
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
   "action": {
     "default_popup": "popup.html",
-    "default_title": "CarPriceFinder AI Settings"
+    "default_title": "Carlytics",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png"
+    }
   },
   "content_scripts": [
     {
