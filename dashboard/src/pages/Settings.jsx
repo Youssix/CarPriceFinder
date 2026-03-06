@@ -1,7 +1,31 @@
+import { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
+import { api } from '../api/client';
 
 export default function Settings() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const [canceling, setCanceling] = useState(false);
+  const [cancelDone, setCancelDone] = useState(false);
+  const [cancelError, setCancelError] = useState('');
+  const [confirm, setConfirm] = useState(false);
+
+  async function handleCancel() {
+    if (!confirm) {
+      setConfirm(true);
+      return;
+    }
+    setCanceling(true);
+    setCancelError('');
+    try {
+      await api.cancelSubscription();
+      setCancelDone(true);
+      setConfirm(false);
+    } catch (err) {
+      setCancelError(err.message);
+    } finally {
+      setCanceling(false);
+    }
+  }
 
   return (
     <div className="page">
@@ -19,6 +43,52 @@ export default function Settings() {
             {user?.status === 'active' ? 'Actif' : user?.status}
           </span>
         </div>
+      </div>
+
+      <div className="settings-section">
+        <h3>Abonnement</h3>
+        {cancelDone ? (
+          <p className="setting-description" style={{ color: '#16a34a' }}>
+            Annulation confirmée. Votre accès reste actif jusqu'à la fin de la période en cours.
+          </p>
+        ) : (
+          <>
+            <p className="setting-description">
+              Vous pouvez résilier votre abonnement à tout moment. Vous conserverez l'accès jusqu'à la fin de la période déjà payée.
+            </p>
+            {cancelError && (
+              <p style={{ color: '#dc2626', marginBottom: '0.75rem', fontSize: '0.875rem' }}>{cancelError}</p>
+            )}
+            {confirm ? (
+              <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '0.875rem', color: '#374151' }}>Confirmer la résiliation ?</span>
+                <button
+                  className="btn btn-danger"
+                  onClick={handleCancel}
+                  disabled={canceling}
+                  type="button"
+                >
+                  {canceling ? 'Annulation...' : 'Oui, résilier'}
+                </button>
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => setConfirm(false)}
+                  type="button"
+                >
+                  Annuler
+                </button>
+              </div>
+            ) : (
+              <button
+                className="btn btn-danger"
+                onClick={handleCancel}
+                type="button"
+              >
+                Résilier mon abonnement
+              </button>
+            )}
+          </>
+        )}
       </div>
 
       <div className="settings-section">

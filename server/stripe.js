@@ -162,6 +162,38 @@ router.post('/api/webhook', express.raw({ type: 'application/json' }), async (re
   res.json({ received: true });
 });
 
+// POST /api/cancel-subscription
+router.post('/api/cancel-subscription', express.json(), async (req, res) => {
+  const apiKey = req.headers['x-api-key'];
+
+  if (!apiKey) {
+    return res.status(401).json({ error: 'API key required' });
+  }
+
+  const subscriber = await getSubscriberByApiKey(apiKey);
+
+  if (!subscriber) {
+    return res.status(404).json({ error: 'Subscriber not found' });
+  }
+
+  if (!subscriber.stripe_subscription_id) {
+    return res.status(400).json({ error: 'No active Stripe subscription found' });
+  }
+
+  try {
+    const stripe = getStripe();
+    // Annulation en fin de période (accès conservé jusqu\'à la date de renouvellement)
+    await stripe.subscriptions.update(subscriber.stripe_subscription_id, {
+      cancel_at_period_end: true,
+    });
+    console.log(`[💳 Stripe] Subscription scheduled for cancellation: ${subscriber.stripe_subscription_id} (${subscriber.email})`);
+    res.json({ ok: true, message: 'Abonnement annulé. Accès maintenu jusqu\'à la fin de la période.' });
+  } catch (error) {
+    console.error('[💳 Stripe] Cancel subscription error:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // GET /api/check-subscription
 router.get('/api/check-subscription', async (req, res) => {
   const apiKey = req.headers['x-api-key'] || req.query.apiKey;

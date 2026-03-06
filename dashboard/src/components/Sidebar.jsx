@@ -34,7 +34,7 @@ export default function Sidebar() {
       </nav>
       <button className="logout-btn" onClick={logout} type="button">
         <LogOut size={20} aria-hidden="true" />
-        <span>Deconnexion</span>
+        <span>Me déconnecter</span>
       </button>
     </aside>
   );

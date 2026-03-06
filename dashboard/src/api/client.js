@@ -53,6 +53,10 @@ class ApiClient {
     return this.request('/api/check-subscription');
   }
 
+  cancelSubscription() {
+    return this.request('/api/cancel-subscription', { method: 'POST' });
+  }
+
   // Vehicles
   getVehicles() {
     return this.request('/api/vehicles');

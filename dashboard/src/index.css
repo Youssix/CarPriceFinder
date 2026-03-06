@@ -574,6 +574,17 @@ a:hover {
   background: var(--color-bg);
 }
 
+.btn-danger {
+  background: #dc2626;
+  color: #ffffff;
+  border-color: #dc2626;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: #b91c1c;
+  border-color: #b91c1c;
+}
+
 .btn-link {
   background: transparent;
   border: none;
