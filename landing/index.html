@@ -260,100 +260,160 @@
           </div>
         </div>
 
-        <!-- Visuel droite : mockup navigateur avec l'extension inject&eacute;e -->
+        <!-- Visuel droite : démo animée Carlytics -->
+        <style>
+          .hero__visual { flex: 0 0 520px !important; position: relative; }
+          .demo-browser { border-radius: 10px; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.22), 0 0 0 1px rgba(0,0,0,0.06); background: #fff; font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; }
+          .demo-bar { background: #f1f3f4; border-bottom: 1px solid #dadce0; padding: 8px 12px; display: flex !important; align-items: center; gap: 8px; }
+          .demo-dots { display: flex !important; gap: 5px; }
+          .demo-dots span { width: 10px !important; height: 10px !important; border-radius: 50% !important; display: block !important; flex-shrink: 0; }
+          .demo-url { flex: 1; background: #fff; border: 1px solid #dadce0; border-radius: 10px; padding: 4px 12px; font-size: 11px; color: #555; text-align: center; }
+          .demo-ext-badge { background: rgba(96,165,250,0.15); border-radius: 5px; padding: 3px 8px; font-size: 10px; color: #1a73e8; font-weight: 700; white-space: nowrap; }
+          .demo-a1-header { background: #fff; border-bottom: 1px solid #eee; padding: 8px 14px; display: flex !important; align-items: center; justify-content: space-between; }
+          .demo-a1-logo { font-size: 15px; font-weight: 800; color: #e84040; }
+          .demo-a1-logo span { color: #111 !important; }
+          .demo-a1-count { font-size: 11px; color: #888; }
+          .demo-content { background: #f5f5f5; padding: 8px 10px; position: relative; }
+          .demo-ext-ind { position: absolute; top: 10px; right: 10px; background: #1e293b; border: 1px solid rgba(96,165,250,0.4); border-radius: 6px; padding: 4px 8px; display: flex !important; align-items: center; gap: 5px; z-index: 10; box-shadow: 0 3px 12px rgba(0,0,0,0.25); }
+          .demo-ext-dot { width: 7px !important; height: 7px !important; border-radius: 50%; background: #10b981; animation: demoPulse 2s infinite; flex-shrink: 0; display: block !important; }
+          @keyframes demoPulse { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+          .demo-ext-text { font-size: 10px; color: #94a3b8; font-weight: 600; }
+          .demo-ext-text strong { color: #60a5fa; -webkit-text-fill-color: #60a5fa !important; }
+          .demo-car { background: #fff; border: 1px solid #e8e8e8; border-radius: 6px; margin-bottom: 6px; overflow: hidden; }
+          .demo-car-top { display: flex !important; height: 58px; }
+          .demo-car-img { width: 76px; height: 58px; flex-shrink: 0; display: flex !important; align-items: center; justify-content: center; font-size: 24px; }
+          .demo-car-info { flex: 1; padding: 7px 10px; overflow: hidden; }
+          .demo-car-title { font-size: 11px; font-weight: 700; color: #111; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+          .demo-car-sub { font-size: 9px; color: #999; margin-top: 1px; }
+          .demo-car-tags { display: flex !important; gap: 3px; margin-top: 4px; }
+          .demo-tag { font-size: 8px !important; padding: 1px 6px !important; border-radius: 8px !important; background: #f0f0f0 !important; color: #666 !important; margin: 0 !important; }
+          .demo-tag--blue { background: #dbeafe !important; color: #1e40af !important; font-weight: 600; }
+          .demo-car-price-col { width: 76px; padding: 7px 8px; display: flex !important; flex-direction: column; align-items: flex-end; justify-content: space-between; border-left: 1px solid #f0f0f0; flex-shrink: 0; }
+          .demo-car-price { font-size: 12px; font-weight: 800; color: #111; }
+          .demo-car-cta { background: #e84040; color: #fff; border: none; border-radius: 3px; padding: 3px 7px; font-size: 9px; font-weight: 600; cursor: pointer; }
+          .demo-loading { margin: 0 8px 5px; padding: 6px 10px; background: rgba(96,165,250,0.05); border: 1px dashed rgba(96,165,250,0.3); border-radius: 5px; display: flex !important; align-items: center; gap: 7px; font-size: 10px; color: #64748b; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
+          .demo-loading.on { opacity: 1; }
+          .demo-spinner { width: 12px; height: 12px; border: 2px solid rgba(96,165,250,0.2); border-top-color: #60a5fa; border-radius: 50%; animation: demoSpin 0.8s linear infinite; flex-shrink: 0; }
+          @keyframes demoSpin { to { transform: rotate(360deg); } }
+          .demo-result { margin: 0 8px 5px; background: linear-gradient(135deg,#0f172a,#1e293b); border: 1px solid rgba(96,165,250,0.3); border-radius: 6px; overflow: hidden; box-shadow: 0 2px 12px rgba(96,165,250,0.18); opacity: 0; transform: translateY(-4px); transition: opacity 0.5s ease, transform 0.5s ease; pointer-events: none; }
+          .demo-result.on { opacity: 1; transform: translateY(0); }
+          .demo-result-header { display: flex !important; align-items: center; justify-content: space-between; padding: 5px 10px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+          .demo-result-logo { font-size: 10px; font-weight: 800; background: linear-gradient(120deg,#60a5fa,#a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+          .demo-result-badge { font-size: 9px; padding: 2px 7px; border-radius: 8px; font-weight: 700; }
+          .demo-result-badge--hot { background: rgba(239,68,68,0.2); color: #f87171; }
+          .demo-result-badge--good { background: rgba(16,185,129,0.15); color: #10b981; }
+          .demo-result-badge--blue { background: rgba(96,165,250,0.15); color: #60a5fa; }
+          .demo-result-prices { display: flex !important; gap: 5px; padding: 6px 10px; }
+          .demo-pbox { flex: 1; background: rgba(255,255,255,0.05); border-radius: 4px; padding: 5px 3px; text-align: center; }
+          .demo-pbox-label { font-size: 7.5px; color: rgba(255,255,255,0.4); text-transform: uppercase; display: block; }
+          .demo-pbox-val { font-size: 11px; font-weight: 800; color: #fff; display: block; margin-top: 1px; }
+          .demo-pbox--lbc .demo-pbox-val { color: #60a5fa; }
+          .demo-pbox--hot { background: rgba(239,68,68,0.12) !important; border: 1px solid rgba(239,68,68,0.2); }
+          .demo-pbox--hot .demo-pbox-val { color: #f87171; font-size: 12px; }
+          .demo-pbox--green .demo-pbox-val { color: #10b981; }
+          .demo-toast { position: absolute; bottom: 8px; left: 8px; right: 8px; background: linear-gradient(135deg,#0f172a,#1e293b); border: 1px solid rgba(16,185,129,0.4); border-radius: 8px; padding: 10px 12px; display: flex !important; align-items: center; gap: 10px; box-shadow: 0 6px 24px rgba(0,0,0,0.3); opacity: 0; transform: translateY(8px); transition: opacity 0.4s, transform 0.4s; pointer-events: none; z-index: 20; }
+          .demo-toast.on { opacity: 1; transform: translateY(0); }
+          .demo-toast-icon { font-size: 20px; flex-shrink: 0; }
+          .demo-toast-title { font-size: 13px; font-weight: 800; color: #10b981; display: block; }
+          .demo-toast-sub { font-size: 10px; color: rgba(255,255,255,0.45); display: block; margin-top: 1px; }
+        </style>
         <div class="hero__visual">
           <div class="hero__visual-glow"></div>
-
-          <div class="app-mockup">
-            <!-- Chrome du navigateur -->
-            <div class="app-mockup__bar">
-              <div class="app-mockup__dots">
-                <span></span><span></span><span></span>
+          <div class="demo-browser">
+            <!-- Chrome bar -->
+            <div class="demo-bar">
+              <div class="demo-dots">
+                <span style="background:#ff5f57"></span>
+                <span style="background:#ffbd2e"></span>
+                <span style="background:#28c940"></span>
               </div>
-              <div class="app-mockup__url">encheres.carlytics.fr &middot; analyse en cours...</div>
+              <div class="demo-url">🔒 achat-vehicules-pro.fr/stock</div>
+              <div class="demo-ext-badge">C Carlytics</div>
             </div>
+            <!-- Site header -->
+            <div class="demo-a1-header">
+              <span class="demo-a1-logo" style="color:#2563eb">AutoStock<span style="color:#111">Pro</span></span>
+              <span class="demo-a1-count">147 véhicules en stock</span>
+            </div>
+            <!-- Content -->
+            <div class="demo-content">
+              <!-- Ext indicator -->
+              <div class="demo-ext-ind">
+                <span class="demo-ext-dot"></span>
+                <span class="demo-ext-text" id="demo-ext"><strong>Carlytics</strong> · Actif</span>
+              </div>
 
-            <div class="app-mockup__content">
-
-              <!-- Listing 1 : BMW X3 M Sport -->
-              <div class="mock-listing">
-                <!-- Barre Carlytics inject&eacute;e -->
-                <div class="mock-banner">
-                  <div class="mock-banner__prices">
-                    <span class="mock-banner__label">Achat&nbsp;VO:</span>
-                    <span class="mock-banner__price">18 177&euro;</span>
-                    <span class="mock-banner__sep">|</span>
-                    <span class="mock-banner__label mock-banner__label--orange">LBC:</span>
-                    <span class="mock-banner__price">24 145&euro;</span>
-                    <span class="mock-banner__sep">|</span>
-                    <span class="mock-banner__label mock-banner__label--green">MARGE:</span>
-                    <span class="mock-banner__margin">+5 968&euro; (+33%)</span>
+              <!-- Car 1 -->
+              <div class="demo-car">
+                <div class="demo-car-top">
+                  <div class="demo-car-img" style="background:linear-gradient(135deg,#c0cfe0,#8faac5)">🚙</div>
+                  <div class="demo-car-info">
+                    <div class="demo-car-title">Land Rover Defender 110 D240</div>
+                    <div class="demo-car-sub">2015 · 117 654 km · Diesel · 240ch</div>
+                    <div class="demo-car-tags"><span class="demo-tag demo-tag--blue">4x4</span><span class="demo-tag">Toit pano</span></div>
                   </div>
-                  <div class="mock-banner__actions">
-                    <button class="mock-btn mock-btn--orange">&#128269; Voir sur LBC</button>
-                    <button class="mock-btn mock-btn--green">&#43; Ajouter</button>
-                  </div>
+                  <div class="demo-car-price-col"><div class="demo-car-price">24 740€</div><button class="demo-car-cta">Voir</button></div>
                 </div>
-                <!-- Corps du listing (fictif, pas de marque Auto1) -->
-                <div class="mock-listing__body">
-                  <div class="mock-listing__img">
-                    <svg viewBox="0 0 80 35" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <rect x="5" y="18" width="70" height="12" rx="3" fill="#8a99b0"/>
-                      <path d="M14 18 L20 8 L60 8 L66 18 Z" fill="#8a99b0"/>
-                      <circle cx="19" cy="30" r="5" fill="#6b7a8e" stroke="#aab5c4" stroke-width="1.5"/>
-                      <circle cx="61" cy="30" r="5" fill="#6b7a8e" stroke="#aab5c4" stroke-width="1.5"/>
-                    </svg>
-                  </div>
-                  <div class="mock-listing__info">
-                    <div class="mock-listing__title">Berline SUV 2020, M Sport</div>
-                    <div class="mock-listing__meta">
-                      <span>96 350 km</span>
-                      <span>10/2020</span>
-                      <span>Diesel &bull; Auto</span>
-                    </div>
-                    <div class="mock-listing__price">Offre en cours&nbsp;: <strong>18 177&euro;</strong></div>
+                <div class="demo-loading" id="dl1"><div class="demo-spinner"></div><span>Carlytics analyse LeBonCoin...</span></div>
+                <div class="demo-result" id="dr1">
+                  <div class="demo-result-header"><span class="demo-result-logo">Carlytics</span><span class="demo-result-badge demo-result-badge--hot">🔥 Opportunité exceptionnelle</span></div>
+                  <div class="demo-result-prices">
+                    <div class="demo-pbox"><div class="demo-pbox-label">Prix achat</div><div class="demo-pbox-val">24 740€</div></div>
+                    <div class="demo-pbox demo-pbox--lbc"><div class="demo-pbox-label">LBC moyen</div><div class="demo-pbox-val">45 245€</div></div>
+                    <div class="demo-pbox demo-pbox--hot"><div class="demo-pbox-label">Marge</div><div class="demo-pbox-val">+20 505€</div></div>
                   </div>
                 </div>
               </div>
 
-              <!-- Listing 2 : Berline compacte -->
-              <div class="mock-listing">
-                <div class="mock-banner">
-                  <div class="mock-banner__prices">
-                    <span class="mock-banner__label">Achat&nbsp;VO:</span>
-                    <span class="mock-banner__price">7 046&euro;</span>
-                    <span class="mock-banner__sep">|</span>
-                    <span class="mock-banner__label mock-banner__label--orange">LBC:</span>
-                    <span class="mock-banner__price">11 999&euro;</span>
-                    <span class="mock-banner__sep">|</span>
-                    <span class="mock-banner__label mock-banner__label--green">MARGE:</span>
-                    <span class="mock-banner__margin">+4 953&euro; (+70%)</span>
+              <!-- Car 2 -->
+              <div class="demo-car">
+                <div class="demo-car-top">
+                  <div class="demo-car-img" style="background:linear-gradient(135deg,#d0c8b8,#a89880)">🚗</div>
+                  <div class="demo-car-info">
+                    <div class="demo-car-title">BMW 520d xDrive M-Sport</div>
+                    <div class="demo-car-sub">2019 · 98 340 km · Diesel</div>
+                    <div class="demo-car-tags"><span class="demo-tag demo-tag--blue">M-Sport</span><span class="demo-tag">Cuir</span></div>
                   </div>
-                  <div class="mock-banner__actions">
-                    <button class="mock-btn mock-btn--orange">&#128269; Voir sur LBC</button>
-                    <button class="mock-btn mock-btn--green">&#43; Ajouter</button>
-                  </div>
+                  <div class="demo-car-price-col"><div class="demo-car-price">21 900€</div><button class="demo-car-cta">Voir</button></div>
                 </div>
-                <div class="mock-listing__body">
-                  <div class="mock-listing__img mock-listing__img--warm">
-                    <svg viewBox="0 0 80 35" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <rect x="5" y="18" width="70" height="12" rx="3" fill="#a89880"/>
-                      <path d="M16 18 L22 10 L58 10 L64 18 Z" fill="#a89880"/>
-                      <circle cx="20" cy="30" r="5" fill="#8a7060" stroke="#c4b0a0" stroke-width="1.5"/>
-                      <circle cx="60" cy="30" r="5" fill="#8a7060" stroke="#c4b0a0" stroke-width="1.5"/>
-                    </svg>
-                  </div>
-                  <div class="mock-listing__info">
-                    <div class="mock-listing__title">Berline compacte 2018, S-Line</div>
-                    <div class="mock-listing__meta">
-                      <span>99 850 km</span>
-                      <span>Diesel</span>
-                    </div>
-                    <div class="mock-listing__price">Offre en cours&nbsp;: <strong>7 046&euro;</strong></div>
+                <div class="demo-loading" id="dl2"><div class="demo-spinner"></div><span>Carlytics analyse LeBonCoin...</span></div>
+                <div class="demo-result" id="dr2">
+                  <div class="demo-result-header"><span class="demo-result-logo">Carlytics</span><span class="demo-result-badge demo-result-badge--good">✓ Bonne marge</span></div>
+                  <div class="demo-result-prices">
+                    <div class="demo-pbox"><div class="demo-pbox-label">Prix achat</div><div class="demo-pbox-val">21 900€</div></div>
+                    <div class="demo-pbox demo-pbox--lbc"><div class="demo-pbox-label">LBC moyen</div><div class="demo-pbox-val">25 400€</div></div>
+                    <div class="demo-pbox demo-pbox--green"><div class="demo-pbox-label">Marge</div><div class="demo-pbox-val">+3 500€</div></div>
                   </div>
                 </div>
               </div>
 
+              <!-- Car 3 -->
+              <div class="demo-car">
+                <div class="demo-car-top">
+                  <div class="demo-car-img" style="background:linear-gradient(135deg,#c8d8c0,#88a880)">🚘</div>
+                  <div class="demo-car-info">
+                    <div class="demo-car-title">Mazda CX-3 SKYACTIV-G</div>
+                    <div class="demo-car-sub">2016 · 166 720 km · Diesel</div>
+                    <div class="demo-car-tags"><span class="demo-tag">Carplay</span><span class="demo-tag">Caméra</span></div>
+                  </div>
+                  <div class="demo-car-price-col"><div class="demo-car-price">8 400€</div><button class="demo-car-cta">Voir</button></div>
+                </div>
+                <div class="demo-loading" id="dl3"><div class="demo-spinner"></div><span>Carlytics analyse LeBonCoin...</span></div>
+                <div class="demo-result" id="dr3">
+                  <div class="demo-result-header"><span class="demo-result-logo">Carlytics</span><span class="demo-result-badge demo-result-badge--blue">📊 Marge correcte</span></div>
+                  <div class="demo-result-prices">
+                    <div class="demo-pbox"><div class="demo-pbox-label">Prix achat</div><div class="demo-pbox-val">8 400€</div></div>
+                    <div class="demo-pbox demo-pbox--lbc"><div class="demo-pbox-label">LBC moyen</div><div class="demo-pbox-val">10 495€</div></div>
+                    <div class="demo-pbox demo-pbox--green"><div class="demo-pbox-label">Marge</div><div class="demo-pbox-val">+2 095€</div></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Toast -->
+              <div class="demo-toast" id="demo-toast">
+                <span class="demo-toast-icon">🔥</span>
+                <div><div class="demo-toast-title">+20 505€ de marge détectée !</div><div class="demo-toast-sub">Land Rover · Achat 24 740€ → LBC 45 245€</div></div>
+              </div>
             </div>
           </div>
         </div>
@@ -1220,6 +1280,47 @@
           });
         });
       });
+    })();
+  </script>
+
+  <!-- Demo animation -->
+  <script>
+    (function() {
+      var $ = function(id) { return document.getElementById(id); };
+      var on = function(id) { if ($(id)) $(id).classList.add('on'); };
+      var off = function(id) { if ($(id)) $(id).classList.remove('on'); };
+
+      function runDemo() {
+        ['dr1','dr2','dr3','dl1','dl2','dl3','demo-toast'].forEach(off);
+        var ext = $('demo-ext');
+        if (ext) ext.innerHTML = '<strong>Carlytics</strong> · Actif';
+
+        setTimeout(function(){ on('dl1'); }, 300);
+        setTimeout(function(){ off('dl1'); on('dr1'); on('demo-toast'); }, 1100);
+        setTimeout(function(){ off('demo-toast'); }, 3200);
+        setTimeout(function(){ on('dl2'); }, 1500);
+        setTimeout(function(){ off('dl2'); on('dr2'); }, 2300);
+        setTimeout(function(){ on('dl3'); }, 2700);
+        setTimeout(function(){ off('dl3'); on('dr3'); }, 3500);
+        setTimeout(function(){
+          if (ext) ext.innerHTML = '<strong>Carlytics</strong> · 3 analyses ✓';
+        }, 3700);
+      }
+
+      // Start when visible
+      if (typeof IntersectionObserver !== 'undefined') {
+        var obs = new IntersectionObserver(function(entries) {
+          if (entries[0].isIntersecting) {
+            runDemo();
+            setInterval(runDemo, 6500);
+            obs.disconnect();
+          }
+        }, { threshold: 0.3 });
+        var target = document.querySelector('.demo-browser');
+        if (target) obs.observe(target);
+      } else {
+        setTimeout(function(){ runDemo(); setInterval(runDemo, 6500); }, 500);
+      }
     })();
   </script>
 
