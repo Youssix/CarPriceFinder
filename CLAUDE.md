@@ -206,7 +206,7 @@ This is being productized as a **SaaS platform** for car dealers:
 
 ```bash
 ssh root@72.61.96.39
-# Password: 9DQpTIpx5;Dbd&(t
+# ⚠️ Mot de passe : NE PAS stocker ici (repo GitHub). Utiliser un gestionnaire de mots de passe.
 ```
 
 - **Domains**: carlytics.fr / api.carlytics.fr / app.carlytics.fr
@@ -217,14 +217,105 @@ ssh root@72.61.96.39
 ## Environment Variables
 
 ```bash
-# server/.env
-PORT=3001                           # Server port
-OPENAI_API_KEY=sk-...              # Optional: Enable AI features
-AI_MODEL=gpt-3.5-turbo             # Default model
-AI_ENDPOINT=https://api.openai.com/v1/chat/completions
-AI_MAX_TOKENS=500                  # Limit response size
-AI_TEMPERATURE=0.3                 # Deterministic responses
-NODE_ENV=development               # Enable debug logs
+# server/.env (copier depuis .env.example)
+
+# --- Serveur ---
+PORT=9001
+NODE_ENV=development               # "production" en prod
+
+# --- Base de données ---
+DATABASE_URL=postgres://cpf:cpf_secret@localhost:5432/carpricefinder
+POSTGRES_PASSWORD=cpf_secret
+
+# --- LeBonCoin scraping ---
+LBC_API_KEY=ba0c2dad52b3ec        # Clé API mobile LBC (publique, dans l'app)
+
+# --- Stripe ---
+STRIPE_SECRET_KEY=sk_live_...     # sk_test_... en dev
+STRIPE_WEBHOOK_SECRET=whsec_...   # Depuis Stripe Dashboard > Webhooks
+STRIPE_PRICE_ID_STARTER=price_... # Plan Starter (49€/mois)
+STRIPE_PRICE_ID_PRO=price_...     # Plan Pro (89€/mois)
+STRIPE_PRICE_ID_AGENCY=price_...  # Plan Agence (149€/mois)
+
+# --- Email transactionnel (Resend) ---
+RESEND_API_KEY=re_...             # resend.com > API Keys
+FROM_EMAIL=Carlytics <noreply@carlytics.fr>
+# ⚠️ Sans RESEND_API_KEY : emails non envoyés, code affiché uniquement dans les logs
+
+# --- CORS ---
+ALLOWED_ORIGINS=https://www.auto1.com,https://app.carlytics.fr
+FRONTEND_URL=https://app.carlytics.fr
+
+# --- AI (optionnel) ---
+OPENAI_API_KEY=sk-...             # Sans cette clé : détection rule-based uniquement
 ```
+
+## Services Externes
+
+| Service | Usage | Dashboard |
+|---------|-------|-----------|
+| **Resend** | Emails transactionnels (OTP, reset password, welcome) | resend.com |
+| **Stripe** | Paiements abonnements (Starter 49€ / Pro 89€ / Agence 149€) | dashboard.stripe.com |
+| **PostHog** | Analytics & tracking comportement utilisateurs | eu.posthog.com |
+| **Hostinger** | DNS du domaine carlytics.fr + boîte mail contact@carlytics.fr | hpanel.hostinger.com |
+| **Chrome Web Store** | Distribution de l'extension Chrome | chrome.google.com/webstore/devconsole |
+| **OpenAI** | Détection options premium (optionnel, GPT-3.5-turbo) | platform.openai.com |
+
+### Points importants
+- **Emails** : envoyés via Resend (pas Hostinger). Logs dans resend.com > Emails. Le domaine `carlytics.fr` doit être vérifié dans Resend (SPF + DKIM configurés).
+- **Hostinger** : uniquement pour les DNS et la boîte mail `contact@carlytics.fr`. Aucun email transactionnel ne passe par Hostinger.
+- **Landing page** : servie via bind mount Docker `./landing:/srv/landing:ro`. Un simple `git pull` suffit à déployer (pas besoin de rebuild Docker).
+- **Dashboard** (`app.carlytics.fr`) : app Vite/React dans `/dashboard`, rebuild Docker nécessaire après modif.
+- **Cache navigateur** : `Cache-Control: max-age=86400` sur la landing. Tester en navigation privée ou hard refresh (Cmd+Shift+R) après déploiement.
+
+## Deploy Workflow
+
+### Landing page (carlytics.fr)
+```bash
+# Local
+git add landing/ && git commit -m "feat: ..." && git push
+
+# Serveur (bind mount → immédiat)
+ssh root@72.61.96.39
+cd /opt/carlytics && git pull
+# ✅ En ligne immédiatement
+```
+
+### API / Dashboard (app.carlytics.fr)
+```bash
+ssh root@72.61.96.39
+cd /opt/carlytics
+git pull
+docker compose build api   # ou: docker compose build dashboard
+docker compose up -d
+```
+
+### Vérifier les logs en prod
+```bash
+ssh root@72.61.96.39
+cd /opt/carlytics
+docker compose logs api --tail=50 -f     # Logs API temps réel
+docker compose logs caddy --tail=20      # Logs Caddy (SSL, reverse proxy)
+docker compose ps                        # État des containers
+```
+
+## Pricing Actuel
+
+| Plan | Prix | Analyses/mois | Alertes |
+|------|------|---------------|---------|
+| Starter | 49€/mois | 200 | 3 |
+| Pro | 89€/mois | Illimitées | 10 |
+| Agence | 149€/mois | Illimitées | Illimitées |
+
+- **Freemium** : 5 analyses gratuites sans CB
+- Codes promo activés sur Stripe Checkout
+
+## Authentication Flow
+
+1. User entre son email → `POST /api/auth/request-code`
+2. Resend envoie un OTP 6 chiffres (expire 10 min)
+3. User entre le code → `POST /api/auth/verify-code`
+4. JWT token retourné → stocké en localStorage dashboard
+5. Extension vérifie le token via `POST /api/auth/verify-token`
 
 🔨 **Travail terminé !**
