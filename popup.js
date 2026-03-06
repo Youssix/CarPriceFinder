@@ -223,15 +223,6 @@ async function loadAccountInfo() {
         const emailEl = document.getElementById('accountEmail');
         emailEl.textContent = settings.email || '—';
 
-        // Display API key (masked)
-        const apiKeyEl = document.getElementById('apiKeyDisplay');
-        if (settings.apiKey) {
-            const key = settings.apiKey;
-            apiKeyEl.value = key.substring(0, 12) + '...' + key.substring(key.length - 6);
-        } else {
-            apiKeyEl.value = '';
-        }
-
         // Fetch live subscription status
         if (settings.apiKey && settings.serverUrl) {
             try {
