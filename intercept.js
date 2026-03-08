@@ -508,30 +508,6 @@
 
   const vehicleListManager = new VehicleListManager();
 
-  // 🆓 FREE TRIAL MANAGEMENT
-  const FREE_ANALYSES_LIMIT = 5;
-
-  async function getTrialCount() {
-    try {
-      const result = await storageHelper.get(['carFinderTrialCount']);
-      return result.carFinderTrialCount || 0;
-    } catch (e) {
-      return 0;
-    }
-  }
-
-  async function incrementTrialCount() {
-    try {
-      const count = await getTrialCount();
-      const newCount = count + 1;
-      await storageHelper.set({ carFinderTrialCount: newCount });
-      console.log(`[🆓 Trial] Analyse ${newCount}/${FREE_ANALYSES_LIMIT} utilisée`);
-      return newCount;
-    } catch (e) {
-      return 0;
-    }
-  }
-
   // Function to extract photos from Auto1 API data
   function extractVehiclePhotos(carData, card) {
     const photos = [];
@@ -608,22 +584,9 @@
     // Attendre que les settings soient chargés via le bridge (max 2s)
     await settingsReady;
 
-    // 🔐 Vérification abonnement ou essai gratuit
+    // 🔐 Vérification abonnement
     const isPaid = extensionSettings.apiKey && extensionSettings.apiKey.trim() !== '';
-    if (!isPaid) {
-      const trialCount = await getTrialCount();
-      if (trialCount >= FREE_ANALYSES_LIMIT) {
-        console.log(`[🔒 Trial] Limite atteinte (${trialCount}/${FREE_ANALYSES_LIMIT}) — affichage paywall`);
-        hits.slice(0, 3).forEach(car => {
-          const card = document.querySelector(`.big-car-card[data-qa-id="${car.stockNumber}"]`);
-          if (card && !card.querySelector('.plugin-paywall') && !card.querySelector('.plugin-price')) {
-            renderPaywallCard(card);
-          }
-        });
-        return;
-      }
-      console.log(`[🆓 Trial] ${FREE_ANALYSES_LIMIT - trialCount} analyse(s) gratuite(s) restante(s)`);
-    }
+    console.log(`[🔐 Auth] ${isPaid ? 'Abonné — chiffres complets' : 'Gratuit — indicateur couleur uniquement'}`);
 
     console.log(`[🔍 injectPluginPrices] ${hits.length} véhicules à traiter (timeout: ${extensionSettings.requestTimeout}ms)`);
 
@@ -718,13 +681,8 @@
               loadingElement.remove();
             }
 
-            // Incrémenter le compteur d'essai si non abonné
-            if (!isPaid) {
-              await incrementTrialCount();
-            }
-
             // Render result
-            renderCarAnalysis(card, carDataForAI, data, euros);
+            renderCarAnalysis(card, carDataForAI, data, euros, isPaid);
 
             console.log(`[✅ VEHICULE ${i}] Analysis complete for ${stockId} (${data.aiAnalysis?.detectedOptions?.length || 0} options detected)`);
           })
@@ -794,22 +752,9 @@
     return div.innerHTML;
   }
 
-  function renderCarAnalysis(card, carData, analysisData, euros) {
+  function renderCarAnalysis(card, carData, analysisData, euros, isPaid) {
     const pluginPriceDiv = document.createElement("div");
     pluginPriceDiv.className = "plugin-price";
-    pluginPriceDiv.style = `
-      margin: 8px 0;
-      padding: 10px 14px;
-      border-radius: 4px;
-      background: #2c3e50;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-      border: none;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 20px;
-      font-size: 13px;
-    `;
 
     // Calculs
     const auto1Price = carData.price / 100;
@@ -827,46 +772,111 @@
       isProfit = profit > 0;
     }
 
-    // Section gauche: Prix face à face avec badge CACHED
-    const pricesSection = document.createElement('div');
-    pricesSection.style = `
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      flex: 1;
-      font-weight: 600;
-      color: #ecf0f1;
-    `;
+    if (!isPaid) {
+      // 🆓 GRATUIT: indicateur couleur + chiffres masqués + CTA upgrade
+      const profitColor = isProfit && profitPercent >= 15 ? '#2ecc71' :
+                          isProfit && profitPercent >= 5  ? '#f39c12' : '#e74c3c';
+      const indicator   = isProfit && profitPercent >= 15 ? '🟢 Bonne affaire' :
+                          isProfit && profitPercent >= 5  ? '🟡 Affaire correcte' : '🔴 À éviter';
 
-    pricesSection.innerHTML = `
-      <span style="color: #3498db;">AUTO1: <strong style="color: #ffffff;">${auto1Price.toFixed(0)}€</strong></span>
-      <span style="color: #95a5a6;">|</span>
-      <span style="color: #e67e22;">LBC: <strong style="color: #ffffff;">${marketPrice ? marketPrice + '€' : 'N/A'}</strong></span>
-      ${isProfit ? `
+      pluginPriceDiv.style = `
+        margin: 8px 0;
+        padding: 10px 14px;
+        border-radius: 4px;
+        background: #2c3e50;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        border-left: 4px solid ${profitColor};
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        font-size: 13px;
+      `;
+
+      const indicatorSpan = document.createElement('span');
+      indicatorSpan.style = `font-weight: 700; font-size: 14px; color: ${profitColor}; white-space: nowrap;`;
+      indicatorSpan.textContent = indicator;
+
+      const maskedSpan = document.createElement('span');
+      maskedSpan.style = 'color: rgba(255,255,255,0.35); font-size: 12px; flex: 1;';
+      const blurredNums = document.createElement('span');
+      blurredNums.style = 'filter: blur(4px); color: #aaa; user-select: none; display: inline-block;';
+      blurredNums.textContent = '12 345€ → 16 500€';
+      maskedSpan.appendChild(document.createTextNode('AUTO1 & LBC : '));
+      maskedSpan.appendChild(blurredNums);
+
+      const upgradeLink = document.createElement('a');
+      upgradeLink.href = 'https://carlytics.fr';
+      upgradeLink.target = '_blank';
+      upgradeLink.style = `
+        padding: 5px 12px;
+        background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+        color: white;
+        border-radius: 3px;
+        font-size: 11px;
+        font-weight: 600;
+        text-decoration: none;
+        white-space: nowrap;
+      `;
+      upgradeLink.textContent = '🔓 Voir les chiffres';
+
+      pluginPriceDiv.appendChild(indicatorSpan);
+      pluginPriceDiv.appendChild(maskedSpan);
+      pluginPriceDiv.appendChild(upgradeLink);
+
+    } else {
+      // 💎 ABONNÉ: carte complète avec chiffres exacts
+      pluginPriceDiv.style = `
+        margin: 8px 0;
+        padding: 10px 14px;
+        border-radius: 4px;
+        background: #2c3e50;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        border: none;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+        font-size: 13px;
+      `;
+
+      // Section gauche: Prix face à face
+      const pricesSection = document.createElement('div');
+      pricesSection.style = `
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        flex: 1;
+        font-weight: 600;
+        color: #ecf0f1;
+      `;
+
+      pricesSection.innerHTML = `
+        <span style="color: #3498db;">AUTO1: <strong style="color: #ffffff;">${auto1Price.toFixed(0)}€</strong></span>
         <span style="color: #95a5a6;">|</span>
-        <span style="color: ${isProfit ? '#2ecc71' : '#e74c3c'};">
-          MARGE: <strong style="color: #ffffff;">${profit > 0 ? '+' : ''}${profit}€</strong> <span style="color: ${isProfit ? '#2ecc71' : '#e74c3c'};">(${profit > 0 ? '+' : ''}${profitPercent}%)</span>
-        </span>
-      ` : ''}
-    `;
+        <span style="color: #e67e22;">LBC: <strong style="color: #ffffff;">${marketPrice ? marketPrice + '€' : 'N/A'}</strong></span>
+        ${isProfit ? `
+          <span style="color: #95a5a6;">|</span>
+          <span style="color: ${isProfit ? '#2ecc71' : '#e74c3c'};">
+            MARGE: <strong style="color: #ffffff;">${profit > 0 ? '+' : ''}${profit}€</strong> <span style="color: ${isProfit ? '#2ecc71' : '#e74c3c'};">(${profit > 0 ? '+' : ''}${profitPercent}%)</span>
+          </span>
+        ` : ''}
+      `;
 
-    // Enhanced LBC button (compact)
-    const lbcButton = createLbcButton(carData, analysisData);
+      // Boutons
+      const lbcButton = createLbcButton(carData, analysisData);
+      const addToListButton = createAddToListButton(card, carData, analysisData);
 
-    // ✅ ADD TO LIST BUTTON (compact)
-    const addToListButton = createAddToListButton(card, carData, analysisData);
+      const buttonsContainer = document.createElement('div');
+      buttonsContainer.style = 'display: flex; gap: 8px;';
+      buttonsContainer.appendChild(lbcButton);
+      buttonsContainer.appendChild(addToListButton);
 
-    // Buttons container (à droite)
-    const buttonsContainer = document.createElement('div');
-    buttonsContainer.style = 'display: flex; gap: 8px;';
-    buttonsContainer.appendChild(lbcButton);
-    buttonsContainer.appendChild(addToListButton);
+      pluginPriceDiv.appendChild(pricesSection);
+      pluginPriceDiv.appendChild(buttonsContainer);
+    }
 
-    // Assemblage final
-    pluginPriceDiv.appendChild(pricesSection);
-    pluginPriceDiv.appendChild(buttonsContainer);
-
-    // Insert into page
+    // Insertion dans la page
     const finalInsertLocation = card.querySelector(".big-car-card__title");
     if (finalInsertLocation && finalInsertLocation.parentNode) {
       finalInsertLocation.parentNode.insertBefore(pluginPriceDiv, finalInsertLocation.nextSibling);
@@ -1182,45 +1192,6 @@
     };
 
     return lbcButton;
-  }
-
-  function renderPaywallCard(card) {
-    const paywallDiv = document.createElement('div');
-    paywallDiv.className = 'plugin-paywall';
-    paywallDiv.style = `
-      margin: 8px 0;
-      padding: 16px;
-      border-radius: 4px;
-      background: #2c3e50;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-      border: 2px solid #e74c3c;
-      text-align: center;
-    `;
-
-    paywallDiv.innerHTML = `
-      <div style="color: white; font-size: 15px; font-weight: 700; margin-bottom: 6px;">
-        🔒 Tu as utilisé tes ${FREE_ANALYSES_LIMIT} analyses gratuites
-      </div>
-      <div style="color: rgba(255,255,255,0.7); font-size: 12px; margin-bottom: 12px;">
-        Passe à Pro pour continuer à trouver des marges — <strong style="color: #f39c12;">29€/mois</strong>
-      </div>
-      <a href="https://carlytics.fr" target="_blank" style="
-        display: inline-block;
-        padding: 8px 20px;
-        background: #e74c3c;
-        color: white;
-        border-radius: 4px;
-        font-weight: 700;
-        font-size: 13px;
-        text-decoration: none;
-        transition: background 0.2s;
-      ">🚀 S'abonner à Carlytics</a>
-    `;
-
-    const insertLocation = card.querySelector('.big-car-card__title');
-    if (insertLocation && insertLocation.parentNode) {
-      insertLocation.parentNode.insertBefore(paywallDiv, insertLocation.nextSibling);
-    }
   }
 
   function renderErrorMessage(card, errorMessage) {
