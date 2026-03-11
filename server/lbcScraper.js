@@ -170,7 +170,7 @@ async function apiKeyAuth(req, res, next) {
     try {
         const subscriber = await getSubscriberByApiKey(apiKey);
 
-        if (!subscriber || subscriber.subscription_status !== 'active') {
+        if (!subscriber || !['active', 'free'].includes(subscriber.subscription_status)) {
             return res.status(403).json({
                 ok: false,
                 error: 'Abonnement expiré ou clé invalide.'
