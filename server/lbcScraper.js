@@ -531,8 +531,9 @@ app.get('/api/check-subscription', async (req, res) => {
         if (!subscriber) return res.json({ active: false, isPaid: false });
 
         const isPaid = subscriber.subscription_status === 'active';
+        const active = ['active', 'free'].includes(subscriber.subscription_status);
         res.json({
-            active: isPaid,
+            active,
             isPaid,
             status: subscriber.subscription_status,
             email: subscriber.email
