@@ -552,6 +552,29 @@
         </div>
     </div>
 
+    <!-- SETUP PASSWORD SCREEN -->
+    <div id="setupPasswordScreen" class="auth-screen hidden">
+        <div class="login-logo">Carlytics</div>
+        <p class="login-subtitle">Définissez un mot de passe<br>pour accéder au dashboard</p>
+
+        <div class="auth-fields">
+            <div class="auth-field-group">
+                <label class="auth-label" for="setupPasswordInput">Mot de passe</label>
+                <input type="password" id="setupPasswordInput" class="auth-input" placeholder="8 caractères minimum" autocomplete="new-password" />
+            </div>
+            <div class="auth-field-group">
+                <label class="auth-label" for="setupPasswordConfirmInput">Confirmer</label>
+                <input type="password" id="setupPasswordConfirmInput" class="auth-input" placeholder="••••••••" autocomplete="new-password" />
+            </div>
+            <button class="btn-login" id="setupPasswordBtn">Enregistrer →</button>
+        </div>
+
+        <div class="auth-error" id="setupPasswordError"></div>
+        <div class="login-link">
+            <span id="skipSetupPassword" style="color: rgba(255,255,255,0.3); cursor: pointer;">Passer cette étape</span>
+        </div>
+    </div>
+
     <!-- MAIN UI -->
     <div class="header" style="display:none;">
         <div class="header-left">

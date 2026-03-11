@@ -49,6 +49,10 @@ document.addEventListener('DOMContentLoaded', async function() {
     document.getElementById('otpInput').addEventListener('keydown', function(e) {
         if (e.key === 'Enter') handleOtpVerify();
     });
+
+    // Setup password screen
+    document.getElementById('setupPasswordBtn').addEventListener('click', handleSetupPassword);
+    document.getElementById('skipSetupPassword').addEventListener('click', handleSkipSetupPassword);
 });
 
 // Default settings
@@ -61,11 +65,14 @@ const DEFAULT_SETTINGS = {
 
 // ===== AUTH GATE =====
 
+// Temp storage for setup password flow
+let pendingAuthData = null;
+
 // Serveurs à essayer dans l'ordre
 const AUTH_SERVERS = ['http://localhost:9001', 'https://api.carlytics.fr'];
 
 // Trouver un serveur disponible et appeler l'endpoint donné
-async function callAuthServer(path, method = 'GET', body = null) {
+async function callAuthServer(path, method = 'GET', body = null, apiKey = null) {
     for (const server of AUTH_SERVERS) {
         try {
             const opts = {
@@ -73,6 +80,7 @@ async function callAuthServer(path, method = 'GET', body = null) {
                 headers: { 'Content-Type': 'application/json' },
                 signal: AbortSignal.timeout(4000)
             };
+            if (apiKey) opts.headers['X-API-Key'] = apiKey;
             if (body) opts.body = JSON.stringify(body);
 
             const response = await fetch(`${server}${path}`, opts);
@@ -134,6 +142,7 @@ function showAuthScreen() {
     document.getElementById('authScreen').classList.remove('hidden');
     document.getElementById('signupScreen').classList.add('hidden');
     document.getElementById('otpScreen').classList.add('hidden');
+    document.getElementById('setupPasswordScreen').classList.add('hidden');
     document.querySelector('.header').style.display = 'none';
     document.getElementById('mainTabs').style.display = 'none';
     document.getElementById('listTab').style.display = 'none';
@@ -150,6 +159,15 @@ function showSignupScreen() {
     document.getElementById('signupEmailInput').focus();
 }
 
+function showSetupPasswordScreen() {
+    document.getElementById('otpScreen').classList.add('hidden');
+    document.getElementById('setupPasswordScreen').classList.remove('hidden');
+    document.getElementById('setupPasswordInput').value = '';
+    document.getElementById('setupPasswordConfirmInput').value = '';
+    document.getElementById('setupPasswordError').textContent = '';
+    document.getElementById('setupPasswordInput').focus();
+}
+
 function showOtpScreen(email) {
     document.getElementById('signupScreen').classList.add('hidden');
     document.getElementById('otpScreen').classList.remove('hidden');
@@ -163,6 +181,7 @@ function showMainUI() {
     document.getElementById('authScreen').classList.add('hidden');
     document.getElementById('signupScreen').classList.add('hidden');
     document.getElementById('otpScreen').classList.add('hidden');
+    document.getElementById('setupPasswordScreen').classList.add('hidden');
     document.querySelector('.header').style.display = 'flex';
     document.getElementById('mainTabs').style.display = 'flex';
     document.querySelectorAll('.tab-content').forEach(content => {
@@ -314,12 +333,9 @@ async function handleOtpVerify() {
             return;
         }
 
-        await saveAuthToStorage(result.data.apiKey, result.data.email, result.server, result.data.isPaid === true);
-        showMainUI();
-        loadAccountInfo();
-        await loadSettings();
-        await checkServerStatus();
-        await loadVehicleList();
+        // Stocker temporairement avant setup mot de passe
+        pendingAuthData = { apiKey: result.data.apiKey, email: result.data.email, server: result.server, isPaid: result.data.isPaid === true };
+        showSetupPasswordScreen();
 
     } catch (err) {
         errorEl.textContent = 'Erreur inattendue. Réessayez.';
@@ -327,6 +343,49 @@ async function handleOtpVerify() {
         btn.disabled = false;
         btn.textContent = 'Confirmer →';
     }
+}
+
+async function handleSetupPassword() {
+    const password = document.getElementById('setupPasswordInput').value;
+    const confirm = document.getElementById('setupPasswordConfirmInput').value;
+    const errorEl = document.getElementById('setupPasswordError');
+    const btn = document.getElementById('setupPasswordBtn');
+
+    errorEl.textContent = '';
+    if (password.length < 8) { errorEl.textContent = 'Mot de passe trop court (8 caractères minimum)'; return; }
+    if (password !== confirm) { errorEl.textContent = 'Les mots de passe ne correspondent pas'; return; }
+
+    btn.disabled = true;
+    btn.textContent = 'Enregistrement…';
+
+    try {
+        const result = await callAuthServer('/api/auth/update-password', 'POST', { password }, pendingAuthData?.apiKey);
+        if (!result || !result.ok) {
+            errorEl.textContent = result?.data?.error || 'Erreur serveur';
+            return;
+        }
+        await _finishAuth();
+    } catch (err) {
+        errorEl.textContent = 'Erreur inattendue. Réessayez.';
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Enregistrer →';
+    }
+}
+
+async function handleSkipSetupPassword() {
+    await _finishAuth();
+}
+
+async function _finishAuth() {
+    if (!pendingAuthData) return;
+    await saveAuthToStorage(pendingAuthData.apiKey, pendingAuthData.email, pendingAuthData.server, pendingAuthData.isPaid);
+    pendingAuthData = null;
+    showMainUI();
+    loadAccountInfo();
+    await loadSettings();
+    await checkServerStatus();
+    await loadVehicleList();
 }
 
 async function handleDisconnect() {
