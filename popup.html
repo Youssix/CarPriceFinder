@@ -575,6 +575,28 @@
         </div>
     </div>
 
+    <div id="forgotPasswordScreen" class="auth-screen hidden">
+        <div class="login-logo">Carlytics</div>
+        <p class="login-subtitle">Réinitialiser le mot de passe</p>
+
+        <div class="auth-fields" id="forgotPasswordForm">
+            <div class="auth-field-group">
+                <label class="auth-label" for="forgotEmailInput">Email</label>
+                <input type="email" id="forgotEmailInput" class="auth-input" placeholder="votre@email.fr" autocomplete="email" />
+            </div>
+            <button class="btn-login" id="forgotPasswordBtn">Envoyer le lien →</button>
+        </div>
+
+        <div id="forgotPasswordSuccess" class="hidden" style="text-align:center; color: #22c55e; font-size: 13px; padding: 12px 0;">
+            Email envoyé ! Vérifiez votre boîte mail.
+        </div>
+
+        <div class="auth-error" id="forgotPasswordError"></div>
+        <div class="login-link" style="margin-top:12px;">
+            <span id="backToLoginFromForgot" style="color: rgba(255,255,255,0.3); cursor: pointer; font-size: 12px;">← Retour à la connexion</span>
+        </div>
+    </div>
+
     <!-- MAIN UI -->
     <div class="header" style="display:none;">
         <div class="header-left">

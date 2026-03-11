@@ -33,8 +33,11 @@ document.addEventListener('DOMContentLoaded', async function() {
     document.getElementById('emailInput').addEventListener('keydown', function(e) {
         if (e.key === 'Enter') document.getElementById('passwordInput').focus();
     });
-    document.getElementById('forgotPasswordLink').addEventListener('click', () => {
-        chrome.tabs.create({ url: 'https://app.carlytics.fr/reset-password' });
+    document.getElementById('forgotPasswordLink').addEventListener('click', showForgotPasswordScreen);
+    document.getElementById('forgotPasswordBtn').addEventListener('click', handleForgotPassword);
+    document.getElementById('backToLoginFromForgot').addEventListener('click', showAuthScreen);
+    document.getElementById('forgotEmailInput').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') handleForgotPassword();
     });
 
     // Navigation signup flow
@@ -143,6 +146,7 @@ function showAuthScreen() {
     document.getElementById('signupScreen').classList.add('hidden');
     document.getElementById('otpScreen').classList.add('hidden');
     document.getElementById('setupPasswordScreen').classList.add('hidden');
+    document.getElementById('forgotPasswordScreen').classList.add('hidden');
     document.querySelector('.header').style.display = 'none';
     document.getElementById('mainTabs').style.display = 'none';
     document.getElementById('listTab').style.display = 'none';
@@ -168,6 +172,35 @@ function showSetupPasswordScreen() {
     document.getElementById('setupPasswordInput').focus();
 }
 
+function showForgotPasswordScreen() {
+    document.getElementById('authScreen').classList.add('hidden');
+    document.getElementById('forgotPasswordScreen').classList.remove('hidden');
+    document.getElementById('forgotPasswordForm').style.display = 'flex';
+    document.getElementById('forgotPasswordSuccess').classList.add('hidden');
+    document.getElementById('forgotPasswordError').textContent = '';
+    document.getElementById('forgotEmailInput').value = '';
+    document.getElementById('forgotEmailInput').focus();
+}
+
+async function handleForgotPassword() {
+    const email = document.getElementById('forgotEmailInput').value.trim();
+    const errorEl = document.getElementById('forgotPasswordError');
+    const btn = document.getElementById('forgotPasswordBtn');
+    errorEl.textContent = '';
+    if (!email) { errorEl.textContent = 'Entrez votre email'; return; }
+    btn.disabled = true;
+    btn.textContent = 'Envoi...';
+    try {
+        await callAuthServer('/api/auth/forgot-password', 'POST', { email });
+        document.getElementById('forgotPasswordForm').style.display = 'none';
+        document.getElementById('forgotPasswordSuccess').classList.remove('hidden');
+    } catch (err) {
+        errorEl.textContent = err.message || 'Erreur, réessayez.';
+    }
+    btn.disabled = false;
+    btn.textContent = 'Envoyer le lien →';
+}
+
 function showOtpScreen(email) {
     document.getElementById('signupScreen').classList.add('hidden');
     document.getElementById('otpScreen').classList.remove('hidden');
@@ -182,6 +215,7 @@ function showMainUI() {
     document.getElementById('signupScreen').classList.add('hidden');
     document.getElementById('otpScreen').classList.add('hidden');
     document.getElementById('setupPasswordScreen').classList.add('hidden');
+    document.getElementById('forgotPasswordScreen').classList.add('hidden');
     document.querySelector('.header').style.display = 'flex';
     document.getElementById('mainTabs').style.display = 'flex';
     document.querySelectorAll('.tab-content').forEach(content => {
