@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Carlytics – Analyse VO Auto1",
   "version": "2.0",
-  "description": "Comparez les prix Auto1 avec LeBonCoin en temps réel. Détection IA des options premium (M-Sport, AMG, S-Line). 5 analyses gratuites.",
+  "description": "Comparez les prix Auto1 avec LeBonCoin en temps réel. Détection IA des options premium (M-Sport, AMG, S-Line). Indicateur gratuit sur chaque voiture.",
   "background": {
     "service_worker": "background.js"
   },
