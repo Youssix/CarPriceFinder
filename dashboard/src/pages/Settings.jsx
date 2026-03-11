@@ -45,7 +45,7 @@ export default function Settings() {
         </div>
       </div>
 
-      <div className="settings-section">
+      {user?.isPaid && <div className="settings-section">
         <h3>Abonnement</h3>
         {cancelDone ? (
           <p className="setting-description" style={{ color: '#16a34a' }}>
@@ -89,7 +89,7 @@ export default function Settings() {
             )}
           </>
         )}
-      </div>
+      </div>}
 
       <div className="settings-section">
         <h3>Extension Chrome</h3>
