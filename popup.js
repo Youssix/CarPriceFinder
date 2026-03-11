@@ -36,6 +36,19 @@ document.addEventListener('DOMContentLoaded', async function() {
     document.getElementById('forgotPasswordLink').addEventListener('click', () => {
         chrome.tabs.create({ url: 'https://carlytics.fr/reset-password' });
     });
+
+    // Navigation signup flow
+    document.getElementById('goToSignup').addEventListener('click', showSignupScreen);
+    document.getElementById('goToLogin').addEventListener('click', showAuthScreen);
+    document.getElementById('goToSignupBack').addEventListener('click', showSignupScreen);
+    document.getElementById('signupBtn').addEventListener('click', handleSignup);
+    document.getElementById('signupEmailInput').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') handleSignup();
+    });
+    document.getElementById('otpBtn').addEventListener('click', handleOtpVerify);
+    document.getElementById('otpInput').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') handleOtpVerify();
+    });
 });
 
 // Default settings
@@ -72,7 +85,7 @@ async function callAuthServer(path, method = 'GET', body = null) {
     return null; // Aucun serveur disponible
 }
 
-async function saveAuthToStorage(apiKey, email, serverUrl) {
+async function saveAuthToStorage(apiKey, email, serverUrl, isPaid = false) {
     const result = await chrome.storage.local.get(['carFinderSettings']);
     const settings = result.carFinderSettings || DEFAULT_SETTINGS;
     const updatedSettings = {
@@ -80,6 +93,7 @@ async function saveAuthToStorage(apiKey, email, serverUrl) {
         ...settings,
         apiKey,
         email: email || '',
+        isPaid,
         debugMode: serverUrl.includes('localhost'),
         serverUrl,
         lastUpdated: Date.now()
@@ -118,12 +132,31 @@ async function checkAuthState() {
 
 function showAuthScreen() {
     document.getElementById('authScreen').classList.remove('hidden');
+    document.getElementById('signupScreen').classList.add('hidden');
+    document.getElementById('otpScreen').classList.add('hidden');
     document.querySelector('.header').style.display = 'none';
     document.getElementById('mainTabs').style.display = 'none';
     document.getElementById('listTab').style.display = 'none';
     document.getElementById('accountTab').style.display = 'none';
     document.getElementById('settingsPanel').classList.remove('active');
     document.getElementById('authError').textContent = '';
+}
+
+function showSignupScreen() {
+    document.getElementById('authScreen').classList.add('hidden');
+    document.getElementById('signupScreen').classList.remove('hidden');
+    document.getElementById('otpScreen').classList.add('hidden');
+    document.getElementById('signupError').textContent = '';
+    document.getElementById('signupEmailInput').focus();
+}
+
+function showOtpScreen(email) {
+    document.getElementById('signupScreen').classList.add('hidden');
+    document.getElementById('otpScreen').classList.remove('hidden');
+    document.getElementById('otpEmailDisplay').textContent = email;
+    document.getElementById('otpError').textContent = '';
+    document.getElementById('otpInput').value = '';
+    document.getElementById('otpInput').focus();
 }
 
 function showMainUI() {
@@ -180,7 +213,7 @@ async function handlePasswordLogin() {
         }
 
         // Succès — sauvegarder et afficher le main UI
-        await saveAuthToStorage(result.data.apiKey, result.data.email, result.server);
+        await saveAuthToStorage(result.data.apiKey, result.data.email, result.server, result.data.isPaid === true);
         showMainUI();
         loadAccountInfo();
         await loadSettings();
@@ -196,6 +229,103 @@ async function handlePasswordLogin() {
     }
 }
 
+
+// ===== SIGNUP FLOW =====
+
+let signupEmail = '';
+
+async function handleSignup() {
+    const email = document.getElementById('signupEmailInput').value.trim();
+    const errorEl = document.getElementById('signupError');
+    const btn = document.getElementById('signupBtn');
+
+    errorEl.textContent = '';
+
+    if (!email || !email.includes('@')) {
+        errorEl.textContent = 'Entrez une adresse email valide';
+        return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Envoi en cours…';
+
+    try {
+        const result = await callAuthServer('/api/signup-free', 'POST', { email });
+
+        if (!result) {
+            errorEl.textContent = 'Serveur inaccessible. Vérifiez votre connexion.';
+            return;
+        }
+
+        if (result.status === 409 && result.data?.alreadyPaid) {
+            errorEl.textContent = 'Compte payant existant. Connectez-vous avec votre mot de passe.';
+            setTimeout(() => showAuthScreen(), 2000);
+            return;
+        }
+
+        if (!result.ok) {
+            errorEl.textContent = result.data?.error || 'Erreur lors de la création du compte';
+            return;
+        }
+
+        signupEmail = email;
+        showOtpScreen(email);
+
+    } catch (err) {
+        errorEl.textContent = 'Erreur inattendue. Réessayez.';
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Recevoir un code →';
+    }
+}
+
+async function handleOtpVerify() {
+    const code = document.getElementById('otpInput').value.trim();
+    const errorEl = document.getElementById('otpError');
+    const btn = document.getElementById('otpBtn');
+
+    errorEl.textContent = '';
+
+    if (!code || code.length !== 6 || !/^\d+$/.test(code)) {
+        errorEl.textContent = 'Entrez le code à 6 chiffres reçu par email';
+        return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Vérification…';
+
+    try {
+        const result = await callAuthServer('/api/auth/verify-code', 'POST', { email: signupEmail, code });
+
+        if (!result) {
+            errorEl.textContent = 'Serveur inaccessible. Vérifiez votre connexion.';
+            return;
+        }
+
+        if (result.status === 401) {
+            errorEl.textContent = 'Code invalide ou expiré. Recommencez.';
+            return;
+        }
+
+        if (!result.ok) {
+            errorEl.textContent = result.data?.error || 'Erreur de vérification';
+            return;
+        }
+
+        await saveAuthToStorage(result.data.apiKey, result.data.email, result.server, result.data.isPaid === true);
+        showMainUI();
+        loadAccountInfo();
+        await loadSettings();
+        await checkServerStatus();
+        await loadVehicleList();
+
+    } catch (err) {
+        errorEl.textContent = 'Erreur inattendue. Réessayez.';
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Confirmer →';
+    }
+}
 
 async function handleDisconnect() {
     try {
@@ -233,18 +363,20 @@ async function loadAccountInfo() {
                 const data = await response.json();
                 const badge = document.getElementById('accountBadge');
 
-                if (data.active) {
-                    badge.textContent = 'Actif';
+                if (data.isPaid) {
+                    badge.textContent = 'Abonné';
                     badge.className = 'account-badge active';
-                    if (data.email) {
-                        emailEl.textContent = data.email;
-                        // Update stored email
-                        settings.email = data.email;
-                        await chrome.storage.local.set({ carFinderSettings: settings });
-                    }
+                } else if (data.status === 'free') {
+                    badge.textContent = 'Gratuit';
+                    badge.className = 'account-badge inactive';
                 } else {
                     badge.textContent = 'Inactif';
                     badge.className = 'account-badge inactive';
+                }
+                if (data.email) {
+                    emailEl.textContent = data.email;
+                    settings.email = data.email;
+                    await chrome.storage.local.set({ carFinderSettings: settings });
                 }
             } catch (e) {
                 // Silently fail — badge stays as default

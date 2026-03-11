@@ -509,7 +509,46 @@
         <div class="forgot-link" id="forgotPasswordLink">Mot de passe oublié ?</div>
 
         <div class="login-link">
-            Pas de compte ? <a href="https://carlytics.fr" target="_blank">S'abonner →</a>
+            Nouveau ? <span id="goToSignup" style="color: #60a5fa; cursor: pointer; text-decoration: underline;">Créer un compte gratuit →</span>
+        </div>
+    </div>
+
+    <!-- SIGNUP SCREEN -->
+    <div id="signupScreen" class="auth-screen hidden">
+        <div class="login-logo">Carlytics</div>
+        <p class="login-subtitle">Compte gratuit · Sans carte bancaire</p>
+
+        <div class="auth-fields">
+            <div class="auth-field-group">
+                <label class="auth-label" for="signupEmailInput">Adresse email</label>
+                <input type="email" id="signupEmailInput" class="auth-input" placeholder="votre@email.com" autocomplete="email" />
+            </div>
+            <button class="btn-login" id="signupBtn">Recevoir un code →</button>
+        </div>
+
+        <div class="auth-error" id="signupError"></div>
+        <div class="login-link">
+            <span id="goToLogin" style="color: #60a5fa; cursor: pointer;">← Déjà un compte ? Se connecter</span>
+        </div>
+    </div>
+
+    <!-- OTP SCREEN -->
+    <div id="otpScreen" class="auth-screen hidden">
+        <div class="login-logo">Carlytics</div>
+        <p class="login-subtitle" style="margin-bottom: 6px;">Code envoyé à</p>
+        <p id="otpEmailDisplay" style="font-size: 13px; color: #60a5fa; margin-bottom: 24px; text-align: center; font-weight: 600;"></p>
+
+        <div class="auth-fields">
+            <div class="auth-field-group">
+                <label class="auth-label" for="otpInput">Code à 6 chiffres</label>
+                <input type="text" id="otpInput" class="auth-input" placeholder="123456" maxlength="6" inputmode="numeric" autocomplete="one-time-code" />
+            </div>
+            <button class="btn-login" id="otpBtn">Confirmer →</button>
+        </div>
+
+        <div class="auth-error" id="otpError"></div>
+        <div class="login-link">
+            <span id="goToSignupBack" style="color: #60a5fa; cursor: pointer;">← Changer d'email</span>
         </div>
     </div>
 

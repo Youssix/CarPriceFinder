@@ -46,6 +46,21 @@ async function createSubscriber({ email, stripeCustomerId = null, stripeSubscrip
   return { email, apiKey, status };
 }
 
+async function createFreeSubscriber(email) {
+  const apiKey = generateApiKey();
+  const { rows } = await pool.query(
+    `INSERT INTO subscribers (email, subscription_status, api_key)
+     VALUES ($1, 'free', $2)
+     ON CONFLICT (email) DO NOTHING
+     RETURNING email, api_key, subscription_status`,
+    [email, apiKey]
+  );
+  if (rows.length === 0) {
+    return await getSubscriberByEmail(email);
+  }
+  return rows[0];
+}
+
 async function updateSubscriptionStatus(stripeCustomerId, status) {
   await pool.query(
     "UPDATE subscribers SET subscription_status = $1, updated_at = CURRENT_TIMESTAMP WHERE stripe_customer_id = $2",
@@ -397,6 +412,7 @@ module.exports = {
   getSubscriberByEmail,
   getSubscriberByStripeCustomer,
   createSubscriber,
+  createFreeSubscriber,
   updateSubscriptionStatus,
   updateSubscription,
   isEventProcessed,

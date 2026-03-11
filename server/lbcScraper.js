@@ -9,6 +9,7 @@ const {
   logPriceObservation,
   getSavedVehicles, saveVehicle, deleteSavedVehicle,
   getAlerts, createAlert, updateAlert, deleteAlert,
+  createFreeSubscriber,
   createAuthCode, verifyAuthCode,
   getObservationStats, getActiveAlertCount, getObservations,
   getRecentDeals, getUnseenAlertMatches, markAlertMatchesSeen,
@@ -281,8 +282,8 @@ app.post('/api/auth/request-code', async (req, res) => {
             return res.status(404).json({ ok: false, error: 'Aucun compte trouve avec cet email. Souscrivez d\'abord.' });
         }
 
-        if (rows[0].subscription_status !== 'active') {
-            return res.status(403).json({ ok: false, error: 'Abonnement inactif' });
+        if (!['active', 'free'].includes(rows[0].subscription_status)) {
+            return res.status(403).json({ ok: false, error: 'Compte inactif' });
         }
 
         const code = await createAuthCode(email);
@@ -315,15 +316,16 @@ app.post('/api/auth/verify-code', async (req, res) => {
             return res.status(401).json({ ok: false, error: 'Code invalide ou expire' });
         }
 
-        if (subscriber.subscription_status !== 'active') {
-            return res.status(403).json({ ok: false, error: 'Abonnement inactif' });
+        if (!['active', 'free'].includes(subscriber.subscription_status)) {
+            return res.status(403).json({ ok: false, error: 'Compte inactif' });
         }
 
         res.json({
             ok: true,
             apiKey: subscriber.api_key,
             email: subscriber.email,
-            status: subscriber.subscription_status
+            status: subscriber.subscription_status,
+            isPaid: subscriber.subscription_status === 'active'
         });
     } catch (err) {
         console.error('[🔐 Auth] Error:', err.message);
@@ -392,12 +394,12 @@ app.post('/api/auth/login', express.json(), async (req, res) => {
             return res.status(401).json({ ok: false, error: 'Email ou mot de passe incorrect' });
         }
 
-        if (sub.subscription_status !== 'active') {
-            return res.status(403).json({ ok: false, error: 'Abonnement inactif' });
+        if (!['active', 'free'].includes(sub.subscription_status)) {
+            return res.status(403).json({ ok: false, error: 'Compte inactif' });
         }
 
         console.log(`[🔐 Auth] Password login: ${email}`);
-        res.json({ ok: true, apiKey: sub.api_key, email: sub.email });
+        res.json({ ok: true, apiKey: sub.api_key, email: sub.email, isPaid: sub.subscription_status === 'active' });
 
     } catch (err) {
         console.error('[🔐 Auth] Login error:', err.message);
@@ -461,6 +463,64 @@ app.post('/api/auth/forgot-password', express.json(), async (req, res) => {
     } catch (err) {
         console.error('[🔐 Auth] Forgot-password error:', err.message);
         res.status(500).json({ ok: false, error: 'Erreur serveur' });
+    }
+});
+
+// POST /api/signup-free - Créer un compte gratuit (sans CB) ou renvoyer un OTP
+app.post('/api/signup-free', async (req, res) => {
+    try {
+        const { email } = req.body;
+        if (!email || !email.includes('@')) {
+            return res.status(400).json({ ok: false, error: 'Email invalide' });
+        }
+
+        const emailLower = email.toLowerCase().trim();
+        let subscriber = await getSubscriberByEmail(emailLower);
+
+        if (subscriber) {
+            if (subscriber.subscription_status === 'active') {
+                return res.status(409).json({
+                    ok: false,
+                    error: 'Vous avez déjà un compte payant. Connectez-vous avec votre email et mot de passe.',
+                    alreadyPaid: true
+                });
+            }
+            // Compte free existant → renvoyer un OTP
+        } else {
+            // Nouveau compte gratuit
+            subscriber = await createFreeSubscriber(emailLower);
+        }
+
+        const code = await createAuthCode(emailLower);
+        await sendAuthCode(emailLower, code);
+
+        console.log(`[🆓 Signup] Compte gratuit créé/OTP envoyé: ${emailLower}`);
+        res.json({ ok: true, message: 'Code envoyé par email' });
+    } catch (err) {
+        console.error('[🆓 Signup] Error:', err.message);
+        res.status(500).json({ ok: false, error: 'Erreur serveur' });
+    }
+});
+
+// GET /api/check-subscription - Vérifier le statut d'un abonnement
+app.get('/api/check-subscription', async (req, res) => {
+    try {
+        const apiKey = req.headers['x-api-key'];
+        if (!apiKey) return res.json({ active: false, isPaid: false });
+
+        const subscriber = await getSubscriberByApiKey(apiKey);
+        if (!subscriber) return res.json({ active: false, isPaid: false });
+
+        const isPaid = subscriber.subscription_status === 'active';
+        res.json({
+            active: isPaid,
+            isPaid,
+            status: subscriber.subscription_status,
+            email: subscriber.email
+        });
+    } catch (err) {
+        console.error('[🔑 CheckSub] Error:', err.message);
+        res.json({ active: false, isPaid: false });
     }
 });
 

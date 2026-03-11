@@ -584,8 +584,8 @@
     // Attendre que les settings soient chargés via le bridge (max 2s)
     await settingsReady;
 
-    // 🔐 Vérification abonnement
-    const isPaid = extensionSettings.apiKey && extensionSettings.apiKey.trim() !== '';
+    // 🔐 Vérification abonnement (isPaid stocké lors du login)
+    const isPaid = extensionSettings.isPaid === true;
     console.log(`[🔐 Auth] ${isPaid ? 'Abonné — chiffres complets' : 'Gratuit — indicateur couleur uniquement'}`);
 
     console.log(`[🔍 injectPluginPrices] ${hits.length} véhicules à traiter (timeout: ${extensionSettings.requestTimeout}ms)`);
