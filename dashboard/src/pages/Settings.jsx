@@ -2,12 +2,30 @@ import { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { api } from '../api/client';
 
+const API_URL = import.meta.env.VITE_API_URL || 'https://api.carlytics.fr';
+
 export default function Settings() {
   const { user, logout } = useAuth();
   const [canceling, setCanceling] = useState(false);
   const [cancelDone, setCancelDone] = useState(false);
   const [cancelError, setCancelError] = useState('');
   const [confirm, setConfirm] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
+
+  async function handleResetPassword() {
+    setResetLoading(true);
+    try {
+      await fetch(`${API_URL}/api/auth/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: user.email }),
+      });
+      setResetSent(true);
+    } finally {
+      setResetLoading(false);
+    }
+  }
 
   async function handleCancel() {
     if (!confirm) {
@@ -42,6 +60,16 @@ export default function Settings() {
           <span className={`status-badge ${user?.status}`}>
             {user?.status === 'active' ? 'Actif' : user?.status}
           </span>
+        </div>
+        <div className="setting-row">
+          <span className="setting-label">Mot de passe</span>
+          {resetSent ? (
+            <span style={{ fontSize: '0.875rem', color: '#16a34a' }}>Email envoyé ✓</span>
+          ) : (
+            <button className="btn btn-secondary" onClick={handleResetPassword} disabled={resetLoading} type="button" style={{ fontSize: '0.8rem', padding: '4px 12px' }}>
+              {resetLoading ? 'Envoi...' : 'Changer de mot de passe'}
+            </button>
+          )}
         </div>
       </div>
 
