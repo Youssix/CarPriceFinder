@@ -34,7 +34,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         if (e.key === 'Enter') document.getElementById('passwordInput').focus();
     });
     document.getElementById('forgotPasswordLink').addEventListener('click', () => {
-        chrome.tabs.create({ url: 'https://carlytics.fr/reset-password' });
+        chrome.tabs.create({ url: 'https://app.carlytics.fr/reset-password' });
     });
 
     // Navigation signup flow
