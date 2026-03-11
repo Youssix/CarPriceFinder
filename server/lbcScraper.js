@@ -437,6 +437,25 @@ app.post('/api/auth/set-password', express.json(), async (req, res) => {
     }
 });
 
+// POST /api/auth/update-password - Set password for authenticated user (après OTP)
+app.post('/api/auth/update-password', express.json(), async (req, res) => {
+    try {
+        const apiKey = req.headers['x-api-key'];
+        const { password } = req.body;
+        if (!apiKey) return res.status(401).json({ ok: false, error: 'Non authentifié' });
+        if (!password || password.length < 8) return res.status(400).json({ ok: false, error: 'Mot de passe trop court (8 caractères minimum)' });
+
+        const subscriber = await getSubscriberByApiKey(apiKey);
+        if (!subscriber) return res.status(404).json({ ok: false, error: 'Compte introuvable' });
+
+        await setSubscriberPassword(subscriber.email, password);
+        res.json({ ok: true });
+    } catch (err) {
+        console.error('[🔐 Auth] update-password error:', err.message);
+        res.status(500).json({ ok: false, error: 'Erreur serveur' });
+    }
+});
+
 // POST /api/auth/forgot-password - Send password reset email
 app.post('/api/auth/forgot-password', express.json(), async (req, res) => {
     try {

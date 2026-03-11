@@ -3,11 +3,17 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { api } from '../api/client';
 
+const API_URL = import.meta.env.VITE_API_URL || 'https://api.carlytics.fr';
+
 export default function Login() {
-  const [mode, setMode] = useState('password'); // 'password' | 'otp-request' | 'otp-verify'
+  const [mode, setMode] = useState('password'); // 'password' | 'otp-request' | 'otp-verify' | 'setup-password'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [newPassword2, setNewPassword2] = useState('');
   const [otpCode, setOtpCode] = useState('');
+  const [tempApiKey, setTempApiKey] = useState('');
+  const [tempStatus, setTempStatus] = useState('free');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
@@ -32,7 +38,7 @@ export default function Login() {
     setError('');
     setLoading(true);
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/auth/request-code`, {
+      const res = await fetch(`${API_URL}/api/auth/request-code`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
@@ -51,19 +57,50 @@ export default function Login() {
     setError('');
     setLoading(true);
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/auth/verify-code`, {
+      const res = await fetch(`${API_URL}/api/auth/verify-code`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, code: otpCode }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Code invalide');
-      login(data.apiKey, data.email, data.status || 'free');
+      // Stocker temporairement, demander setup mot de passe
+      setTempApiKey(data.apiKey);
+      setTempStatus(data.status || 'free');
+      setMode('setup-password');
+    } catch (err) {
+      setError(err.message);
+    }
+    setLoading(false);
+  };
+
+  const handleSetupPassword = async (e) => {
+    e.preventDefault();
+    setError('');
+    if (newPassword !== newPassword2) {
+      setError('Les mots de passe ne correspondent pas');
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/api/auth/update-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-API-Key': tempApiKey },
+        body: JSON.stringify({ password: newPassword }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Erreur');
+      login(tempApiKey, email, tempStatus);
       navigate('/');
     } catch (err) {
       setError(err.message);
     }
     setLoading(false);
+  };
+
+  const handleSkipPassword = () => {
+    login(tempApiKey, email, tempStatus);
+    navigate('/');
   };
 
   return (
@@ -91,7 +128,7 @@ export default function Login() {
             </button>
             <div style={{ textAlign: 'center', marginTop: '12px' }}>
               <button type="button" className="btn btn-link" onClick={() => { setMode('otp-request'); setError(''); }}>
-                Se connecter avec un code par email →
+                Pas de mot de passe ? Se connecter par email →
               </button>
             </div>
           </form>
@@ -137,19 +174,48 @@ export default function Login() {
           </form>
         )}
 
-        <div style={{ textAlign: 'center', marginTop: '24px', paddingTop: '20px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-          <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.4)', marginBottom: '8px' }}>Pas encore de compte ?</p>
-          <a href="https://carlytics.fr/#pricing" target="_blank" rel="noopener noreferrer"
-            className="btn btn-link" style={{ fontSize: '13px' }}>
-            Voir les offres →
-          </a>
-        </div>
+        {mode === 'setup-password' && (
+          <form onSubmit={handleSetupPassword}>
+            <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', marginBottom: '16px', textAlign: 'center' }}>
+              Définissez un mot de passe pour vous connecter plus facilement
+            </p>
+            <div className="form-group">
+              <label htmlFor="new-password">Mot de passe</label>
+              <input id="new-password" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="8 caractères minimum" minLength={8} required autoFocus />
+            </div>
+            <div className="form-group">
+              <label htmlFor="new-password2">Confirmer</label>
+              <input id="new-password2" type="password" value={newPassword2} onChange={(e) => setNewPassword2(e.target.value)}
+                placeholder="••••••••" minLength={8} required />
+            </div>
+            <button type="submit" className="btn btn-primary btn-full" disabled={loading}>
+              {loading ? 'Enregistrement...' : 'Enregistrer et continuer →'}
+            </button>
+            <div style={{ textAlign: 'center', marginTop: '12px' }}>
+              <button type="button" className="btn btn-link" onClick={handleSkipPassword}>
+                Passer cette étape
+              </button>
+            </div>
+          </form>
+        )}
 
-        <div style={{ textAlign: 'center', marginTop: '12px' }}>
-          <a href="https://carlytics.fr" style={{ fontSize: '12px', color: 'rgba(255,255,255,0.25)', textDecoration: 'none' }}>
-            ← Retour à carlytics.fr
-          </a>
-        </div>
+        {mode !== 'setup-password' && (
+          <>
+            <div style={{ textAlign: 'center', marginTop: '24px', paddingTop: '20px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+              <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.4)', marginBottom: '8px' }}>Pas encore de compte ?</p>
+              <a href="https://carlytics.fr/#pricing" target="_blank" rel="noopener noreferrer"
+                className="btn btn-link" style={{ fontSize: '13px' }}>
+                Voir les offres →
+              </a>
+            </div>
+            <div style={{ textAlign: 'center', marginTop: '12px' }}>
+              <a href="https://carlytics.fr" style={{ fontSize: '12px', color: 'rgba(255,255,255,0.25)', textDecoration: 'none' }}>
+                ← Retour à carlytics.fr
+              </a>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
