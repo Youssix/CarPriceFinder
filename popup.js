@@ -161,6 +161,8 @@ function showOtpScreen(email) {
 
 function showMainUI() {
     document.getElementById('authScreen').classList.add('hidden');
+    document.getElementById('signupScreen').classList.add('hidden');
+    document.getElementById('otpScreen').classList.add('hidden');
     document.querySelector('.header').style.display = 'flex';
     document.getElementById('mainTabs').style.display = 'flex';
     document.querySelectorAll('.tab-content').forEach(content => {
