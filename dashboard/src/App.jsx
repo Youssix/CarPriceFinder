@@ -9,6 +9,7 @@ import History from './pages/History';
 import Settings from './pages/Settings';
 import Upgrade from './pages/Upgrade';
 import NotFound from './pages/NotFound';
+import ResetPassword from './pages/ResetPassword';
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -21,6 +22,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/" element={
         <ProtectedRoute>
           <Layout />

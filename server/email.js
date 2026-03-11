@@ -271,7 +271,7 @@ async function sendSetPasswordEmail(email, token) {
 }
 
 async function sendPasswordResetEmail(email, token) {
-  const resetUrl = `https://carlytics.fr/set-password.html?token=${token}`;
+  const resetUrl = `https://app.carlytics.fr/reset-password?token=${token}`;
 
   if (!resend) {
     console.log(`[📧 Email] No RESEND_API_KEY. Reset link for ${email}: ${resetUrl}`);

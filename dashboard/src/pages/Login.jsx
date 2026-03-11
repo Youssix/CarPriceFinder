@@ -50,7 +50,7 @@ export default function Login() {
         </form>
 
         <div style={{ textAlign: 'center', marginTop: '16px' }}>
-          <a href="https://carlytics.fr/reset-password" target="_blank" rel="noopener noreferrer" className="btn btn-link">
+          <a href="/reset-password" className="btn btn-link">
             Mot de passe oublié ?
           </a>
         </div>
