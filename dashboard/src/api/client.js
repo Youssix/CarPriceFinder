@@ -57,6 +57,13 @@ class ApiClient {
     return this.request('/api/cancel-subscription', { method: 'POST' });
   }
 
+  createCheckoutSession(plan) {
+    return this.request('/api/create-checkout-session', {
+      method: 'POST',
+      body: JSON.stringify({ plan }),
+    });
+  }
+
   // Vehicles
   getVehicles() {
     return this.request('/api/vehicles');

@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=390">
+<title>Carlytics Demo Mobile</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 390px; height: 844px; overflow: hidden;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #f5f5f5;
+  }
+
+  /* ── PHONE STATUS BAR ── */
+  .status-bar {
+    background: #fff; height: 44px;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 20px; flex-shrink: 0;
+  }
+  .status-time { font-size: 15px; font-weight: 700; color: #111; }
+  .status-icons { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #111; }
+
+  /* ── CHROME HEADER ── */
+  .chrome-bar {
+    background: #f2f2f7; border-bottom: 1px solid #e0e0e0;
+    padding: 8px 12px; display: flex; align-items: center; gap: 8px;
+  }
+  .chrome-url-bar {
+    flex: 1; background: #e5e5ea; border-radius: 10px;
+    padding: 7px 12px; font-size: 12px; color: #555; text-align: center;
+  }
+  .chrome-ext-badge {
+    background: rgba(96,165,250,0.2); border-radius: 6px;
+    padding: 4px 8px; font-size: 11px; color: #2563eb; font-weight: 700;
+  }
+
+  /* ── AUTO1 MOBILE HEADER ── */
+  .auto1-header {
+    background: #fff; border-bottom: 1px solid #e8e8e8;
+    padding: 12px 16px; display: flex; align-items: center; justify-content: space-between;
+  }
+  .auto1-logo { font-size: 20px; font-weight: 800; color: #e84040; }
+  .auto1-logo span { color: #111; }
+  .auto1-filter-btn {
+    background: #f5f5f5; border: 1px solid #ddd; border-radius: 6px;
+    padding: 6px 12px; font-size: 12px; color: #555;
+  }
+
+  /* ── RESULTS BAR ── */
+  .results-bar {
+    background: #fff; padding: 8px 16px;
+    font-size: 12px; color: #777; border-bottom: 1px solid #f0f0f0;
+  }
+  .results-bar strong { color: #111; }
+
+  /* ── CAR CARDS ── */
+  .cars-list { padding: 8px 12px; overflow: hidden; }
+
+  .car-card {
+    background: #fff; border: 1px solid #e8e8e8; border-radius: 8px;
+    margin-bottom: 8px; overflow: hidden;
+  }
+
+  .car-top { display: flex; }
+  .car-img {
+    width: 110px; height: 90px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; font-size: 32px;
+  }
+  .car-img-1 { background: linear-gradient(135deg, #c0cfe0, #8faac5); }
+  .car-img-2 { background: linear-gradient(135deg, #d0c8b8, #a89880); }
+  .car-img-3 { background: linear-gradient(135deg, #c8d8c0, #88a880); }
+
+  .car-info { flex: 1; padding: 10px 10px 8px; }
+  .car-title { font-size: 12px; font-weight: 700; color: #111; line-height: 1.3; margin-bottom: 2px; }
+  .car-subtitle { font-size: 10px; color: #999; margin-bottom: 4px; }
+  .car-specs { font-size: 10px; color: #777; margin-bottom: 5px; }
+  .car-price-row { display: flex; align-items: center; justify-content: space-between; }
+  .car-price { font-size: 15px; font-weight: 800; color: #111; }
+  .car-cta {
+    background: #e84040; color: #fff; border: none;
+    border-radius: 4px; padding: 4px 10px; font-size: 10px; font-weight: 600;
+  }
+
+  /* ── LOADING CARD ── */
+  .loading-card {
+    margin: 0 10px 8px; padding: 8px 12px;
+    background: rgba(15,23,42,0.04); border: 1px dashed rgba(96,165,250,0.35);
+    border-radius: 6px; display: flex; align-items: center; gap: 8px;
+    opacity: 0; transition: opacity 0.3s;
+  }
+  .loading-card.visible { opacity: 1; }
+  .spinner {
+    width: 14px; height: 14px; border: 2px solid rgba(96,165,250,0.2);
+    border-top-color: #60a5fa; border-radius: 50%;
+    animation: spin 0.8s linear infinite; flex-shrink: 0;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text { font-size: 11px; color: #64748b; }
+
+  /* ── CARLYTICS RESULT CARD ── */
+  .carlytics-card {
+    margin: 0 10px 8px;
+    background: linear-gradient(135deg, #0f172a, #1e293b);
+    border: 1px solid rgba(96,165,250,0.3);
+    border-radius: 8px; overflow: hidden;
+    box-shadow: 0 2px 12px rgba(96,165,250,0.25);
+    opacity: 0; transform: translateY(-6px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+  }
+  .carlytics-card.visible { opacity: 1; transform: translateY(0); }
+
+  .c-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 6px 10px; border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .c-logo { font-size: 11px; font-weight: 800; }
+  .c-logo span {
+    background: linear-gradient(120deg, #60a5fa, #a78bfa);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .c-badge {
+    font-size: 9px; padding: 2px 7px; border-radius: 10px; font-weight: 700;
+  }
+  .c-badge.hot { background: rgba(239,68,68,0.2); color: #f87171; }
+  .c-badge.good { background: rgba(96,165,250,0.15); color: #60a5fa; }
+  .c-badge.ok { background: rgba(16,185,129,0.15); color: #10b981; }
+
+  .c-body { padding: 8px 10px; }
+  .price-row { display: flex; gap: 5px; }
+  .price-box {
+    flex: 1; background: rgba(255,255,255,0.04); border-radius: 5px;
+    padding: 5px 4px; text-align: center;
+  }
+  .price-box-label { font-size: 8px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.3px; }
+  .price-box-value { font-size: 13px; font-weight: 800; color: #fff; margin-top: 1px; }
+  .price-box.lbc .price-box-value { color: #60a5fa; }
+  .price-box.margin .price-box-value { color: #10b981; }
+  .price-box.margin-hot { background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.2); }
+  .price-box.margin-hot .price-box-value { color: #f87171; font-size: 14px; }
+
+  /* ── EXT INDICATOR ── */
+  .ext-indicator {
+    position: fixed; top: 108px; right: 10px;
+    background: #1e293b; border: 1px solid rgba(96,165,250,0.4);
+    border-radius: 8px; padding: 5px 10px;
+    display: flex; align-items: center; gap: 6px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+    animation: slideIn 0.5s ease forwards;
+    z-index: 50;
+  }
+  @keyframes slideIn { from { opacity:0; transform: translateX(15px); } to { opacity:1; transform: translateX(0); } }
+  .ext-dot { width: 6px; height: 6px; border-radius: 50%; background: #10b981; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+  .ext-text { font-size: 10px; color: #94a3b8; font-weight: 600; }
+  .ext-text strong { color: #60a5fa; }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed; bottom: 30px; left: 12px; right: 12px;
+    background: linear-gradient(135deg, #0f172a, #1e293b);
+    border: 1px solid rgba(16,185,129,0.5);
+    border-radius: 12px; padding: 12px 14px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    display: flex; align-items: center; gap: 10px;
+    opacity: 0; transform: translateY(20px);
+    transition: opacity 0.4s, transform 0.4s;
+    z-index: 100;
+  }
+  .toast.visible { opacity: 1; transform: translateY(0); }
+  .toast-icon { font-size: 24px; flex-shrink: 0; }
+  .toast-title { font-size: 14px; font-weight: 800; color: #10b981; }
+  .toast-sub { font-size: 11px; color: rgba(255,255,255,0.5); margin-top: 2px; line-height: 1.3; }
+
+  /* ── INTRO SCREEN ── */
+  .intro {
+    position: fixed; inset: 0; z-index: 200;
+    background: linear-gradient(160deg, #0f172a 0%, #1e293b 100%);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 16px;
+    transition: opacity 0.6s;
+  }
+  .intro.hidden { opacity: 0; pointer-events: none; }
+  .intro-logo {
+    width: 72px; height: 72px; border-radius: 18px;
+    background: linear-gradient(135deg, #60a5fa, #a78bfa);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 36px; font-weight: 900; color: #fff;
+    box-shadow: 0 8px 32px rgba(96,165,250,0.4);
+    animation: popIn 0.6s ease;
+  }
+  @keyframes popIn { from{transform:scale(0.7);opacity:0;} to{transform:scale(1);opacity:1;} }
+  .intro-name {
+    font-size: 32px; font-weight: 900;
+    background: linear-gradient(120deg, #60a5fa, #a78bfa);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .intro-tag { font-size: 14px; color: rgba(255,255,255,0.5); text-align: center; line-height: 1.5; }
+  .intro-badge {
+    background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.3);
+    border-radius: 20px; padding: 6px 16px;
+    font-size: 12px; color: #10b981; font-weight: 700;
+  }
+</style>
+</head>
+<body>
+
+<!-- INTRO SPLASH -->
+<div class="intro" id="intro">
+  <div class="intro-logo">C</div>
+  <div class="intro-name">Carlytics</div>
+  <div class="intro-tag">Analyse les prix Auto1<br>et trouve les meilleures marges</div>
+  <div class="intro-badge">✓ 5 analyses gratuites</div>
+</div>
+
+<!-- EXT INDICATOR -->
+<div class="ext-indicator">
+  <div class="ext-dot"></div>
+  <div class="ext-text" id="ext-text"><strong>Carlytics</strong> · Actif</div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">
+  <div class="toast-icon">🔥</div>
+  <div>
+    <div class="toast-title">+20 505€ de marge !</div>
+    <div class="toast-sub">Land Rover Defender<br>Auto1 24 740€ → LBC 45 245€</div>
+  </div>
+</div>
+
+<!-- STATUS BAR -->
+<div class="status-bar">
+  <div class="status-time">9:41</div>
+  <div class="status-icons">
+    <span>●●●</span><span>WiFi</span><span>🔋</span>
+  </div>
+</div>
+
+<!-- CHROME BAR -->
+<div class="chrome-bar">
+  <div class="chrome-url-bar">🔒 auto1.com/fr-fr/stock</div>
+  <div class="chrome-ext-badge">C</div>
+</div>
+
+<!-- AUTO1 HEADER -->
+<div class="auto1-header">
+  <div class="auto1-logo">auto<span>1</span></div>
+  <div class="auto1-filter-btn">⚙ Filtres</div>
+</div>
+
+<!-- RESULTS BAR -->
+<div class="results-bar"><strong>147 véhicules</strong> en stock</div>
+
+<!-- CARS -->
+<div class="cars-list">
+
+  <!-- CARD 1: Land Rover -->
+  <div class="car-card">
+    <div class="car-top">
+      <div class="car-img car-img-1">🚙</div>
+      <div class="car-info">
+        <div class="car-title">Land Rover Defender 110 D240</div>
+        <div class="car-subtitle">2015 · SUV · 117 654 km · Diesel</div>
+        <div class="car-specs">240 ch · Toit pano · Cuir · 4x4</div>
+        <div class="car-price-row">
+          <div class="car-price">24 740€</div>
+          <button class="car-cta">Voir</button>
+        </div>
+      </div>
+    </div>
+    <div class="loading-card" id="loading1">
+      <div class="spinner"></div>
+      <div class="loading-text">Analyse LeBonCoin en cours...</div>
+    </div>
+    <div class="carlytics-card" id="result1">
+      <div class="c-header">
+        <div class="c-logo"><span>Carlytics</span></div>
+        <div class="c-badge hot">🔥 Opportunité exceptionnelle</div>
+      </div>
+      <div class="c-body">
+        <div class="price-row">
+          <div class="price-box"><div class="price-box-label">Auto1</div><div class="price-box-value">24 740€</div></div>
+          <div class="price-box lbc"><div class="price-box-label">LBC moyen</div><div class="price-box-value">45 245€</div></div>
+          <div class="price-box margin-hot"><div class="price-box-label">Marge</div><div class="price-box-value">+20 505€</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CARD 2: Mazda -->
+  <div class="car-card">
+    <div class="car-top">
+      <div class="car-img car-img-3">🚘</div>
+      <div class="car-info">
+        <div class="car-title">Mazda CX-3 2.0 SKYACTIV-G</div>
+        <div class="car-subtitle">2016 · SUV · 166 720 km · Diesel</div>
+        <div class="car-specs">Carplay · Caméra recul · Clim</div>
+        <div class="car-price-row">
+          <div class="car-price">8 400€</div>
+          <button class="car-cta">Voir</button>
+        </div>
+      </div>
+    </div>
+    <div class="loading-card" id="loading2">
+      <div class="spinner"></div>
+      <div class="loading-text">Analyse LeBonCoin en cours...</div>
+    </div>
+    <div class="carlytics-card" id="result2">
+      <div class="c-header">
+        <div class="c-logo"><span>Carlytics</span></div>
+        <div class="c-badge ok">✓ Bonne marge</div>
+      </div>
+      <div class="c-body">
+        <div class="price-row">
+          <div class="price-box"><div class="price-box-label">Auto1</div><div class="price-box-value">8 400€</div></div>
+          <div class="price-box lbc"><div class="price-box-label">LBC moyen</div><div class="price-box-value">10 495€</div></div>
+          <div class="price-box margin"><div class="price-box-label">Marge</div><div class="price-box-value">+2 095€</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CARD 3: BMW -->
+  <div class="car-card">
+    <div class="car-top">
+      <div class="car-img car-img-2">🚗</div>
+      <div class="car-info">
+        <div class="car-title">BMW 520d xDrive M-Sport</div>
+        <div class="car-subtitle">2019 · Berline · 98 340 km · Diesel</div>
+        <div class="car-specs">M-Sport · Cuir · Head-Up Display</div>
+        <div class="car-price-row">
+          <div class="car-price">21 900€</div>
+          <button class="car-cta">Voir</button>
+        </div>
+      </div>
+    </div>
+    <div class="loading-card" id="loading3">
+      <div class="spinner"></div>
+      <div class="loading-text">Analyse LeBonCoin en cours...</div>
+    </div>
+    <div class="carlytics-card" id="result3">
+      <div class="c-header">
+        <div class="c-logo"><span>Carlytics</span></div>
+        <div class="c-badge good">📊 Marge correcte</div>
+      </div>
+      <div class="c-body">
+        <div class="price-row">
+          <div class="price-box"><div class="price-box-label">Auto1</div><div class="price-box-value">21 900€</div></div>
+          <div class="price-box lbc"><div class="price-box-label">LBC moyen</div><div class="price-box-value">25 400€</div></div>
+          <div class="price-box margin"><div class="price-box-label">Marge</div><div class="price-box-value">+3 500€</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function show(id) { document.getElementById(id).classList.add('visible'); }
+  function hide(id) { document.getElementById(id).classList.remove('visible'); }
+
+  function runSequence() {
+    // Reset
+    ['result1','result2','result3','loading1','loading2','loading3','toast'].forEach(hide);
+    document.getElementById('ext-text').innerHTML = '<strong>Carlytics</strong> · Actif';
+
+    // Card 1
+    setTimeout(() => show('loading1'), 1000);
+    setTimeout(() => { hide('loading1'); show('result1'); show('toast'); }, 2500);
+    setTimeout(() => hide('toast'), 5000);
+
+    // Card 2
+    setTimeout(() => show('loading2'), 3200);
+    setTimeout(() => { hide('loading2'); show('result2'); }, 4500);
+
+    // Card 3
+    setTimeout(() => show('loading3'), 5200);
+    setTimeout(() => { hide('loading3'); show('result3'); }, 6500);
+
+    // Update indicator
+    setTimeout(() => {
+      document.getElementById('ext-text').innerHTML = '<strong>Carlytics</strong> · 3 analyses ✓';
+    }, 6800);
+  }
+
+  // Intro splash
+  setTimeout(() => {
+    document.getElementById('intro').classList.add('hidden');
+    setTimeout(runSequence, 600);
+  }, 1800);
+
+  // Loop
+  setInterval(() => {
+    document.getElementById('intro').classList.remove('hidden');
+    setTimeout(() => {
+      document.getElementById('intro').classList.add('hidden');
+      setTimeout(runSequence, 600);
+    }, 1800);
+  }, 12000);
+</script>
+</body>
+</html>

@@ -1,6 +1,6 @@
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { LayoutDashboard, Car, Bell, History, Settings, LogOut } from 'lucide-react';
+import { LayoutDashboard, Car, Bell, History, Settings, LogOut, Zap } from 'lucide-react';
 
 const links = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
@@ -32,6 +32,12 @@ export default function Sidebar() {
           </NavLink>
         ))}
       </nav>
+      {!user?.isPaid && (
+        <NavLink to="/upgrade" className="upgrade-cta">
+          <Zap size={16} aria-hidden="true" />
+          <span>Passer Premium</span>
+        </NavLink>
+      )}
       <button className="logout-btn" onClick={logout} type="button">
         <LogOut size={20} aria-hidden="true" />
         <span>Me déconnecter</span>

@@ -20,7 +20,7 @@ export function AuthProvider({ children }) {
       api.checkSubscription()
         .then(data => {
           if (data.active) {
-            setUser({ email: data.email, status: data.status, apiKey });
+            setUser({ email: data.email, status: data.status, isPaid: data.isPaid, apiKey });
             posthog.identify(data.email, { plan: data.status });
           } else {
             localStorage.removeItem('apiKey');
@@ -36,10 +36,10 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
-  const login = useCallback((apiKey, email) => {
+  const login = useCallback((apiKey, email, status = 'active') => {
     localStorage.setItem('apiKey', apiKey);
-    setUser({ email, apiKey, status: 'active' });
-    posthog.identify(email, { plan: 'active' });
+    setUser({ email, apiKey, status, isPaid: status === 'active' });
+    posthog.identify(email, { plan: status });
     posthog.capture('user_logged_in');
   }, []);
 

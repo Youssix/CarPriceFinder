@@ -7,6 +7,7 @@ import Vehicles from './pages/Vehicles';
 import Alerts from './pages/Alerts';
 import History from './pages/History';
 import Settings from './pages/Settings';
+import Upgrade from './pages/Upgrade';
 import NotFound from './pages/NotFound';
 
 function ProtectedRoute({ children }) {
@@ -30,6 +31,7 @@ export default function App() {
         <Route path="alerts" element={<Alerts />} />
         <Route path="history" element={<History />} />
         <Route path="settings" element={<Settings />} />
+        <Route path="upgrade" element={<Upgrade />} />
       </Route>
       <Route path="*" element={<NotFound />} />
     </Routes>

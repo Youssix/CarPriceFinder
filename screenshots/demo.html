@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280">
+<title>Carlytics Demo</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 1280px; height: 800px; overflow: hidden;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #f5f5f5;
+  }
+
+  /* AUTO1 HEADER */
+  .header {
+    background: #fff; border-bottom: 1px solid #e0e0e0;
+    padding: 0 24px; height: 56px;
+    display: flex; align-items: center; gap: 24px;
+  }
+  .auto1-logo { font-size: 22px; font-weight: 800; color: #e84040; }
+  .auto1-logo span { color: #111; }
+  .header-nav { display: flex; gap: 16px; }
+  .header-nav a { font-size: 13px; color: #555; text-decoration: none; }
+  .header-search {
+    margin-left: auto; background: #f5f5f5; border: 1px solid #ddd;
+    border-radius: 4px; padding: 6px 14px; font-size: 13px; color: #999; width: 240px;
+  }
+
+  .layout { display: flex; height: calc(800px - 56px); }
+
+  /* SIDEBAR */
+  .sidebar {
+    width: 220px; background: #fff; border-right: 1px solid #e8e8e8;
+    padding: 16px; flex-shrink: 0;
+  }
+  .filter-title { font-size: 13px; font-weight: 700; color: #111; margin-bottom: 12px; }
+  .filter-group { margin-bottom: 12px; }
+  .filter-label { font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; }
+  .filter-tag { display: inline-block; background: #f0f0f0; border-radius: 12px; padding: 3px 10px; font-size: 11px; color: #333; margin: 2px; }
+  .filter-tag.active { background: #e84040; color: #fff; }
+
+  /* MAIN */
+  .main { flex: 1; overflow: hidden; padding: 16px 20px; }
+  .results-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .results-count { font-size: 13px; color: #555; }
+  .results-count strong { color: #111; font-weight: 700; }
+
+  /* CAR CARDS */
+  .car-card {
+    background: #fff; border: 1px solid #e8e8e8; border-radius: 4px;
+    margin-bottom: 8px; display: flex; overflow: hidden; position: relative;
+  }
+  .car-img {
+    width: 180px; min-height: 130px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; font-size: 36px;
+  }
+  .car-img-1 { background: linear-gradient(135deg, #c0cfe0, #8faac5); }
+  .car-img-2 { background: linear-gradient(135deg, #d0c8b8, #a89880); }
+  .car-img-3 { background: linear-gradient(135deg, #c8d8c0, #88a880); }
+  .car-img-badge {
+    position: absolute; top: 8px; left: 8px; background: #111;
+    color: #fff; font-size: 10px; padding: 2px 6px; border-radius: 2px;
+  }
+  .car-info { flex: 1; padding: 12px 14px; }
+  .car-title { font-size: 14px; font-weight: 700; color: #111; margin-bottom: 2px; }
+  .car-subtitle { font-size: 11px; color: #888; margin-bottom: 6px; }
+  .car-specs { display: flex; gap: 10px; font-size: 11px; color: #555; margin-bottom: 6px; }
+  .car-tags { display: flex; gap: 4px; flex-wrap: wrap; }
+  .car-tag { font-size: 10px; padding: 2px 7px; border-radius: 10px; background: #f0f0f0; color: #666; }
+  .car-tag.premium { background: #dbeafe; color: #1e40af; font-weight: 600; }
+  .car-price-col {
+    width: 160px; padding: 12px; display: flex; flex-direction: column;
+    align-items: flex-end; border-left: 1px solid #f0f0f0; flex-shrink: 0;
+  }
+  .car-price { font-size: 18px; font-weight: 800; color: #111; }
+  .car-price-label { font-size: 10px; color: #aaa; margin-bottom: 4px; }
+  .car-cta {
+    margin-top: auto; background: #e84040; color: #fff; border: none;
+    border-radius: 4px; padding: 6px 12px; font-size: 11px; font-weight: 600; cursor: pointer;
+  }
+
+  /* CARLYTICS CARDS - initially hidden */
+  .carlytics-card {
+    margin: 0 14px 12px 14px;
+    border-radius: 6px;
+    background: linear-gradient(135deg, #0f172a, #1e293b);
+    box-shadow: 0 2px 12px rgba(96,165,250,0.3);
+    border: 1px solid rgba(96,165,250,0.3);
+    overflow: hidden;
+    opacity: 0;
+    transform: translateY(-8px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+  }
+  .carlytics-card.visible { opacity: 1; transform: translateY(0); }
+
+  .carlytics-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 7px 12px; border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .carlytics-logo { font-size: 11px; font-weight: 700; }
+  .carlytics-logo .c1 {
+    background: linear-gradient(120deg, #60a5fa, #a78bfa);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .carlytics-badge {
+    font-size: 9px; background: rgba(96,165,250,0.15); color: #60a5fa;
+    padding: 2px 7px; border-radius: 10px; font-weight: 600;
+  }
+  .carlytics-badge.hot { background: rgba(239,68,68,0.15); color: #f87171; }
+  .carlytics-body { padding: 8px 12px; }
+  .price-row { display: flex; gap: 6px; margin-bottom: 6px; }
+  .price-box {
+    flex: 1; background: rgba(255,255,255,0.04); border-radius: 5px;
+    padding: 6px 8px; text-align: center;
+  }
+  .price-box-label { font-size: 8px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; }
+  .price-box-value { font-size: 14px; font-weight: 800; color: #fff; }
+  .price-box-sub { font-size: 8px; color: rgba(255,255,255,0.3); margin-top: 1px; }
+  .price-box.lbc { border: 1px solid rgba(96,165,250,0.15); }
+  .price-box.lbc .price-box-value { color: #60a5fa; }
+  .price-box.margin { background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.2); }
+  .price-box.margin .price-box-value { color: #10b981; }
+  .price-box.margin-hot { background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.25); }
+  .price-box.margin-hot .price-box-value { color: #f87171; font-size: 16px; }
+  .carlytics-footer {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 5px 12px; background: rgba(0,0,0,0.2); border-top: 1px solid rgba(255,255,255,0.04);
+  }
+  .lbc-link { font-size: 9px; color: rgba(255,255,255,0.35); text-decoration: none; }
+  .lbc-link span { color: #60a5fa; }
+
+  /* LOADING SPINNER */
+  .loading-card {
+    margin: 0 14px 12px 14px; padding: 12px;
+    border-radius: 6px; background: rgba(15,23,42,0.05);
+    border: 1px dashed rgba(96,165,250,0.3);
+    display: flex; align-items: center; gap: 10px;
+    opacity: 0; transition: opacity 0.3s;
+  }
+  .loading-card.visible { opacity: 1; }
+  .spinner {
+    width: 16px; height: 16px; border: 2px solid rgba(96,165,250,0.2);
+    border-top-color: #60a5fa; border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text { font-size: 11px; color: #64748b; }
+
+  /* EXT INDICATOR */
+  .ext-indicator {
+    position: fixed; top: 68px; right: 20px;
+    background: #1e293b; border: 1px solid rgba(96,165,250,0.4);
+    border-radius: 8px; padding: 7px 12px;
+    display: flex; align-items: center; gap: 8px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    animation: slideIn 0.5s ease forwards;
+  }
+  @keyframes slideIn { from { opacity:0; transform: translateX(20px); } to { opacity:1; transform: translateX(0); } }
+  .ext-dot { width: 7px; height: 7px; border-radius: 50%; background: #10b981; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+  .ext-text { font-size: 11px; color: #94a3b8; font-weight: 600; }
+  .ext-text strong { color: #60a5fa; }
+
+  /* NOTIFICATION TOAST */
+  .toast {
+    position: fixed; bottom: 24px; right: 20px;
+    background: linear-gradient(135deg, #0f172a, #1e293b);
+    border: 1px solid rgba(16,185,129,0.4);
+    border-radius: 10px; padding: 12px 16px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+    display: flex; align-items: center; gap: 10px;
+    opacity: 0; transform: translateY(20px);
+    transition: opacity 0.4s, transform 0.4s;
+    z-index: 100;
+  }
+  .toast.visible { opacity: 1; transform: translateY(0); }
+  .toast-icon { font-size: 20px; }
+  .toast-title { font-size: 13px; font-weight: 700; color: #10b981; }
+  .toast-sub { font-size: 11px; color: rgba(255,255,255,0.5); margin-top: 1px; }
+</style>
+</head>
+<body>
+
+<!-- AUTO1 HEADER -->
+<div class="header">
+  <div class="auto1-logo">auto<span>1</span></div>
+  <div class="header-nav">
+    <a href="#">Stock</a><a href="#">Ventes</a><a href="#">Rapport</a>
+  </div>
+  <div class="header-search">🔍  Rechercher un véhicule...</div>
+</div>
+
+<!-- EXT INDICATOR -->
+<div class="ext-indicator">
+  <div class="ext-dot"></div>
+  <div class="ext-text"><strong>Carlytics</strong> · Analyse en cours...</div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">
+  <div class="toast-icon">🔥</div>
+  <div>
+    <div class="toast-title">+20 505€ de marge détectée !</div>
+    <div class="toast-sub">Land Rover Defender · Auto1 24 740€ → LBC 45 245€</div>
+  </div>
+</div>
+
+<div class="layout">
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="filter-title">Filtres</div>
+    <div class="filter-group">
+      <div class="filter-label">Marque</div>
+      <div class="filter-tag active">Tous</div>
+      <div class="filter-tag">BMW</div>
+      <div class="filter-tag">Audi</div>
+    </div>
+    <div class="filter-group">
+      <div class="filter-label">Carburant</div>
+      <div class="filter-tag active">Diesel</div>
+      <div class="filter-tag">Essence</div>
+    </div>
+    <div class="filter-group">
+      <div class="filter-label">Année</div>
+      <div class="filter-tag">2015 – 2023</div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="results-header">
+      <div class="results-count">Affichage de <strong>147 véhicules</strong></div>
+    </div>
+
+    <!-- CARD 1: Land Rover -->
+    <div class="car-card" id="card1">
+      <div class="car-img car-img-1" style="position:relative">
+        <span style="font-size:40px">🚙</span>
+        <div class="car-img-badge">OCCASION</div>
+      </div>
+      <div style="flex:1; display:flex; flex-direction:column;">
+        <div class="car-info">
+          <div class="car-title">Land Rover Defender 110 D240</div>
+          <div class="car-subtitle">2015 · SUV · Manuelle</div>
+          <div class="car-specs">
+            <span>117 654 km</span><span>·</span><span>Diesel</span><span>·</span><span>240 ch</span>
+          </div>
+          <div class="car-tags">
+            <div class="car-tag premium">4x4 Off-Road</div>
+            <div class="car-tag">Toit panoramique</div>
+            <div class="car-tag">Cuir</div>
+          </div>
+        </div>
+        <div class="loading-card" id="loading1">
+          <div class="spinner"></div>
+          <div class="loading-text">Carlytics analyse le marché LeBonCoin...</div>
+        </div>
+        <div class="carlytics-card" id="result1">
+          <div class="carlytics-header">
+            <div class="carlytics-logo"><span class="c1">Carlytics</span></div>
+            <div class="carlytics-badge hot">🔥 Opportunité exceptionnelle</div>
+          </div>
+          <div class="carlytics-body">
+            <div class="price-row">
+              <div class="price-box">
+                <div class="price-box-label">Prix Auto1</div>
+                <div class="price-box-value">24 740€</div>
+                <div class="price-box-sub">votre coût</div>
+              </div>
+              <div class="price-box lbc">
+                <div class="price-box-label">Marché LBC</div>
+                <div class="price-box-value">45 245€</div>
+                <div class="price-box-sub">prix moyen · 7 annonces</div>
+              </div>
+              <div class="price-box margin-hot">
+                <div class="price-box-label">Marge estimée</div>
+                <div class="price-box-value">+20 505€</div>
+                <div class="price-box-sub">marge exceptionnelle</div>
+              </div>
+            </div>
+          </div>
+          <div class="carlytics-footer">
+            <a href="#" class="lbc-link">Voir sur <span>LeBonCoin →</span></a>
+          </div>
+        </div>
+      </div>
+      <div class="car-price-col">
+        <div class="car-price-label">Prix Auto1</div>
+        <div class="car-price">24 740€</div>
+        <button class="car-cta">Voir le stock</button>
+      </div>
+    </div>
+
+    <!-- CARD 2: Peugeot -->
+    <div class="car-card" id="card2">
+      <div class="car-img car-img-2"><span style="font-size:40px">🚗</span></div>
+      <div style="flex:1; display:flex; flex-direction:column;">
+        <div class="car-info">
+          <div class="car-title">Peugeot 308 SW 1.6 BlueHDi</div>
+          <div class="car-subtitle">2009 · Break · Manuelle</div>
+          <div class="car-specs"><span>182 752 km</span><span>·</span><span>Essence</span></div>
+          <div class="car-tags"><div class="car-tag">GPS</div><div class="car-tag">Clim auto</div></div>
+        </div>
+        <div class="loading-card" id="loading2">
+          <div class="spinner"></div>
+          <div class="loading-text">Carlytics analyse le marché LeBonCoin...</div>
+        </div>
+        <div class="carlytics-card" id="result2">
+          <div class="carlytics-header">
+            <div class="carlytics-logo"><span class="c1">Carlytics</span></div>
+            <div class="carlytics-badge">Marge correcte</div>
+          </div>
+          <div class="carlytics-body">
+            <div class="price-row">
+              <div class="price-box"><div class="price-box-label">Prix Auto1</div><div class="price-box-value">627€</div></div>
+              <div class="price-box lbc"><div class="price-box-label">Marché LBC</div><div class="price-box-value">1 750€</div></div>
+              <div class="price-box margin"><div class="price-box-label">Marge estimée</div><div class="price-box-value">+1 123€</div></div>
+            </div>
+          </div>
+          <div class="carlytics-footer"><a href="#" class="lbc-link">Voir sur <span>LeBonCoin →</span></a></div>
+        </div>
+      </div>
+      <div class="car-price-col">
+        <div class="car-price-label">Prix Auto1</div>
+        <div class="car-price">627€</div>
+        <button class="car-cta">Voir le stock</button>
+      </div>
+    </div>
+
+    <!-- CARD 3: Mazda -->
+    <div class="car-card" id="card3">
+      <div class="car-img car-img-3"><span style="font-size:40px">🚘</span></div>
+      <div style="flex:1; display:flex; flex-direction:column;">
+        <div class="car-info">
+          <div class="car-title">Mazda CX-3 2.0 SKYACTIV-G</div>
+          <div class="car-subtitle">2016 · SUV · Manuelle</div>
+          <div class="car-specs"><span>166 720 km</span><span>·</span><span>Diesel</span></div>
+          <div class="car-tags"><div class="car-tag">Carplay</div><div class="car-tag">Caméra recul</div></div>
+        </div>
+        <div class="loading-card" id="loading3">
+          <div class="spinner"></div>
+          <div class="loading-text">Carlytics analyse le marché LeBonCoin...</div>
+        </div>
+        <div class="carlytics-card" id="result3">
+          <div class="carlytics-header">
+            <div class="carlytics-logo"><span class="c1">Carlytics</span></div>
+            <div class="carlytics-badge">Bonne marge</div>
+          </div>
+          <div class="carlytics-body">
+            <div class="price-row">
+              <div class="price-box"><div class="price-box-label">Prix Auto1</div><div class="price-box-value">8 400€</div></div>
+              <div class="price-box lbc"><div class="price-box-label">Marché LBC</div><div class="price-box-value">10 495€</div></div>
+              <div class="price-box margin"><div class="price-box-label">Marge estimée</div><div class="price-box-value">+2 095€</div></div>
+            </div>
+          </div>
+          <div class="carlytics-footer"><a href="#" class="lbc-link">Voir sur <span>LeBonCoin →</span></a></div>
+        </div>
+      </div>
+      <div class="car-price-col">
+        <div class="car-price-label">Prix Auto1</div>
+        <div class="car-price">8 400€</div>
+        <button class="car-cta">Voir le stock</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  function show(id) { document.getElementById(id).classList.add('visible'); }
+  function hide(id) { document.getElementById(id).classList.remove('visible'); }
+
+  // Animation sequence
+  setTimeout(() => show('loading1'), 800);
+  setTimeout(() => { hide('loading1'); show('result1'); }, 2200);
+  setTimeout(() => show('loading2'), 2600);
+  setTimeout(() => { hide('loading2'); show('result2'); }, 3600);
+  setTimeout(() => show('loading3'), 4000);
+  setTimeout(() => { hide('loading3'); show('result3'); }, 5000);
+  setTimeout(() => show('toast'), 2400);
+  setTimeout(() => hide('toast'), 5500);
+
+  // Update ext indicator
+  setTimeout(() => {
+    document.querySelector('.ext-text').innerHTML = '<strong>Carlytics</strong> · 3 analyses terminées';
+  }, 5200);
+
+  // Loop animation
+  setInterval(() => location.reload(), 8000);
+</script>
+</body>
+</html>

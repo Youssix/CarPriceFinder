@@ -209,7 +209,8 @@ router.get('/api/check-subscription', async (req, res) => {
   }
 
   res.json({
-    active: subscriber.subscription_status === 'active',
+    active: ['active', 'free'].includes(subscriber.subscription_status),
+    isPaid: subscriber.subscription_status === 'active',
     status: subscriber.subscription_status,
     email: subscriber.email,
   });

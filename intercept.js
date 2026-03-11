@@ -787,41 +787,57 @@
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         border-left: 4px solid ${profitColor};
         display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
+        flex-direction: column;
+        gap: 6px;
         font-size: 13px;
       `;
+
+      // Ligne 1 : indicateur + chiffres floutés
+      const topRow = document.createElement('div');
+      topRow.style = 'display: flex; align-items: center; gap: 10px;';
 
       const indicatorSpan = document.createElement('span');
       indicatorSpan.style = `font-weight: 700; font-size: 14px; color: ${profitColor}; white-space: nowrap;`;
       indicatorSpan.textContent = indicator;
 
       const maskedSpan = document.createElement('span');
-      maskedSpan.style = 'color: rgba(255,255,255,0.35); font-size: 12px; flex: 1;';
+      maskedSpan.style = 'color: rgba(255,255,255,0.5); font-size: 12px; flex: 1;';
       const blurredNums = document.createElement('span');
-      blurredNums.style = 'filter: blur(4px); color: #aaa; user-select: none; display: inline-block;';
-      blurredNums.textContent = '12 345€ → 16 500€';
-      maskedSpan.appendChild(document.createTextNode('AUTO1 & LBC : '));
+      blurredNums.style = 'filter: blur(5px); color: #ccc; user-select: none; display: inline-block; letter-spacing: 1px;';
+      blurredNums.textContent = '12 345€ → 16 500€  (+4 155€)';
+      maskedSpan.appendChild(document.createTextNode('Marge estimée : '));
       maskedSpan.appendChild(blurredNums);
 
+      topRow.appendChild(indicatorSpan);
+      topRow.appendChild(maskedSpan);
+
+      // Ligne 2 : bouton centré
+      const isLoggedIn = extensionSettings.apiKey && extensionSettings.apiKey.trim() !== '';
       const upgradeLink = document.createElement('a');
-      upgradeLink.href = 'https://carlytics.fr';
-      upgradeLink.target = '_blank';
+      upgradeLink.href = isLoggedIn ? 'https://carlytics.fr/#pricing' : '#';
+      upgradeLink.target = isLoggedIn ? '_blank' : '_self';
       upgradeLink.style = `
-        padding: 5px 12px;
+        display: block;
+        text-align: center;
+        padding: 5px 0;
         background: linear-gradient(135deg, #3b82f6, #8b5cf6);
         color: white;
-        border-radius: 3px;
+        border-radius: 4px;
         font-size: 11px;
         font-weight: 600;
         text-decoration: none;
-        white-space: nowrap;
+        cursor: pointer;
+        width: 100%;
       `;
-      upgradeLink.textContent = '🔓 Voir les chiffres';
+      upgradeLink.textContent = isLoggedIn ? '⭐ Débloquer les chiffres — Passer Premium' : '🔓 Voir les chiffres — Créer un compte gratuit';
+      if (!isLoggedIn) {
+        upgradeLink.addEventListener('click', (e) => {
+          e.preventDefault();
+          window.postMessage({ type: 'CARLYTICS_OPEN_POPUP' }, '*');
+        });
+      }
 
-      pluginPriceDiv.appendChild(indicatorSpan);
-      pluginPriceDiv.appendChild(maskedSpan);
+      pluginPriceDiv.appendChild(topRow);
       pluginPriceDiv.appendChild(upgradeLink);
 
     } else {
