@@ -16,7 +16,8 @@ async function sendAuthCode(email, code) {
     const { data, error } = await resend.emails.send({
       from: FROM_EMAIL,
       to: email,
-      subject: `${code} - Votre code de connexion Carlytics`,
+      subject: `${code} est votre code Carlytics`,
+      text: `Votre code de connexion Carlytics : ${code}\n\nCe code expire dans 10 minutes.\n\nSi vous n'avez pas demandé ce code, ignorez cet email.`,
       html: `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px;">
           <div style="text-align: center; margin-bottom: 32px;">
@@ -282,30 +283,30 @@ async function sendPasswordResetEmail(email, token) {
     const { data, error } = await resend.emails.send({
       from: FROM_EMAIL,
       to: email,
-      subject: 'Réinitialisez votre mot de passe Carlytics',
+      subject: 'Votre lien Carlytics',
+      text: `Bonjour,\n\nVoici votre lien pour définir un nouveau mot de passe :\n${resetUrl}\n\nCe lien expire dans 1h.\n\nSi vous n'avez pas fait cette demande, ignorez cet email.\n\n— L'équipe Carlytics`,
       html: `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px;">
           <div style="text-align: center; margin-bottom: 32px;">
-            <h1 style="color: #1a1a2e; font-size: 24px; margin: 0;">Réinitialisation du mot de passe</h1>
-            <p style="color: #6b7280; margin-top: 4px;">Carlytics</p>
+            <h1 style="color: #1a1a2e; font-size: 24px; margin: 0;">Carlytics</h1>
           </div>
 
-          <p style="color: #374151; font-size: 15px;">Vous avez demandé à réinitialiser votre mot de passe. Cliquez sur le bouton ci-dessous pour en définir un nouveau.</p>
+          <p style="color: #374151; font-size: 15px;">Bonjour,</p>
+          <p style="color: #374151; font-size: 15px;">Voici votre lien pour définir un nouveau mot de passe. Il expire dans <strong>1h</strong>.</p>
 
           <div style="text-align: center; margin: 32px 0;">
             <a href="${resetUrl}" style="display: inline-block; background: #3b82f6; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 15px;">
-              Réinitialiser mon mot de passe →
+              Accéder à mon compte →
             </a>
           </div>
 
           <p style="color: #6b7280; font-size: 13px; text-align: center;">
-            Ce lien expire dans <strong>1h</strong>.<br>
-            Si vous n'avez pas demandé de réinitialisation, ignorez cet email — votre mot de passe reste inchangé.
+            Si vous n'avez pas fait cette demande, ignorez cet email.
           </p>
 
           <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 32px 0 16px 0;">
           <p style="color: #9ca3af; font-size: 12px; text-align: center; margin: 0;">
-            Carlytics — L'outil d'analyse de prix pour les professionnels VO
+            Carlytics · <a href="https://carlytics.fr" style="color: #9ca3af;">carlytics.fr</a>
           </p>
         </div>
       `,
