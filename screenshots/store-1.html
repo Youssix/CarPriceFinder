@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 1280px; height: 800px; overflow: hidden;
+    background: #0a0f1e;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    display: flex;
+    align-items: center;
+    position: relative;
+  }
+
+  /* Gradient orbs */
+  .orb1 {
+    position: absolute;
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(59,130,246,0.18) 0%, transparent 70%);
+    top: -150px; left: -100px;
+    border-radius: 50%;
+  }
+  .orb2 {
+    position: absolute;
+    width: 500px; height: 500px;
+    background: radial-gradient(circle, rgba(139,92,246,0.12) 0%, transparent 70%);
+    bottom: -100px; right: 200px;
+    border-radius: 50%;
+  }
+
+  /* Left content */
+  .left {
+    flex: 0 0 560px;
+    padding: 0 0 0 80px;
+    position: relative;
+    z-index: 2;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(59,130,246,0.15);
+    border: 1px solid rgba(59,130,246,0.35);
+    border-radius: 100px;
+    padding: 6px 14px;
+    margin-bottom: 28px;
+  }
+  .badge-dot { width: 7px; height: 7px; background: #3b82f6; border-radius: 50%; }
+  .badge span { font-size: 13px; color: #93c5fd; font-weight: 500; letter-spacing: 0.3px; }
+
+  h1 {
+    font-size: 56px;
+    font-weight: 800;
+    color: #ffffff;
+    line-height: 1.1;
+    letter-spacing: -1.5px;
+    margin-bottom: 24px;
+  }
+  h1 em {
+    font-style: normal;
+    background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .subtitle {
+    font-size: 18px;
+    color: #94a3b8;
+    line-height: 1.6;
+    margin-bottom: 44px;
+    max-width: 420px;
+  }
+
+  .stats {
+    display: flex;
+    gap: 36px;
+  }
+  .stat-val {
+    font-size: 30px;
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: -0.5px;
+  }
+  .stat-label {
+    font-size: 13px;
+    color: #64748b;
+    margin-top: 2px;
+  }
+
+  /* Right — popup mockup */
+  .right {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    z-index: 2;
+  }
+
+  .popup-wrap {
+    position: relative;
+  }
+
+  /* Browser chrome */
+  .browser {
+    width: 380px;
+    background: #1e2433;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 40px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.06);
+  }
+  .browser-bar {
+    background: #161b2c;
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  .dots { display: flex; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot.r { background: #ff5f57; }
+  .dot.y { background: #ffbd2e; }
+  .dot.g { background: #28ca41; }
+  .url-bar {
+    flex: 1;
+    background: rgba(255,255,255,0.06);
+    border-radius: 6px;
+    padding: 5px 10px;
+    font-size: 11px;
+    color: #64748b;
+  }
+
+  /* Popup card inside browser */
+  .popup-inner {
+    padding: 20px;
+  }
+  .popup-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 18px;
+  }
+  .popup-logo {
+    font-size: 18px;
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: -0.3px;
+  }
+  .popup-logo span { color: #3b82f6; }
+  .status-pill {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: rgba(34,197,94,0.12);
+    border: 1px solid rgba(34,197,94,0.3);
+    border-radius: 100px;
+    padding: 3px 10px;
+    font-size: 11px;
+    color: #4ade80;
+    font-weight: 600;
+  }
+  .status-dot { width: 6px; height: 6px; background: #22c55e; border-radius: 50%; }
+
+  .stats-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+  .stat-box {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 10px;
+    padding: 12px 10px;
+    text-align: center;
+  }
+  .stat-box-val {
+    font-size: 20px;
+    font-weight: 800;
+    color: #3b82f6;
+    letter-spacing: -0.5px;
+  }
+  .stat-box-lbl {
+    font-size: 9px;
+    color: #64748b;
+    margin-top: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+
+  .plan-bar {
+    background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
+    border-radius: 10px;
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 18px;
+  }
+  .plan-name { font-size: 13px; font-weight: 700; color: #fff; }
+  .plan-count { font-size: 12px; color: rgba(255,255,255,0.8); }
+  .plan-badge {
+    background: rgba(255,255,255,0.2);
+    border-radius: 6px;
+    padding: 3px 8px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #fff;
+  }
+
+  .section-label {
+    font-size: 9px;
+    color: #475569;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    font-weight: 600;
+    margin-bottom: 10px;
+  }
+
+  .setting-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+  .setting-row:last-child { border-bottom: none; }
+  .setting-name { font-size: 12px; color: #cbd5e1; font-weight: 500; }
+  .setting-sub { font-size: 10px; color: #475569; margin-top: 1px; }
+
+  .toggle-on {
+    width: 36px; height: 20px;
+    background: #3b82f6;
+    border-radius: 100px;
+    position: relative;
+  }
+  .toggle-on::after {
+    content: '';
+    position: absolute;
+    width: 14px; height: 14px;
+    background: #fff;
+    border-radius: 50%;
+    top: 3px; right: 3px;
+  }
+  .toggle-off {
+    width: 36px; height: 20px;
+    background: #334155;
+    border-radius: 100px;
+    position: relative;
+  }
+  .toggle-off::after {
+    content: '';
+    position: absolute;
+    width: 14px; height: 14px;
+    background: #64748b;
+    border-radius: 50%;
+    top: 3px; left: 3px;
+  }
+
+  .select-pill {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 11px;
+    color: #94a3b8;
+  }
+
+  .upgrade-btn {
+    width: 100%;
+    background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+    border: none;
+    border-radius: 10px;
+    padding: 13px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #fff;
+    cursor: pointer;
+    margin-top: 14px;
+    letter-spacing: 0.1px;
+  }
+</style>
+</head>
+<body>
+  <div class="orb1"></div>
+  <div class="orb2"></div>
+
+  <div class="left">
+    <div class="badge">
+      <div class="badge-dot"></div>
+      <span>Analyse VO en temps réel</span>
+    </div>
+
+    <h1>Trouvez les<br>meilleures <em>marges</em><br>sur votre stock</h1>
+
+    <p class="subtitle">Carlytics analyse automatiquement chaque véhicule et le compare au marché en quelques secondes.</p>
+
+    <div class="stats">
+      <div>
+        <div class="stat-val">+1 500€</div>
+        <div class="stat-label">marge identifiée / véhicule</div>
+      </div>
+      <div>
+        <div class="stat-val">10h</div>
+        <div class="stat-label">économisées / semaine</div>
+      </div>
+      <div>
+        <div class="stat-val">Gratuit</div>
+        <div class="stat-label">pour commencer</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="right">
+    <div class="popup-wrap">
+      <div class="browser">
+        <div class="browser-bar">
+          <div class="dots">
+            <div class="dot r"></div>
+            <div class="dot y"></div>
+            <div class="dot g"></div>
+          </div>
+          <div class="url-bar">stockauto.fr/vehicules</div>
+        </div>
+        <div class="popup-inner">
+          <div class="popup-header">
+            <div class="popup-logo">C<span>arlytics</span></div>
+            <div class="status-pill"><div class="status-dot"></div>Connecté</div>
+          </div>
+
+          <div class="stats-row">
+            <div class="stat-box">
+              <div class="stat-box-val">+3 500€</div>
+              <div class="stat-box-lbl">Meilleure marge</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-box-val">47</div>
+              <div class="stat-box-lbl">Analyses</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-box-val">92%</div>
+              <div class="stat-box-lbl">Cache hit</div>
+            </div>
+          </div>
+
+          <div class="plan-bar">
+            <div>
+              <div class="plan-name">Essai gratuit</div>
+              <div class="plan-count">3 analyses restantes</div>
+            </div>
+            <div class="plan-badge">3/5</div>
+          </div>
+
+          <div class="section-label">Réglages</div>
+
+          <div class="setting-row">
+            <div>
+              <div class="setting-name">Analyse automatique</div>
+              <div class="setting-sub">Analyse au chargement de la page</div>
+            </div>
+            <div class="toggle-on"></div>
+          </div>
+          <div class="setting-row">
+            <div>
+              <div class="setting-name">Durée du cache</div>
+              <div class="setting-sub">Résultats conservés</div>
+            </div>
+            <div class="select-pill">24 heures</div>
+          </div>
+          <div class="setting-row">
+            <div>
+              <div class="setting-name">Forcer rafraîchissement</div>
+              <div class="setting-sub">Ignore le cache 5 min</div>
+            </div>
+            <div class="toggle-off"></div>
+          </div>
+
+          <button class="upgrade-btn">⭐ Passer Pro — 89€/mois</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

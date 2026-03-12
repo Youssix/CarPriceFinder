@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 1280px; height: 800px; overflow: hidden;
+    background: #0a0f1e;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+
+  .orb1 {
+    position: absolute;
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(34,197,94,0.10) 0%, transparent 70%);
+    top: -150px; left: -50px;
+    border-radius: 50%;
+  }
+  .orb2 {
+    position: absolute;
+    width: 500px; height: 500px;
+    background: radial-gradient(circle, rgba(59,130,246,0.12) 0%, transparent 70%);
+    bottom: -100px; right: -50px;
+    border-radius: 50%;
+  }
+
+  .wrapper {
+    display: flex;
+    align-items: center;
+    gap: 80px;
+    position: relative;
+    z-index: 2;
+  }
+
+  /* Left text */
+  .left {
+    width: 440px;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(34,197,94,0.12);
+    border: 1px solid rgba(34,197,94,0.3);
+    border-radius: 100px;
+    padding: 6px 14px;
+    margin-bottom: 24px;
+  }
+  .badge span { font-size: 12px; color: #4ade80; font-weight: 500; }
+
+  h2 {
+    font-size: 46px;
+    font-weight: 800;
+    color: #fff;
+    line-height: 1.1;
+    letter-spacing: -1.2px;
+    margin-bottom: 20px;
+  }
+  h2 em {
+    font-style: normal;
+    background: linear-gradient(135deg, #22c55e 0%, #3b82f6 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .subtitle {
+    font-size: 16px;
+    color: #64748b;
+    line-height: 1.6;
+    margin-bottom: 40px;
+  }
+
+  .plans {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .plan {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px;
+    padding: 14px 18px;
+  }
+  .plan.active {
+    background: rgba(59,130,246,0.08);
+    border-color: rgba(59,130,246,0.3);
+  }
+  .plan-left { display: flex; align-items: center; gap: 12px; }
+  .plan-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .plan-dot.free { background: #94a3b8; }
+  .plan-dot.starter { background: #f59e0b; }
+  .plan-dot.pro { background: #3b82f6; }
+  .plan-dot.agence { background: #8b5cf6; }
+  .plan-name-group {}
+  .plan-name-label { font-size: 13px; font-weight: 700; color: #e2e8f0; }
+  .plan-name-desc { font-size: 11px; color: #475569; margin-top: 1px; }
+  .plan-price { font-size: 16px; font-weight: 800; color: #fff; }
+  .plan-price.free-price { color: #22c55e; }
+
+  /* Right: dashboard mockup */
+  .right {
+    width: 620px;
+  }
+
+  .dash {
+    background: #111827;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 40px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05);
+  }
+
+  /* Top bar */
+  .dash-topbar {
+    background: #0f172a;
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  .dash-brand { font-size: 16px; font-weight: 800; color: #fff; }
+  .dash-brand span { color: #3b82f6; }
+  .dash-nav { display: flex; gap: 6px; }
+  .nav-item {
+    padding: 6px 12px;
+    border-radius: 7px;
+    font-size: 11px;
+    color: #64748b;
+    font-weight: 500;
+  }
+  .nav-item.active {
+    background: rgba(59,130,246,0.15);
+    color: #3b82f6;
+  }
+  .dash-avatar {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    color: #fff;
+  }
+
+  .dash-body { padding: 20px; }
+
+  /* Summary row */
+  .summary-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .summary-box {
+    background: #1e2433;
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 10px;
+    padding: 14px 12px;
+  }
+  .summary-box-label { font-size: 9px; color: #475569; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+  .summary-box-val { font-size: 22px; font-weight: 800; color: #fff; letter-spacing: -0.5px; }
+  .summary-box-val.green { color: #22c55e; }
+  .summary-box-val.blue { color: #3b82f6; }
+  .summary-box-sub { font-size: 10px; color: #334155; margin-top: 3px; }
+
+  /* Recent analyses */
+  .section-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: #475569;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 12px;
+  }
+
+  .analyses-list { display: flex; flex-direction: column; gap: 8px; }
+  .analysis-row {
+    display: flex;
+    align-items: center;
+    background: #1e2433;
+    border: 1px solid rgba(255,255,255,0.04);
+    border-radius: 10px;
+    padding: 11px 14px;
+    gap: 12px;
+  }
+  .analysis-icon {
+    width: 36px; height: 36px;
+    background: #0f172a;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  .analysis-info { flex: 1; }
+  .analysis-name { font-size: 12px; font-weight: 700; color: #e2e8f0; }
+  .analysis-meta { font-size: 10px; color: #475569; margin-top: 2px; }
+  .analysis-margin {
+    font-size: 15px;
+    font-weight: 800;
+  }
+  .analysis-margin.good { color: #22c55e; }
+  .analysis-margin.ok { color: #f59e0b; }
+
+  /* Upgrade banner */
+  .upgrade-banner {
+    margin-top: 14px;
+    background: linear-gradient(135deg, rgba(59,130,246,0.15) 0%, rgba(139,92,246,0.15) 100%);
+    border: 1px solid rgba(59,130,246,0.25);
+    border-radius: 12px;
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .banner-left {}
+  .banner-title { font-size: 13px; font-weight: 700; color: #e2e8f0; margin-bottom: 2px; }
+  .banner-sub { font-size: 11px; color: #64748b; }
+  .banner-btn {
+    background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+    border: none;
+    border-radius: 8px;
+    padding: 9px 18px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #fff;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+</style>
+</head>
+<body>
+  <div class="orb1"></div>
+  <div class="orb2"></div>
+
+  <div class="wrapper">
+    <!-- Left: plans -->
+    <div class="left">
+      <div class="badge">
+        <span>🚀 Commencez gratuitement</span>
+      </div>
+
+      <h2>Simple,<br><em>transparent</em>,<br>efficace</h2>
+
+      <p class="subtitle">5 analyses offertes sans carte bancaire.<br>Passez Pro quand vous êtes convaincu.</p>
+
+      <div class="plans">
+        <div class="plan">
+          <div class="plan-left">
+            <div class="plan-dot free"></div>
+            <div class="plan-name-group">
+              <div class="plan-name-label">Gratuit</div>
+              <div class="plan-name-desc">5 analyses offertes, sans CB</div>
+            </div>
+          </div>
+          <div class="plan-price free-price">0€</div>
+        </div>
+        <div class="plan">
+          <div class="plan-left">
+            <div class="plan-dot starter"></div>
+            <div class="plan-name-group">
+              <div class="plan-name-label">Starter</div>
+              <div class="plan-name-desc">200 analyses / mois · 3 alertes</div>
+            </div>
+          </div>
+          <div class="plan-price">49€/mois</div>
+        </div>
+        <div class="plan active">
+          <div class="plan-left">
+            <div class="plan-dot pro"></div>
+            <div class="plan-name-group">
+              <div class="plan-name-label">Pro ⭐</div>
+              <div class="plan-name-desc">Analyses illimitées · 10 alertes</div>
+            </div>
+          </div>
+          <div class="plan-price">89€/mois</div>
+        </div>
+        <div class="plan">
+          <div class="plan-left">
+            <div class="plan-dot agence"></div>
+            <div class="plan-name-group">
+              <div class="plan-name-label">Agence</div>
+              <div class="plan-name-desc">Illimité · Alertes illimitées · Multi-sites</div>
+            </div>
+          </div>
+          <div class="plan-price">149€/mois</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: dashboard -->
+    <div class="right">
+      <div class="dash">
+        <div class="dash-topbar">
+          <div class="dash-brand">C<span>arlytics</span></div>
+          <div class="dash-nav">
+            <span class="nav-item active">Tableau de bord</span>
+            <span class="nav-item">Véhicules</span>
+            <span class="nav-item">Alertes</span>
+            <span class="nav-item">Paramètres</span>
+          </div>
+          <div class="dash-avatar">M</div>
+        </div>
+
+        <div class="dash-body">
+          <div class="summary-row">
+            <div class="summary-box">
+              <div class="summary-box-label">Marge totale</div>
+              <div class="summary-box-val green">+24 500€</div>
+              <div class="summary-box-sub">Ce mois</div>
+            </div>
+            <div class="summary-box">
+              <div class="summary-box-label">Analyses</div>
+              <div class="summary-box-val blue">143</div>
+              <div class="summary-box-sub">30 derniers jours</div>
+            </div>
+            <div class="summary-box">
+              <div class="summary-box-label">Marge moy.</div>
+              <div class="summary-box-val">+1 714€</div>
+              <div class="summary-box-sub">Par véhicule</div>
+            </div>
+            <div class="summary-box">
+              <div class="summary-box-label">Alertes actives</div>
+              <div class="summary-box-val">7</div>
+              <div class="summary-box-sub">Sur 10 disponibles</div>
+            </div>
+          </div>
+
+          <div class="section-title">Dernières analyses</div>
+
+          <div class="analyses-list">
+            <div class="analysis-row">
+              <div class="analysis-icon">🚗</div>
+              <div class="analysis-info">
+                <div class="analysis-name">BMW Série 3 320d · 2020 · 78 400 km</div>
+                <div class="analysis-meta">Il y a 12 min · M-Sport détecté · 14 annonces comparées</div>
+              </div>
+              <div class="analysis-margin good">+3 500€</div>
+            </div>
+            <div class="analysis-row">
+              <div class="analysis-icon">🚙</div>
+              <div class="analysis-info">
+                <div class="analysis-name">Mercedes Classe C 220d · 2021 · 54 000 km</div>
+                <div class="analysis-meta">Il y a 35 min · AMG Line détecté · 9 annonces</div>
+              </div>
+              <div class="analysis-margin good">+2 800€</div>
+            </div>
+            <div class="analysis-row">
+              <div class="analysis-icon">🚘</div>
+              <div class="analysis-info">
+                <div class="analysis-name">Audi A4 40 TDI · 2019 · 92 000 km</div>
+                <div class="analysis-meta">Il y a 1h · S-Line · 11 annonces comparées</div>
+              </div>
+              <div class="analysis-margin ok">+900€</div>
+            </div>
+          </div>
+
+          <div class="upgrade-banner">
+            <div class="banner-left">
+              <div class="banner-title">Passez au plan Pro pour des analyses illimitées</div>
+              <div class="banner-sub">Plus de limite mensuelle · Alertes automatiques · Support prioritaire</div>
+            </div>
+            <button class="banner-btn">⭐ Passer Pro</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

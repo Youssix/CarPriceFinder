@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 1280px; height: 800px; overflow: hidden;
+    background: #0a0f1e;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+
+  .orb1 {
+    position: absolute;
+    width: 700px; height: 700px;
+    background: radial-gradient(circle, rgba(139,92,246,0.14) 0%, transparent 70%);
+    top: -200px; right: -100px;
+    border-radius: 50%;
+    pointer-events: none;
+  }
+  .orb2 {
+    position: absolute;
+    width: 400px; height: 400px;
+    background: radial-gradient(circle, rgba(59,130,246,0.10) 0%, transparent 70%);
+    bottom: -100px; left: 0;
+    border-radius: 50%;
+    pointer-events: none;
+  }
+
+  .container {
+    display: flex;
+    align-items: center;
+    gap: 80px;
+    position: relative;
+    z-index: 2;
+  }
+
+  /* Left: listing mockup */
+  .listing-wrap {
+    width: 620px;
+  }
+
+  .listing-card {
+    background: #fff;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 40px 80px rgba(0,0,0,0.5);
+  }
+
+  /* Revendeur header */
+  .site-header {
+    background: #f8f9fa;
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 1px solid #eee;
+  }
+  .site-logo {
+    font-size: 14px;
+    font-weight: 700;
+    color: #1a1a2e;
+    background: #1a1a2e;
+    color: #fff;
+    padding: 4px 10px;
+    border-radius: 6px;
+  }
+  .site-nav {
+    display: flex;
+    gap: 16px;
+    font-size: 12px;
+    color: #6b7280;
+  }
+
+  .vehicle-row {
+    padding: 14px 16px;
+    border-bottom: 1px solid #f0f0f0;
+    position: relative;
+  }
+
+  .vehicle-top {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+  .vehicle-img {
+    width: 80px;
+    height: 56px;
+    background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    flex-shrink: 0;
+  }
+  .vehicle-info { flex: 1; }
+  .vehicle-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: #1a1a2e;
+    margin-bottom: 4px;
+  }
+  .vehicle-specs {
+    font-size: 11px;
+    color: #6b7280;
+    margin-bottom: 6px;
+  }
+  .vehicle-tags { display: flex; gap: 5px; flex-wrap: wrap; }
+  .tag {
+    background: #f1f5f9;
+    border-radius: 4px;
+    padding: 2px 7px;
+    font-size: 10px;
+    color: #475569;
+    font-weight: 500;
+  }
+  .vehicle-price-original {
+    font-size: 16px;
+    font-weight: 800;
+    color: #1a1a2e;
+    text-align: right;
+  }
+
+  /* Carlytics analysis card */
+  .carlytics-card {
+    background: #0f172a;
+    border-radius: 10px;
+    padding: 14px;
+    margin: 0 4px 4px;
+  }
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .card-brand {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .card-brand-icon {
+    width: 22px;
+    height: 22px;
+    background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 800;
+    color: #fff;
+  }
+  .card-brand-name { font-size: 13px; font-weight: 700; color: #fff; }
+  .cache-badge {
+    background: rgba(34,197,94,0.15);
+    border: 1px solid rgba(34,197,94,0.3);
+    border-radius: 6px;
+    padding: 2px 8px;
+    font-size: 10px;
+    color: #4ade80;
+    font-weight: 700;
+  }
+
+  .prices-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .price-box { text-align: center; }
+  .price-label { font-size: 9px; color: #475569; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+  .price-val { font-size: 18px; font-weight: 800; }
+  .price-val.auto { color: #94a3b8; }
+  .price-val.market { color: #f59e0b; }
+  .price-val.margin { color: #22c55e; }
+  .price-sub { font-size: 9px; color: #334155; margin-top: 2px; }
+
+  .options-row {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .option-tag {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(59,130,246,0.12);
+    border: 1px solid rgba(59,130,246,0.25);
+    border-radius: 6px;
+    padding: 3px 8px;
+    font-size: 10px;
+    color: #93c5fd;
+    font-weight: 600;
+  }
+
+  /* vehicle row 2 (cached) */
+  .vehicle-row2 {
+    padding: 14px 16px;
+  }
+
+  /* Right: text */
+  .right {
+    width: 440px;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(139,92,246,0.15);
+    border: 1px solid rgba(139,92,246,0.35);
+    border-radius: 100px;
+    padding: 6px 14px;
+    margin-bottom: 24px;
+  }
+  .badge span { font-size: 12px; color: #c4b5fd; font-weight: 500; }
+
+  h2 {
+    font-size: 46px;
+    font-weight: 800;
+    color: #fff;
+    line-height: 1.1;
+    letter-spacing: -1.2px;
+    margin-bottom: 20px;
+  }
+  h2 em {
+    font-style: normal;
+    background: linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .features {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-top: 32px;
+  }
+  .feature {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+  }
+  .feature-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  .feature-icon.blue { background: rgba(59,130,246,0.15); }
+  .feature-icon.purple { background: rgba(139,92,246,0.15); }
+  .feature-icon.green { background: rgba(34,197,94,0.12); }
+  .feature-title { font-size: 15px; font-weight: 700; color: #e2e8f0; margin-bottom: 3px; }
+  .feature-desc { font-size: 13px; color: #64748b; line-height: 1.5; }
+</style>
+</head>
+<body>
+  <div class="orb1"></div>
+  <div class="orb2"></div>
+
+  <div class="container">
+    <!-- Left: Listing mockup -->
+    <div class="listing-wrap">
+      <div class="listing-card">
+        <div class="site-header">
+          <div class="site-logo">SV</div>
+          <div class="site-nav">
+            <span>Stock</span><span>Ventes</span><span>Rapport</span>
+          </div>
+        </div>
+
+        <!-- Vehicle 1 -->
+        <div class="vehicle-row">
+          <div class="vehicle-top">
+            <div class="vehicle-img">🚗</div>
+            <div class="vehicle-info">
+              <div class="vehicle-name">BMW Série 3 320d xDrive</div>
+              <div class="vehicle-specs">2020 · Berline · BVA · 78 400 km · Diesel · 190 ch</div>
+              <div class="vehicle-tags">
+                <span class="tag">M-Sport</span>
+                <span class="tag">Toit ouvrant</span>
+                <span class="tag">Caméra</span>
+                <span class="tag">Sièges chauffants</span>
+              </div>
+            </div>
+            <div class="vehicle-price-original">23 900€</div>
+          </div>
+          <div class="carlytics-card">
+            <div class="card-header">
+              <div class="card-brand">
+                <div class="card-brand-icon">C</div>
+                <span class="card-brand-name">Carlytics</span>
+              </div>
+              <div style="display:flex;gap:6px;align-items:center;">
+                <span style="background:rgba(59,130,246,0.12);border:1px solid rgba(59,130,246,0.3);border-radius:6px;padding:2px 8px;font-size:10px;color:#93c5fd;font-weight:700;">M-Sport +10%</span>
+              </div>
+            </div>
+            <div class="prices-row">
+              <div class="price-box">
+                <div class="price-label">Prix achat</div>
+                <div class="price-val auto">23 900€</div>
+                <div class="price-sub">Revendeur</div>
+              </div>
+              <div class="price-box">
+                <div class="price-label">Marché annonces</div>
+                <div class="price-val market">27 400€</div>
+                <div class="price-sub">14 annonces similaires</div>
+              </div>
+              <div class="price-box">
+                <div class="price-label">Marge estimée</div>
+                <div class="price-val margin">+3 500€</div>
+                <div class="price-sub">Après options</div>
+              </div>
+            </div>
+            <div class="options-row">
+              <div class="option-tag">🏎️ M-Sport +800€</div>
+              <div class="option-tag">🔆 Toit Ouvrant +600€</div>
+              <div class="option-tag">📷 Caméra 360° +400€</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Vehicle 2 (cached) -->
+        <div class="vehicle-row2">
+          <div class="vehicle-top">
+            <div class="vehicle-img">🚙</div>
+            <div class="vehicle-info">
+              <div class="vehicle-name">BMW Série 5 520d</div>
+              <div class="vehicle-specs">2019 · Berline · BVA · 94 200 km · Diesel · 190 ch</div>
+              <div class="vehicle-tags">
+                <span class="tag">Navigation Pro</span>
+                <span class="tag">HUD</span>
+                <span class="tag">Siège cuir</span>
+              </div>
+            </div>
+            <div class="vehicle-price-original">28 500€</div>
+          </div>
+          <div class="carlytics-card">
+            <div class="card-header">
+              <div class="card-brand">
+                <div class="card-brand-icon">C</div>
+                <span class="card-brand-name">Carlytics</span>
+              </div>
+              <div class="cache-badge">✓ CACHE</div>
+            </div>
+            <div class="prices-row">
+              <div class="price-box">
+                <div class="price-label">Prix achat</div>
+                <div class="price-val auto">28 500€</div>
+                <div class="price-sub">Revendeur</div>
+              </div>
+              <div class="price-box">
+                <div class="price-label">Marché annonces</div>
+                <div class="price-val market">30 200€</div>
+                <div class="price-sub">8 annonces similaires</div>
+              </div>
+              <div class="price-box">
+                <div class="price-label">Marge estimée</div>
+                <div class="price-val margin">+1 700€</div>
+                <div class="price-sub">Standard</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: text -->
+    <div class="right">
+      <div class="badge">
+        <span>⚡ Résultat en moins de 3 secondes</span>
+      </div>
+
+      <h2>Chaque véhicule,<br><em>analysé</em><br>en un instant</h2>
+
+      <div class="features">
+        <div class="feature">
+          <div class="feature-icon blue">📊</div>
+          <div>
+            <div class="feature-title">Comparaison marché instantanée</div>
+            <div class="feature-desc">Prix du marché des annonces calculé en temps réel sur des véhicules similaires.</div>
+          </div>
+        </div>
+        <div class="feature">
+          <div class="feature-icon purple">🤖</div>
+          <div>
+            <div class="feature-title">Détection IA des options premium</div>
+            <div class="feature-desc">M-Sport, AMG, S-Line et +20 options reconnues — valorisation ajustée automatiquement.</div>
+          </div>
+        </div>
+        <div class="feature">
+          <div class="feature-icon green">⚡</div>
+          <div>
+            <div class="feature-title">Cache intelligent</div>
+            <div class="feature-desc">Résultats mémorisés sur les véhicules déjà analysés, 0 attente.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
