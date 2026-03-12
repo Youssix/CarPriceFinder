@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Carlytics – Analyse de prix véhicules d'occasion",
   "version": "2.1",
-  "description": "Analyse automatique des prix du marché véhicules d'occasion en temps réel. Détectez les meilleures opportunités d'achat, identifiez les options premium et estimez vos marges. 5 analyses gratuites.",
+  "description": "Analyse automatique des prix du marché véhicules d'occasion en temps réel. Détectez les meilleures opportunités d'achat, identifiez les options premium et estimez vos marges. Gratuit pour toujours.",
   "background": {
     "service_worker": "background.js"
   },
