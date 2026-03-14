@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Carlytics — Suivi Acquisition</title>
+<style>
+  /* PIN SCREEN */
+  #pin-screen {
+    position: fixed; inset: 0;
+    background: #0d1117;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 9999;
+    flex-direction: column;
+    gap: 20px;
+  }
+  #pin-screen .pin-logo { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  #pin-screen .pin-dot { width: 10px; height: 10px; background: #00a0ff; border-radius: 50%; box-shadow: 0 0 8px #00a0ff; }
+  #pin-screen h2 { font-size: 20px; font-weight: 700; }
+  #pin-screen h2 span { color: #00a0ff; }
+  #pin-screen p { font-size: 13px; color: #7d8590; }
+  #pin-input {
+    font-size: 24px;
+    letter-spacing: 8px;
+    text-align: center;
+    background: #161b22;
+    border: 1px solid #21262d;
+    border-radius: 10px;
+    color: #e6edf3;
+    padding: 14px 24px;
+    width: 180px;
+    outline: none;
+    -webkit-text-security: disc;
+  }
+  #pin-input:focus { border-color: #00a0ff; }
+  #pin-error { font-size: 12px; color: #f85149; height: 16px; }
+</style>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #0d1117;
+    color: #e6edf3;
+    min-height: 100vh;
+    padding: 20px 16px;
+  }
+
+  /* HEADER */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .logo { display: flex; align-items: center; gap: 10px; }
+  .logo-dot {
+    width: 10px; height: 10px;
+    background: #00a0ff;
+    border-radius: 50%;
+    box-shadow: 0 0 8px #00a0ff;
+  }
+  .logo h1 { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; }
+  .logo span { color: #00a0ff; }
+  .header-meta { font-size: 12px; color: #7d8590; }
+
+  /* KPI BAR */
+  .kpis {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .kpi {
+    background: #161b22;
+    border: 1px solid #21262d;
+    border-radius: 10px;
+    padding: 14px 12px;
+  }
+  .kpi-label { font-size: 10px; color: #7d8590; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+  .kpi-value { font-size: 26px; font-weight: 700; }
+  .kpi-value.blue { color: #00a0ff; }
+  .kpi-value.green { color: #3fb950; }
+  .kpi-value.orange { color: #f0883e; }
+  .kpi-value.red { color: #f85149; }
+
+  /* GRIDS */
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+
+  /* CARD */
+  .card {
+    background: #161b22;
+    border: 1px solid #21262d;
+    border-radius: 10px;
+    padding: 16px;
+  }
+  .card-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: #8b949e;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* AGENT LIST */
+  .agent {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 0;
+    border-bottom: 1px solid #21262d;
+  }
+  .agent:last-child { border-bottom: none; padding-bottom: 0; }
+  .agent-icon {
+    width: 32px; height: 32px;
+    border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+  .agent-info { flex: 1; min-width: 0; }
+  .agent-name { font-size: 13px; font-weight: 600; margin-bottom: 1px; }
+  .agent-desc { font-size: 11px; color: #7d8590; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .badge {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 3px 7px;
+    border-radius: 20px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .badge.done { background: #1a3a2a; color: #3fb950; border: 1px solid #2ea043; }
+  .badge.stopped { background: #2d1b1b; color: #f85149; border: 1px solid #6e1a1a; }
+  .badge.active { background: #1a2a3a; color: #00a0ff; border: 1px solid #0969da; }
+
+  /* TASK LIST */
+  .task {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 7px 0;
+    border-bottom: 1px solid #21262d;
+    font-size: 13px;
+  }
+  .task:last-child { border-bottom: none; }
+  .task-check {
+    width: 17px; height: 17px;
+    border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .task-check.done { background: #1a3a2a; color: #3fb950; border: 1px solid #2ea043; }
+  .task-check.todo { background: #21262d; color: transparent; border: 1px solid #30363d; }
+  .task-check.now { background: #1a2a3a; color: #00a0ff; border: 1px solid #0969da; }
+  .task-text { flex: 1; line-height: 1.4; }
+  .task-text.done-text { color: #7d8590; text-decoration: line-through; }
+  .task-when { font-size: 10px; color: #7d8590; white-space: nowrap; margin-top: 2px; }
+
+  /* CONTACTS */
+  .contact-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 0;
+    border-bottom: 1px solid #21262d;
+    font-size: 12px;
+  }
+  .contact-row:last-child { border-bottom: none; }
+  .contact-status { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .contact-status.pending { background: #f0883e; }
+  .contact-name { font-weight: 600; flex: 1; font-size: 12px; }
+  .contact-meta { font-size: 10px; color: #7d8590; }
+
+  /* PROGRESS BAR */
+  .progress-wrap { margin-top: 12px; }
+  .progress-label { display: flex; justify-content: space-between; font-size: 11px; color: #7d8590; margin-bottom: 5px; }
+  .progress-bar { height: 5px; background: #21262d; border-radius: 3px; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 3px; }
+  .progress-fill.blue { background: linear-gradient(90deg, #0969da, #00a0ff); }
+  .progress-fill.green { background: linear-gradient(90deg, #2ea043, #3fb950); }
+
+  /* TIMELINE */
+  .timeline-item {
+    display: flex;
+    gap: 12px;
+    padding-bottom: 14px;
+    position: relative;
+  }
+  .timeline-item::before {
+    content: '';
+    position: absolute;
+    left: 5px; top: 18px;
+    width: 1px; bottom: 0;
+    background: #21262d;
+  }
+  .timeline-item:last-child::before { display: none; }
+  .timeline-dot {
+    width: 11px; height: 11px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 3px;
+    border: 2px solid;
+  }
+  .timeline-dot.done { background: #3fb950; border-color: #3fb950; }
+  .timeline-dot.now { background: #00a0ff; border-color: #00a0ff; box-shadow: 0 0 5px #00a0ff; }
+  .timeline-dot.future { background: transparent; border-color: #30363d; }
+  .timeline-date { font-size: 10px; color: #7d8590; margin-bottom: 1px; }
+  .timeline-title { font-size: 12px; font-weight: 600; }
+  .timeline-sub { font-size: 11px; color: #7d8590; margin-top: 1px; }
+
+  /* FOOTER */
+  .footer { text-align: center; font-size: 11px; color: #30363d; margin-top: 20px; padding-bottom: 16px; }
+
+  /* MOBILE */
+  @media (max-width: 640px) {
+    body { padding: 14px 12px; }
+    .kpis { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .grid { grid-template-columns: 1fr; }
+    .grid-3 { grid-template-columns: 1fr; }
+    .header-meta { font-size: 11px; }
+    .kpi-value { font-size: 22px; }
+  }
+
+  @media (max-width: 400px) {
+    .kpis { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<!-- PIN SCREEN -->
+<div id="pin-screen">
+  <div class="pin-logo">
+    <div class="pin-dot"></div>
+    <h2>Car<span>lytics</span></h2>
+  </div>
+  <p>Entrez votre code PIN</p>
+  <input id="pin-input" type="tel" maxlength="4" inputmode="numeric" placeholder="••••" autofocus />
+  <div id="pin-error"></div>
+</div>
+
+<div id="main-content" style="display:none">
+<div class="header">
+  <div class="logo">
+    <div class="logo-dot"></div>
+    <h1>Car<span>lytics</span></h1>
+  </div>
+  <div class="header-meta">Suivi Acquisition · 14 mars 2026</div>
+</div>
+
+<!-- KPIs -->
+<div class="kpis">
+  <div class="kpi">
+    <div class="kpi-label">Contacts ciblés</div>
+    <div class="kpi-value blue">35</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">Emails prêts</div>
+    <div class="kpi-value green">15</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">Emails envoyés</div>
+    <div class="kpi-value orange">0</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">Réponses reçues</div>
+    <div class="kpi-value red">0</div>
+  </div>
+</div>
+
+<div class="grid">
+
+  <!-- AGENTS -->
+  <div class="card">
+    <div class="card-title">🤖 Agents</div>
+
+    <div class="agent">
+      <div class="agent-icon" style="background:#1a3a2a">📧</div>
+      <div class="agent-info">
+        <div class="agent-name">Cold Email</div>
+        <div class="agent-desc">35 contacts · 15 emails · séquence J+3/J+7</div>
+      </div>
+      <span class="badge done">✓ Fait</span>
+    </div>
+    <div class="agent">
+      <div class="agent-icon" style="background:#1a2a3a">🎬</div>
+      <div class="agent-info">
+        <div class="agent-name">Démo &amp; Vidéo</div>
+        <div class="agent-desc">Script 90s + storyboard</div>
+      </div>
+      <span class="badge done">✓ Fait</span>
+    </div>
+    <div class="agent">
+      <div class="agent-icon" style="background:#2d2a1b">👥</div>
+      <div class="agent-info">
+        <div class="agent-name">Facebook</div>
+        <div class="agent-desc">3 posts groupes VO rédigés</div>
+      </div>
+      <span class="badge stopped">⏹ Arrêté</span>
+    </div>
+    <div class="agent">
+      <div class="agent-icon" style="background:#2d2a1b">💼</div>
+      <div class="agent-info">
+        <div class="agent-name">LinkedIn</div>
+        <div class="agent-desc">Stratégie outreach</div>
+      </div>
+      <span class="badge stopped">⏹ Arrêté</span>
+    </div>
+    <div class="agent">
+      <div class="agent-icon" style="background:#2d2a1b">💬</div>
+      <div class="agent-info">
+        <div class="agent-name">Forums</div>
+        <div class="agent-desc">Identification forums VO</div>
+      </div>
+      <span class="badge stopped">⏹ Arrêté</span>
+    </div>
+  </div>
+
+  <!-- PROCHAINES ACTIONS -->
+  <div class="card">
+    <div class="card-title">✅ Prochaines actions</div>
+
+    <div class="task">
+      <div class="task-check done">✓</div>
+      <div class="task-text done-text">Liste 35 contacts marchands VO</div>
+      <div class="task-when">Fait</div>
+    </div>
+    <div class="task">
+      <div class="task-check done">✓</div>
+      <div class="task-text done-text">15 emails J0 personnalisés</div>
+      <div class="task-when">Fait</div>
+    </div>
+    <div class="task">
+      <div class="task-check done">✓</div>
+      <div class="task-text done-text">Bannière Facebook Carlytics</div>
+      <div class="task-when">Fait</div>
+    </div>
+    <div class="task">
+      <div class="task-check done">✓</div>
+      <div class="task-text done-text">SPF / DKIM / DMARC Hostinger</div>
+      <div class="task-when">Fait</div>
+    </div>
+    <div class="task">
+      <div class="task-check now">→</div>
+      <div class="task-text"><strong>Créer Page Facebook "Carlytics"</strong></div>
+      <div class="task-when">Week-end</div>
+    </div>
+    <div class="task">
+      <div class="task-check now">→</div>
+      <div class="task-text"><strong>Poster la vidéo promo</strong></div>
+      <div class="task-when">Week-end</div>
+    </div>
+    <div class="task">
+      <div class="task-check now">→</div>
+      <div class="task-text"><strong>Rejoindre groupes FB marchands VO</strong></div>
+      <div class="task-when">Week-end</div>
+    </div>
+    <div class="task">
+      <div class="task-check todo"></div>
+      <div class="task-text">Envoyer 15 emails J0</div>
+      <div class="task-when">Lun 8h</div>
+    </div>
+    <div class="task">
+      <div class="task-check todo"></div>
+      <div class="task-text">Relance J+3</div>
+      <div class="task-when">Jeu</div>
+    </div>
+    <div class="task">
+      <div class="task-check todo"></div>
+      <div class="task-text">Relance J+7 + bilan</div>
+      <div class="task-when">Lun +7</div>
+    </div>
+  </div>
+
+</div>
+
+<div class="grid-3">
+
+  <!-- CONTACTS -->
+  <div class="card">
+    <div class="card-title">📋 Contacts prioritaires</div>
+    <div class="contact-row">
+      <div class="contact-status pending"></div>
+      <div class="contact-name">RS Autos — Romain</div>
+      <div class="contact-meta">Lyon</div>
+    </div>
+    <div class="contact-row">
+      <div class="contact-status pending"></div>
+      <div class="contact-name">Négoce Auto 80 — Hafid</div>
+      <div class="contact-meta">Amiens</div>
+    </div>
+    <div class="contact-row">
+      <div class="contact-status pending"></div>
+      <div class="contact-name">Cerdan Auto — Toni</div>
+      <div class="contact-meta">Marseille</div>
+    </div>
+    <div class="contact-row">
+      <div class="contact-status pending"></div>
+      <div class="contact-name">Auto Premium 69</div>
+      <div class="contact-meta">Lyon</div>
+    </div>
+    <div class="contact-row">
+      <div class="contact-status pending"></div>
+      <div class="contact-name">… +31 contacts</div>
+      <div class="contact-meta">CSV</div>
+    </div>
+    <div class="progress-wrap">
+      <div class="progress-label"><span>Envois</span><span>0 / 15</span></div>
+      <div class="progress-bar"><div class="progress-fill blue" style="width:0%"></div></div>
+    </div>
+  </div>
+
+  <!-- TIMELINE -->
+  <div class="card">
+    <div class="card-title">📅 Timeline</div>
+    <div class="timeline-item">
+      <div class="timeline-dot done"></div>
+      <div>
+        <div class="timeline-date">Sem. 14 mars</div>
+        <div class="timeline-title">Préparation</div>
+        <div class="timeline-sub">Contacts · Emails · Bannière</div>
+      </div>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-dot now"></div>
+      <div>
+        <div class="timeline-date">15–16 mars</div>
+        <div class="timeline-title">Setup Facebook</div>
+        <div class="timeline-sub">Page · Groupes · Vidéo</div>
+      </div>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-dot future"></div>
+      <div>
+        <div class="timeline-date">Lundi 17 mars · 8h</div>
+        <div class="timeline-title">Envoi emails J0</div>
+        <div class="timeline-sub">15 contacts</div>
+      </div>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-dot future"></div>
+      <div>
+        <div class="timeline-date">Jeudi 20 mars</div>
+        <div class="timeline-title">Relance J+3</div>
+      </div>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-dot future"></div>
+      <div>
+        <div class="timeline-date">Lundi 24 mars</div>
+        <div class="timeline-title">Bilan J+7</div>
+        <div class="timeline-sub">Objectif : 3 démos</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OBJECTIF -->
+  <div class="card">
+    <div class="card-title">🎯 Objectif 30 jours</div>
+    <div style="text-align:center; padding: 14px 0 10px;">
+      <div style="font-size: 40px; font-weight: 800; color: #00a0ff;">100</div>
+      <div style="font-size: 12px; color: #7d8590; margin-bottom: 14px;">utilisateurs = 2 900€ MRR</div>
+    </div>
+    <div class="progress-wrap">
+      <div class="progress-label"><span>Utilisateurs payants</span><span>0 / 100</span></div>
+      <div class="progress-bar"><div class="progress-fill green" style="width:0%"></div></div>
+    </div>
+    <div style="margin-top: 14px; border-top: 1px solid #21262d; padding-top: 12px;">
+      <div class="task">
+        <div class="task-check todo"></div>
+        <div class="task-text">1er utilisateur payant</div>
+      </div>
+      <div class="task">
+        <div class="task-check todo"></div>
+        <div class="task-text">10 utilisateurs</div>
+      </div>
+      <div class="task">
+        <div class="task-check todo"></div>
+        <div class="task-text">100 utilisateurs · 2 900€ MRR</div>
+      </div>
+    </div>
+    <div style="margin-top: 12px; background: #1a2a3a; border: 1px solid #0969da; border-radius: 8px; padding: 10px; font-size: 11px; color: #8b949e; line-height: 1.5;">
+      💡 <strong style="color:#e6edf3">Starter 49€</strong> · <strong style="color:#e6edf3">Pro 89€</strong> · <strong style="color:#e6edf3">Agence 149€</strong><br>
+      🟢🟡🔴 gratuit · chiffres = abonné
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">Carlytics · carlytics.fr</div>
+
+</div><!-- end main-content -->
+
+<script>
+  const PIN = '2906'; // 29€ x 100 users = 2900€ MRR 😉
+  const KEY = 'cly_suivi_auth';
+
+  function unlock() {
+    document.getElementById('pin-screen').style.display = 'none';
+    document.getElementById('main-content').style.display = 'block';
+  }
+
+  // Already authenticated in this session?
+  if (sessionStorage.getItem(KEY) === 'ok') unlock();
+
+  document.getElementById('pin-input').addEventListener('input', function() {
+    if (this.value.length === 4) {
+      if (this.value === PIN) {
+        sessionStorage.setItem(KEY, 'ok');
+        unlock();
+      } else {
+        document.getElementById('pin-error').textContent = 'Code incorrect';
+        this.value = '';
+        setTimeout(() => document.getElementById('pin-error').textContent = '', 2000);
+      }
+    }
+  });
+</script>
+</body>
+</html>
