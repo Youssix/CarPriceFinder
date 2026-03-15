@@ -259,14 +259,10 @@ const blacklistKeywords = [
     "moteur", "boite", "turbo", "injecteur", "piece", "pieces", "épave", "pour pieces", "démonté", "casse", "moteurs"
 ];
 
-// LBC request queue - spaces calls by 2s without blocking concurrent users with 429
-// No delay needed when using ScraperAPI (it handles rate limiting itself)
-let lbcQueuePromise = Promise.resolve();
-
+// Direct call — no queue (LBC is currently banned, rate limiting irrelevant)
+// Queue will be restored with new VPS + healthy LBC connection
 function enqueueLbcCall(fn) {
-    const result = lbcQueuePromise.then(() => fn());
-    lbcQueuePromise = result.then(() => {}, () => {});
-    return result;
+    return fn();
 }
 
 // === Auth Routes (Magic Link) ===
