@@ -788,6 +788,11 @@ app.get("/api/estimation", optionalApiKeyAuth, async (req, res) => {
         const text = await response.text();
         if (!text || text.length < 10) throw new Error("Réponse vide ou invalide – possible blocage API");
         const data = JSON.parse(text);
+        // Detect DataDome captcha block — skip all fallbacks immediately
+        if (!data.ads && data.url && data.url.includes('captcha')) {
+            console.warn('[🚫 DataDome] IP bloquée par captcha — skip fallbacks');
+            throw new Error('DATADOME_BLOCKED');
+        }
         console.log("📥 Réponse LBC (ads):", data.ads ? data.ads.length : 0);
         const ads = data.ads || [];
         return ads.filter(ad => {
@@ -802,6 +807,7 @@ app.get("/api/estimation", optionalApiKeyAuth, async (req, res) => {
         });
     }
 
+    let lbcBlocked = false;
     try {
         // Main search + progressive fallback if 0 results
         let results = await enqueueLbcCall(() => lbcSearch(payload));
@@ -896,6 +902,10 @@ app.get("/api/estimation", optionalApiKeyAuth, async (req, res) => {
         }
 
     } catch (error) {
+        if (error.message === 'DATADOME_BLOCKED') {
+            // IP banned by DataDome — return graceful empty response (don't show error to user)
+            return res.json({ ok: true, estimatedPrice: null, lowPrice: null, highPrice: null, count: 0, results: [], warning: 'LBC temporairement indisponible' });
+        }
         console.error("❌ Scraping failed:", error);
         res.status(500).json({ ok: false, error: error.message });
     }
