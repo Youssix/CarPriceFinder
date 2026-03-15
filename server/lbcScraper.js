@@ -773,12 +773,16 @@ app.get("/api/estimation", optionalApiKeyAuth, async (req, res) => {
     async function lbcSearch(searchPayload) {
         const scraperApiKey = process.env.SCRAPERAPI_KEY;
         const lbcUrl = "https://api.leboncoin.fr/api/adSearch/v4/ads";
+        // When using ScraperAPI, use minimal headers (full mobile headers break DataDome via proxy)
+        const headersToUse = scraperApiKey
+            ? { 'api_key': process.env.LBC_API_KEY, 'Content-Type': 'application/json' }
+            : HEADERS;
         const fetchUrl = scraperApiKey
             ? `http://api.scraperapi.com?api_key=${scraperApiKey}&url=${encodeURIComponent(lbcUrl)}&keep_headers=true`
             : lbcUrl;
         const response = await fetch(fetchUrl, {
             method: "POST",
-            headers: HEADERS,
+            headers: headersToUse,
             body: JSON.stringify(searchPayload)
         });
         const text = await response.text();
