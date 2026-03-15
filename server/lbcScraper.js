@@ -773,16 +773,25 @@ app.get("/api/estimation", optionalApiKeyAuth, async (req, res) => {
             ? `http://api.scraperapi.com?api_key=${scraperApiKey}&url=${encodeURIComponent(lbcUrl)}&keep_headers=true&premium=true&country_code=fr`
             : lbcUrl;
         const controller = new AbortController();
-        const abortTimer = setTimeout(() => controller.abort(), 1500);
-        const response = await fetch(fetchUrl, {
-            method: "POST",
-            headers: headersToUse,
-            body: JSON.stringify(searchPayload),
-            signal: controller.signal
-        }).finally(() => clearTimeout(abortTimer));
+        const abortTimer = setTimeout(() => controller.abort(), 1200);
+        let response;
+        try {
+            response = await fetch(fetchUrl, {
+                method: "POST",
+                headers: headersToUse,
+                body: JSON.stringify(searchPayload),
+                signal: controller.signal
+            });
+        } catch (e) {
+            clearTimeout(abortTimer);
+            if (e.name === 'AbortError') { console.warn('[⏱️ LBC] Timeout 1.2s — returning []'); return []; }
+            throw e;
+        }
+        clearTimeout(abortTimer);
         const text = await response.text();
-        if (!text || text.length < 10) throw new Error("Réponse vide ou invalide – possible blocage API");
-        const data = JSON.parse(text);
+        if (!text || text.length < 10) return [];
+        let data;
+        try { data = JSON.parse(text); } catch (_) { return []; }
         // Detect DataDome captcha block — skip all fallbacks immediately
         if (!data.ads && data.url && data.url.includes('captcha')) {
             console.warn('[🚫 DataDome] IP bloquée par captcha — skip fallbacks');
