@@ -769,7 +769,12 @@ app.get("/api/estimation", optionalApiKeyAuth, async (req, res) => {
 
     // Helper: execute one LBC search and return filtered ads
     async function lbcSearch(searchPayload) {
-        const response = await fetch("https://api.leboncoin.fr/finder/search", {
+        const scraperApiKey = process.env.SCRAPERAPI_KEY;
+        const lbcUrl = "https://api.leboncoin.fr/finder/search";
+        const fetchUrl = scraperApiKey
+            ? `http://api.scraperapi.com?api_key=${scraperApiKey}&url=${encodeURIComponent(lbcUrl)}&keep_headers=true`
+            : lbcUrl;
+        const response = await fetch(fetchUrl, {
             method: "POST",
             headers: HEADERS,
             body: JSON.stringify(searchPayload)
