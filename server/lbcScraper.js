@@ -264,12 +264,8 @@ const blacklistKeywords = [
 let lbcQueuePromise = Promise.resolve();
 
 function enqueueLbcCall(fn) {
-    const delay = process.env.SCRAPERAPI_KEY ? 0 : 2000;
     const result = lbcQueuePromise.then(() => fn());
-    lbcQueuePromise = result.then(
-        () => new Promise(r => setTimeout(r, delay)),
-        () => new Promise(r => setTimeout(r, delay))
-    );
+    lbcQueuePromise = result.then(() => {}, () => {});
     return result;
 }
 
