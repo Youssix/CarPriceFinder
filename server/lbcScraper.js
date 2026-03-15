@@ -778,7 +778,7 @@ app.get("/api/estimation", optionalApiKeyAuth, async (req, res) => {
             ? { 'api_key': process.env.LBC_API_KEY, 'Content-Type': 'application/json' }
             : HEADERS;
         const fetchUrl = scraperApiKey
-            ? `http://api.scraperapi.com?api_key=${scraperApiKey}&url=${encodeURIComponent(lbcUrl)}&keep_headers=true`
+            ? `http://api.scraperapi.com?api_key=${scraperApiKey}&url=${encodeURIComponent(lbcUrl)}&keep_headers=true&premium=true&country_code=fr`
             : lbcUrl;
         const response = await fetch(fetchUrl, {
             method: "POST",
