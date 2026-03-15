@@ -259,8 +259,17 @@ const blacklistKeywords = [
     "moteur", "boite", "turbo", "injecteur", "piece", "pieces", "épave", "pour pieces", "démonté", "casse", "moteurs"
 ];
 
-// Anti-spam: 2s entre appels (30 req/min max)
-let lastRequestTimestamp = 0;
+// LBC request queue - spaces calls by 2s without blocking concurrent users with 429
+let lbcQueuePromise = Promise.resolve();
+
+function enqueueLbcCall(fn) {
+    const result = lbcQueuePromise.then(() => fn());
+    lbcQueuePromise = result.then(
+        () => new Promise(r => setTimeout(r, 2000)),
+        () => new Promise(r => setTimeout(r, 2000))
+    );
+    return result;
+}
 
 // === Auth Routes (Magic Link) ===
 
@@ -626,28 +635,6 @@ app.get("/api/estimation", optionalApiKeyAuth, async (req, res) => {
         console.warn('[⚠️ Cache] Could not parse carData for stockNumber:', e.message);
     }
 
-    // ✅ CACHE SERVEUR (PostgreSQL): Check cache avant appel LBC
-    if (stockNumber) {
-        try {
-            const cachedResult = await getCachedEstimation(stockNumber);
-            if (cachedResult) {
-                cacheStats.hits++;
-                const hitRate = ((cacheStats.hits / (cacheStats.hits + cacheStats.misses)) * 100).toFixed(1);
-                console.log(`[💾 Cache DB] HIT for stockNumber: ${stockNumber} (hit rate: ${hitRate}%)`);
-                return res.json(cachedResult);
-            }
-            cacheStats.misses++;
-        } catch (err) {
-            console.error('[💾 Cache DB] Read error:', err.message);
-            cacheStats.misses++;
-        }
-    }
-
-    const now = Date.now();
-    if (now - lastRequestTimestamp < 2000) {
-        return res.status(429).json({ ok: false, error: "Trop de requêtes. Réessaie dans quelques secondes." });
-    }
-
     const { model, brand, year, km, fuel, gearbox, doors, vehicle_type, colour, critair, min_price = 500 } = req.query;
     if (!model || !brand || !year || !km) {
         return res.status(400).json({ ok: false, error: "Paramètres manquants (model, brand, year, km)" });
@@ -659,7 +646,30 @@ app.get("/api/estimation", optionalApiKeyAuth, async (req, res) => {
     const kmInt = parseInt(km);
     const minPriceInt = parseInt(min_price);
 
-    lastRequestTimestamp = now;
+    // Model-level cache key: shared across all vehicles of same brand/model/year (works for BCA too)
+    const modelCacheKey = `model_${brandMapped.toUpperCase()}_${model}_${yearInt}`;
+    const primaryCacheKey = stockNumber || modelCacheKey;
+
+    // ✅ CACHE SERVEUR (PostgreSQL): Check stockNumber first, then modelCacheKey
+    try {
+        const keysToCheck = stockNumber ? [primaryCacheKey, modelCacheKey] : [modelCacheKey];
+        let cachedResult = null;
+        let hitKey = null;
+        for (const key of keysToCheck) {
+            cachedResult = await getCachedEstimation(key);
+            if (cachedResult) { hitKey = key; break; }
+        }
+        if (cachedResult) {
+            cacheStats.hits++;
+            const hitRate = ((cacheStats.hits / (cacheStats.hits + cacheStats.misses)) * 100).toFixed(1);
+            console.log(`[💾 Cache DB] HIT for key: ${hitKey} (hit rate: ${hitRate}%)`);
+            return res.json(cachedResult);
+        }
+        cacheStats.misses++;
+    } catch (err) {
+        console.error('[💾 Cache DB] Read error:', err.message);
+        cacheStats.misses++;
+    }
 
     const enums = {
         ad_type: ["offer"],
@@ -753,97 +763,109 @@ app.get("/api/estimation", optionalApiKeyAuth, async (req, res) => {
         sort_order: "asc" // Ascendant pour les moins chers d'abord
     };
 
-    console.log("📦 Payload envoyé à LBC:\n", JSON.stringify(payload, null, 2)); // Log payload
-    console.log("🔍 u_car_model:", payload.filters.enums.u_car_model); // Log u_car_model specifically
-    console.log("🔍 keywords:", payload.filters.keywords.text); // Log keywords
+    console.log("📦 Payload envoyé à LBC:\n", JSON.stringify(payload, null, 2));
+    console.log("🔍 u_car_model:", payload.filters.enums.u_car_model);
+    console.log("🔍 keywords:", payload.filters.keywords.text);
 
-    try {
+    // Helper: execute one LBC search and return filtered ads
+    async function lbcSearch(searchPayload) {
         const response = await fetch("https://api.leboncoin.fr/finder/search", {
             method: "POST",
             headers: HEADERS,
-            body: JSON.stringify(payload)
+            body: JSON.stringify(searchPayload)
         });
-
         const text = await response.text();
-        if (!text || text.length < 10) {
-            throw new Error("Réponse vide ou invalide – possible blocage API");
-        }
-
+        if (!text || text.length < 10) throw new Error("Réponse vide ou invalide – possible blocage API");
         const data = JSON.parse(text);
-        console.log("📥 Réponse brute de LBC (data.ads length):", data.ads ? data.ads.length : 0); // Log nombre d'annonces brutes
-
-        let results = data.ads || [];
-
-        // Post-filtrage: virer si blacklist dans title/body, ou pas d'attributs voiture entière
-        results = results.filter(ad => {
+        console.log("📥 Réponse LBC (ads):", data.ads ? data.ads.length : 0);
+        const ads = data.ads || [];
+        return ads.filter(ad => {
             const titleLower = ad.subject.toLowerCase();
             const bodyLower = ad.body.toLowerCase();
-            const hasBlacklist = blacklistKeywords.some(word => titleLower.includes(word) || bodyLower.includes(word));
-            const hasCarAttrs = ad.attributes.some(attr => attr.key === "doors" && attr.value) && 
-                                ad.attributes.some(attr => attr.key === "seats" && attr.value) &&
-                                ad.attributes.some(attr => attr.key === "vehicle_type" && attr.value !== "");
+            const hasBlacklist = blacklistKeywords.some(w => titleLower.includes(w) || bodyLower.includes(w));
+            const hasCarAttrs = ad.attributes.some(a => a.key === "doors" && a.value) &&
+                                ad.attributes.some(a => a.key === "seats" && a.value) &&
+                                ad.attributes.some(a => a.key === "vehicle_type" && a.value !== "");
             const priceValid = ad.price_cents >= minPriceInt * 100;
-            console.log(`🔍 Filtrage annonce ${ad.list_id}: hasBlacklist=${hasBlacklist}, hasCarAttrs=${hasCarAttrs}, priceValid=${priceValid}`); // Log par annonce pourquoi filtrée ou non
             return !hasBlacklist && hasCarAttrs && priceValid;
         });
+    }
 
-        console.log("🧹 Annonces après filtrage (count):", results.length); // Log count après clean
+    try {
+        // Main search + progressive fallback if 0 results
+        let results = await enqueueLbcCall(() => lbcSearch(payload));
+        console.log("🧹 Annonces après filtrage:", results.length);
+
+        // Fallback 1: drop fuel filter
+        if (results.length < 3 && payload.filters.enums.fuel) {
+            console.log("[🔄 Fallback 1] 0 résultats — retry sans filtre carburant");
+            const payload2 = JSON.parse(JSON.stringify(payload));
+            delete payload2.filters.enums.fuel;
+            results = await enqueueLbcCall(() => lbcSearch(payload2));
+            console.log("🧹 Fallback 1 résultats:", results.length);
+        }
+
+        // Fallback 2: drop u_car_model + fuel, use keywords only
+        if (results.length < 3 && payload.filters.enums.u_car_model) {
+            console.log("[🔄 Fallback 2] Encore 0 — retry sans u_car_model ni carburant");
+            const payload3 = JSON.parse(JSON.stringify(payload));
+            delete payload3.filters.enums.fuel;
+            delete payload3.filters.enums.u_car_model;
+            results = await enqueueLbcCall(() => lbcSearch(payload3));
+            console.log("🧹 Fallback 2 résultats:", results.length);
+        }
 
         // Extraire prix (en €), trier
         const prices = results
-            .map(ad => {
-                const priceEuro = ad.price_cents / 100; // Division ici : price_cents est en centimes (ex: 35000 -> 350€)
-                console.log(`💰 Prix extrait pour annonce ${ad.list_id}: ${ad.price_cents} cents -> ${priceEuro} €`); // Log conversion par annonce
-                return priceEuro;
-            })
+            .map(ad => ad.price_cents / 100)
             .filter(price => typeof price === 'number' && isFinite(price))
             .sort((a, b) => a - b);
 
-        console.log("📊 Liste des prix triés (en €):", prices); // Log tous les prix cleans
+        console.log("📊 Prix triés (en €):", prices);
 
         // Calcul médiane (plus robuste)
         let estimatedPrice = null;
         if (prices.length > 0) {
             const mid = Math.floor(prices.length / 2);
-            estimatedPrice = prices.length % 2 === 0 
-                ? (prices[mid - 1] + prices[mid]) / 2 
+            estimatedPrice = prices.length % 2 === 0
+                ? (prices[mid - 1] + prices[mid]) / 2
                 : prices[mid];
-            console.log(`🧮 Calcul médiane: ${estimatedPrice} € (basée sur ${prices.length} prix)`); // Log médiane
+            console.log(`🧮 Médiane: ${estimatedPrice} € (${prices.length} annonces)`);
         }
 
-        // Bonus: prix bas/moyen/haut pour plus-value
         const lowPrice = prices.length ? prices[0] : null;
         const highPrice = prices.length ? prices[prices.length - 1] : null;
-        const potentialPlusValue = highPrice && lowPrice ? Math.round((highPrice - lowPrice) * 0.2) : null; // Estimation 20% marge revente
-        console.log(`📈 Stats prix: low=${lowPrice}, high=${highPrice}, plus-value potentielle=${potentialPlusValue}`); // Log stats
+        const potentialPlusValue = highPrice && lowPrice ? Math.round((highPrice - lowPrice) * 0.2) : null;
 
         const responseData = {
             ok: true,
             estimatedPrice: estimatedPrice ? Math.round(estimatedPrice) : null,
             lowPrice,
             highPrice,
-            potentialPlusValue, // Idée pour ton business: marge potentielle
+            potentialPlusValue,
             count: results.length,
-            results: results.slice(0, 10), // Renvoie top 10 cleans
+            results: results.slice(0, 10),
             warning: results.length < 3 ? "Pas assez d'annonces fiables – élargis les ranges ?" : null
         };
 
-        // ✅ CACHE SERVEUR (PostgreSQL): Store result if valid price
-        if (stockNumber) {
-            const hasValidPrice = responseData?.estimatedPrice &&
-                                 typeof responseData.estimatedPrice === 'number' &&
-                                 responseData.estimatedPrice > 0;
+        // ✅ CACHE SERVEUR (PostgreSQL): Store with both stockNumber and modelCacheKey
+        const hasValidPrice = responseData.estimatedPrice &&
+                             typeof responseData.estimatedPrice === 'number' &&
+                             responseData.estimatedPrice > 0;
 
-            if (hasValidPrice) {
-                setCachedEstimation(stockNumber, responseData)
+        if (hasValidPrice) {
+            const keysToStore = [primaryCacheKey];
+            if (stockNumber && stockNumber !== modelCacheKey) keysToStore.push(modelCacheKey);
+            for (const key of keysToStore) {
+                setCachedEstimation(key, responseData)
                     .then(() => {
                         cacheStats.stores++;
-                        console.log(`[💾 Cache DB] STORED result for stockNumber: ${stockNumber} (Price: ${responseData.estimatedPrice}€)`);
+                        console.log(`[💾 Cache DB] STORED for key: ${key} (${responseData.estimatedPrice}€)`);
                     })
                     .catch(err => console.error('[💾 Cache DB] Store error:', err.message));
-            } else {
-                console.log(`[💾 Cache DB] NOT CACHED - No valid LBC price for stockNumber: ${stockNumber}`);
             }
+        } else {
+            console.log(`[💾 Cache DB] NOT CACHED - No valid LBC price for key: ${primaryCacheKey}`);
         }
 
         res.json(responseData);
