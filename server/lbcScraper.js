@@ -772,11 +772,14 @@ app.get("/api/estimation", optionalApiKeyAuth, async (req, res) => {
         const fetchUrl = scraperApiKey
             ? `http://api.scraperapi.com?api_key=${scraperApiKey}&url=${encodeURIComponent(lbcUrl)}&keep_headers=true&premium=true&country_code=fr`
             : lbcUrl;
+        const controller = new AbortController();
+        const abortTimer = setTimeout(() => controller.abort(), 1500);
         const response = await fetch(fetchUrl, {
             method: "POST",
             headers: headersToUse,
-            body: JSON.stringify(searchPayload)
-        });
+            body: JSON.stringify(searchPayload),
+            signal: controller.signal
+        }).finally(() => clearTimeout(abortTimer));
         const text = await response.text();
         if (!text || text.length < 10) throw new Error("Réponse vide ou invalide – possible blocage API");
         const data = JSON.parse(text);
