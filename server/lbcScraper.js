@@ -260,13 +260,15 @@ const blacklistKeywords = [
 ];
 
 // LBC request queue - spaces calls by 2s without blocking concurrent users with 429
+// No delay needed when using ScraperAPI (it handles rate limiting itself)
 let lbcQueuePromise = Promise.resolve();
 
 function enqueueLbcCall(fn) {
+    const delay = process.env.SCRAPERAPI_KEY ? 0 : 2000;
     const result = lbcQueuePromise.then(() => fn());
     lbcQueuePromise = result.then(
-        () => new Promise(r => setTimeout(r, 2000)),
-        () => new Promise(r => setTimeout(r, 2000))
+        () => new Promise(r => setTimeout(r, delay)),
+        () => new Promise(r => setTimeout(r, delay))
     );
     return result;
 }
@@ -770,7 +772,7 @@ app.get("/api/estimation", optionalApiKeyAuth, async (req, res) => {
     // Helper: execute one LBC search and return filtered ads
     async function lbcSearch(searchPayload) {
         const scraperApiKey = process.env.SCRAPERAPI_KEY;
-        const lbcUrl = "https://api.leboncoin.fr/finder/search";
+        const lbcUrl = "https://api.leboncoin.fr/api/adSearch/v4/ads";
         const fetchUrl = scraperApiKey
             ? `http://api.scraperapi.com?api_key=${scraperApiKey}&url=${encodeURIComponent(lbcUrl)}&keep_headers=true`
             : lbcUrl;
