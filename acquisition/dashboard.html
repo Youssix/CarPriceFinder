@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Carlytics — Dashboard Acquisition</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #0d1117;
+    color: #e6edf3;
+    min-height: 100vh;
+    padding: 24px;
+  }
+
+  /* HEADER */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 32px;
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .logo-dot {
+    width: 10px; height: 10px;
+    background: #00a0ff;
+    border-radius: 50%;
+    box-shadow: 0 0 8px #00a0ff;
+  }
+  .logo h1 { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; }
+  .logo span { color: #00a0ff; }
+  .header-meta { font-size: 13px; color: #7d8590; }
+
+  /* KPI BAR */
+  .kpis {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+  .kpi {
+    background: #161b22;
+    border: 1px solid #21262d;
+    border-radius: 10px;
+    padding: 16px 20px;
+  }
+  .kpi-label { font-size: 11px; color: #7d8590; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .kpi-value { font-size: 28px; font-weight: 700; }
+  .kpi-value.blue { color: #00a0ff; }
+  .kpi-value.green { color: #3fb950; }
+  .kpi-value.orange { color: #f0883e; }
+  .kpi-value.red { color: #f85149; }
+
+  /* SECTIONS GRID */
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+
+  /* CARD */
+  .card {
+    background: #161b22;
+    border: 1px solid #21262d;
+    border-radius: 10px;
+    padding: 20px;
+  }
+  .card-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #8b949e;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .card-title .icon { font-size: 16px; }
+
+  /* AGENT LIST */
+  .agent {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid #21262d;
+  }
+  .agent:last-child { border-bottom: none; padding-bottom: 0; }
+  .agent-icon {
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  .agent-info { flex: 1; }
+  .agent-name { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+  .agent-desc { font-size: 12px; color: #7d8590; }
+  .badge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 20px;
+    white-space: nowrap;
+  }
+  .badge.done { background: #1a3a2a; color: #3fb950; border: 1px solid #2ea043; }
+  .badge.stopped { background: #2d1b1b; color: #f85149; border: 1px solid #6e1a1a; }
+  .badge.waiting { background: #2d2a1b; color: #f0883e; border: 1px solid #6e5110; }
+  .badge.active { background: #1a2a3a; color: #00a0ff; border: 1px solid #0969da; }
+
+  /* TASK LIST */
+  .task {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid #21262d;
+    font-size: 13px;
+  }
+  .task:last-child { border-bottom: none; }
+  .task-check {
+    width: 18px; height: 18px;
+    border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .task-check.done { background: #1a3a2a; color: #3fb950; border: 1px solid #2ea043; }
+  .task-check.todo { background: #21262d; color: transparent; border: 1px solid #30363d; }
+  .task-check.now { background: #1a2a3a; color: #00a0ff; border: 1px solid #0969da; }
+  .task-text { flex: 1; line-height: 1.4; }
+  .task-text.done-text { color: #7d8590; text-decoration: line-through; }
+  .task-when { font-size: 11px; color: #7d8590; white-space: nowrap; margin-left: 4px; margin-top: 2px; }
+
+  /* CONTACTS */
+  .contact-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid #21262d;
+    font-size: 13px;
+  }
+  .contact-row:last-child { border-bottom: none; }
+  .contact-status { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .contact-status.pending { background: #f0883e; }
+  .contact-status.sent { background: #00a0ff; }
+  .contact-status.done { background: #3fb950; }
+  .contact-name { font-weight: 600; flex: 1; }
+  .contact-meta { font-size: 11px; color: #7d8590; }
+
+  /* PROGRESS BAR */
+  .progress-wrap { margin-top: 12px; }
+  .progress-label { display: flex; justify-content: space-between; font-size: 12px; color: #7d8590; margin-bottom: 6px; }
+  .progress-bar { height: 6px; background: #21262d; border-radius: 3px; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 3px; transition: width 0.3s; }
+  .progress-fill.blue { background: linear-gradient(90deg, #0969da, #00a0ff); }
+  .progress-fill.green { background: linear-gradient(90deg, #2ea043, #3fb950); }
+
+  /* TIMELINE */
+  .timeline-item {
+    display: flex;
+    gap: 14px;
+    padding-bottom: 16px;
+    position: relative;
+  }
+  .timeline-item::before {
+    content: '';
+    position: absolute;
+    left: 6px; top: 20px;
+    width: 1px; bottom: 0;
+    background: #21262d;
+  }
+  .timeline-item:last-child::before { display: none; }
+  .timeline-dot {
+    width: 13px; height: 13px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 3px;
+    border: 2px solid;
+  }
+  .timeline-dot.done { background: #3fb950; border-color: #3fb950; }
+  .timeline-dot.now { background: #00a0ff; border-color: #00a0ff; box-shadow: 0 0 6px #00a0ff; }
+  .timeline-dot.future { background: transparent; border-color: #30363d; }
+  .timeline-content {}
+  .timeline-date { font-size: 11px; color: #7d8590; margin-bottom: 2px; }
+  .timeline-title { font-size: 13px; font-weight: 600; }
+  .timeline-sub { font-size: 12px; color: #7d8590; margin-top: 2px; }
+
+  /* FOOTER */
+  .footer { text-align: center; font-size: 12px; color: #30363d; margin-top: 24px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">
+    <div class="logo-dot"></div>
+    <h1>Car<span>lytics</span></h1>
+  </div>
+  <div class="header-meta">Dashboard Acquisition · Semaine du 14 mars 2026</div>
+</div>
+
+<!-- KPIs -->
+<div class="kpis">
+  <div class="kpi">
+    <div class="kpi-label">Contacts ciblés</div>
+    <div class="kpi-value blue">35</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">Emails prêts</div>
+    <div class="kpi-value green">15</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">Emails envoyés</div>
+    <div class="kpi-value orange">0</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">Réponses reçues</div>
+    <div class="kpi-value red">0</div>
+  </div>
+</div>
+
+<div class="grid">
+
+  <!-- AGENTS -->
+  <div class="card">
+    <div class="card-title"><span class="icon">🤖</span> Agents</div>
+
+    <div class="agent">
+      <div class="agent-icon" style="background:#1a3a2a">📧</div>
+      <div class="agent-info">
+        <div class="agent-name">Cold Email</div>
+        <div class="agent-desc">35 contacts · 15 emails J0 · séquence J+3/J+7</div>
+      </div>
+      <span class="badge done">✓ Terminé</span>
+    </div>
+
+    <div class="agent">
+      <div class="agent-icon" style="background:#1a2a3a">🎬</div>
+      <div class="agent-info">
+        <div class="agent-name">Démo &amp; Vidéo</div>
+        <div class="agent-desc">Script 90s + storyboard complet</div>
+      </div>
+      <span class="badge done">✓ Terminé</span>
+    </div>
+
+    <div class="agent">
+      <div class="agent-icon" style="background:#2d2a1b">👥</div>
+      <div class="agent-info">
+        <div class="agent-name">Facebook</div>
+        <div class="agent-desc">3 posts groupes marchands VO rédigés</div>
+      </div>
+      <span class="badge stopped">⏹ Arrêté</span>
+    </div>
+
+    <div class="agent">
+      <div class="agent-icon" style="background:#2d2a1b">💼</div>
+      <div class="agent-info">
+        <div class="agent-name">LinkedIn</div>
+        <div class="agent-desc">Stratégie outreach</div>
+      </div>
+      <span class="badge stopped">⏹ Arrêté</span>
+    </div>
+
+    <div class="agent">
+      <div class="agent-icon" style="background:#2d2a1b">💬</div>
+      <div class="agent-info">
+        <div class="agent-name">Forums</div>
+        <div class="agent-desc">Identification forums VO</div>
+      </div>
+      <span class="badge stopped">⏹ Arrêté</span>
+    </div>
+  </div>
+
+  <!-- PROCHAINES ACTIONS -->
+  <div class="card">
+    <div class="card-title"><span class="icon">✅</span> Prochaines actions</div>
+
+    <div class="task">
+      <div class="task-check done">✓</div>
+      <div class="task-text done-text">Créer liste 35 contacts marchands VO</div>
+      <div class="task-when">Fait</div>
+    </div>
+    <div class="task">
+      <div class="task-check done">✓</div>
+      <div class="task-text done-text">Rédiger 15 emails J0 personnalisés</div>
+      <div class="task-when">Fait</div>
+    </div>
+    <div class="task">
+      <div class="task-check done">✓</div>
+      <div class="task-text done-text">Créer bannière Facebook Carlytics</div>
+      <div class="task-when">Fait</div>
+    </div>
+    <div class="task">
+      <div class="task-check done">✓</div>
+      <div class="task-text done-text">SPF / DKIM / DMARC vérifiés sur Hostinger</div>
+      <div class="task-when">Fait</div>
+    </div>
+    <div class="task">
+      <div class="task-check now">→</div>
+      <div class="task-text"><strong>Créer Page Facebook "Carlytics"</strong></div>
+      <div class="task-when">Ce week-end</div>
+    </div>
+    <div class="task">
+      <div class="task-check now">→</div>
+      <div class="task-text"><strong>Poster la vidéo promo avec le texte rédigé</strong></div>
+      <div class="task-when">Ce week-end</div>
+    </div>
+    <div class="task">
+      <div class="task-check now">→</div>
+      <div class="task-text"><strong>Rejoindre groupes FB marchands VO</strong></div>
+      <div class="task-when">Ce week-end</div>
+    </div>
+    <div class="task">
+      <div class="task-check todo"></div>
+      <div class="task-text">Envoyer 15 emails depuis contact@carlytics.fr</div>
+      <div class="task-when">Lundi 8h</div>
+    </div>
+    <div class="task">
+      <div class="task-check todo"></div>
+      <div class="task-text">Envoyer emails J+3 (relance)</div>
+      <div class="task-when">Jeudi</div>
+    </div>
+    <div class="task">
+      <div class="task-check todo"></div>
+      <div class="task-text">Envoyer emails J+7 (dernière relance)</div>
+      <div class="task-when">Lundi +7</div>
+    </div>
+  </div>
+
+</div>
+
+<div class="grid-3">
+
+  <!-- CONTACTS TOP -->
+  <div class="card">
+    <div class="card-title"><span class="icon">📋</span> Contacts prioritaires</div>
+    <div class="contact-row">
+      <div class="contact-status pending"></div>
+      <div class="contact-name">RS Autos — Romain</div>
+      <div class="contact-meta">Lyon · Pro</div>
+    </div>
+    <div class="contact-row">
+      <div class="contact-status pending"></div>
+      <div class="contact-name">Négoce Auto 80 — Hafid</div>
+      <div class="contact-meta">Amiens · Pro</div>
+    </div>
+    <div class="contact-row">
+      <div class="contact-status pending"></div>
+      <div class="contact-name">Cerdan Auto — Toni</div>
+      <div class="contact-meta">Marseille · Pro</div>
+    </div>
+    <div class="contact-row">
+      <div class="contact-status pending"></div>
+      <div class="contact-name">Auto Premium 69</div>
+      <div class="contact-meta">Lyon · Pro</div>
+    </div>
+    <div class="contact-row">
+      <div class="contact-status pending"></div>
+      <div class="contact-name">… +31 contacts</div>
+      <div class="contact-meta">contacts_cold_email.csv</div>
+    </div>
+
+    <div class="progress-wrap">
+      <div class="progress-label"><span>Envois</span><span>0 / 15</span></div>
+      <div class="progress-bar"><div class="progress-fill blue" style="width:0%"></div></div>
+    </div>
+  </div>
+
+  <!-- TIMELINE -->
+  <div class="card">
+    <div class="card-title"><span class="icon">📅</span> Timeline</div>
+
+    <div class="timeline-item">
+      <div class="timeline-dot done"></div>
+      <div class="timeline-content">
+        <div class="timeline-date">Sem. 14 mars</div>
+        <div class="timeline-title">Préparation acquisition</div>
+        <div class="timeline-sub">Contacts · Emails · Bannière · Vidéo</div>
+      </div>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-dot now"></div>
+      <div class="timeline-content">
+        <div class="timeline-date">15–16 mars (week-end)</div>
+        <div class="timeline-title">Setup Facebook</div>
+        <div class="timeline-sub">Page Carlytics · Groupes VO · Post vidéo</div>
+      </div>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-dot future"></div>
+      <div class="timeline-content">
+        <div class="timeline-date">Lundi 17 mars · 8h</div>
+        <div class="timeline-title">Envoi emails J0</div>
+        <div class="timeline-sub">15 contacts · contact@carlytics.fr</div>
+      </div>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-dot future"></div>
+      <div class="timeline-content">
+        <div class="timeline-date">Jeudi 20 mars</div>
+        <div class="timeline-title">Relance J+3</div>
+        <div class="timeline-sub">Sans réponse → relance courte</div>
+      </div>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-dot future"></div>
+      <div class="timeline-content">
+        <div class="timeline-date">Lundi 24 mars</div>
+        <div class="timeline-title">Relance J+7 + bilan</div>
+        <div class="timeline-sub">Objectif : 3 démos planifiées</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OBJECTIF -->
+  <div class="card">
+    <div class="card-title"><span class="icon">🎯</span> Objectif 30 jours</div>
+
+    <div style="text-align:center; padding: 16px 0;">
+      <div style="font-size: 42px; font-weight: 800; color: #00a0ff;">100</div>
+      <div style="font-size: 13px; color: #7d8590; margin-bottom: 20px;">utilisateurs payants = 2 900€ MRR</div>
+    </div>
+
+    <div class="progress-wrap">
+      <div class="progress-label"><span>Utilisateurs payants</span><span>0 / 100</span></div>
+      <div class="progress-bar"><div class="progress-fill green" style="width:0%"></div></div>
+    </div>
+
+    <div style="margin-top: 20px; border-top: 1px solid #21262d; padding-top: 16px;">
+      <div class="task">
+        <div class="task-check todo"></div>
+        <div class="task-text">1er utilisateur payant</div>
+      </div>
+      <div class="task">
+        <div class="task-check todo"></div>
+        <div class="task-text">10 utilisateurs</div>
+      </div>
+      <div class="task">
+        <div class="task-check todo"></div>
+        <div class="task-text">100 utilisateurs · 2 900€ MRR</div>
+      </div>
+    </div>
+
+    <div style="margin-top: 16px; background: #1a2a3a; border: 1px solid #0969da; border-radius: 8px; padding: 12px; font-size: 12px; color: #8b949e; line-height: 1.5;">
+      💡 Plans : <strong style="color:#e6edf3">Starter 49€</strong> · <strong style="color:#e6edf3">Pro 89€</strong> · <strong style="color:#e6edf3">Agence 149€</strong><br>
+      Freemium : 🟢🟡🔴 gratuit, chiffres = abonné
+    </div>
+  </div>
+
+</div>
+
+<!-- FICHIERS -->
+<div class="card" style="margin-bottom: 16px;">
+  <div class="card-title"><span class="icon">📁</span> Fichiers générés</div>
+  <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px;">
+    <a href="contacts_cold_email.csv" style="text-decoration:none;">
+      <div style="background:#21262d; border-radius:8px; padding:12px; text-align:center; cursor:pointer; border: 1px solid #30363d;" onmouseover="this.style.borderColor='#00a0ff'" onmouseout="this.style.borderColor='#30363d'">
+        <div style="font-size:24px; margin-bottom:6px;">📊</div>
+        <div style="font-size:12px; font-weight:600;">contacts_cold_email.csv</div>
+        <div style="font-size:11px; color:#7d8590; margin-top:3px;">35 contacts</div>
+      </div>
+    </a>
+    <a href="emails_a_envoyer.md" style="text-decoration:none;">
+      <div style="background:#21262d; border-radius:8px; padding:12px; text-align:center; cursor:pointer; border: 1px solid #30363d;" onmouseover="this.style.borderColor='#00a0ff'" onmouseout="this.style.borderColor='#30363d'">
+        <div style="font-size:24px; margin-bottom:6px;">✉️</div>
+        <div style="font-size:12px; font-weight:600;">emails_a_envoyer.md</div>
+        <div style="font-size:11px; color:#7d8590; margin-top:3px;">15 emails J0</div>
+      </div>
+    </a>
+    <a href="cold_email_sequence.md" style="text-decoration:none;">
+      <div style="background:#21262d; border-radius:8px; padding:12px; text-align:center; cursor:pointer; border: 1px solid #30363d;" onmouseover="this.style.borderColor='#00a0ff'" onmouseout="this.style.borderColor='#30363d'">
+        <div style="font-size:24px; margin-bottom:6px;">🔁</div>
+        <div style="font-size:12px; font-weight:600;">cold_email_sequence.md</div>
+        <div style="font-size:11px; color:#7d8590; margin-top:3px;">Séquence J0→J+3→J+7</div>
+      </div>
+    </a>
+    <a href="facebook_posts.md" style="text-decoration:none;">
+      <div style="background:#21262d; border-radius:8px; padding:12px; text-align:center; cursor:pointer; border: 1px solid #30363d;" onmouseover="this.style.borderColor='#00a0ff'" onmouseout="this.style.borderColor='#30363d'">
+        <div style="font-size:24px; margin-bottom:6px;">👥</div>
+        <div style="font-size:12px; font-weight:600;">facebook_posts.md</div>
+        <div style="font-size:11px; color:#7d8590; margin-top:3px;">3 posts groupes VO</div>
+      </div>
+    </a>
+    <a href="banniere_carlytics.html" style="text-decoration:none;">
+      <div style="background:#21262d; border-radius:8px; padding:12px; text-align:center; cursor:pointer; border: 1px solid #30363d;" onmouseover="this.style.borderColor='#00a0ff'" onmouseout="this.style.borderColor='#30363d'">
+        <div style="font-size:24px; margin-bottom:6px;">🖼️</div>
+        <div style="font-size:12px; font-weight:600;">banniere_carlytics.html</div>
+        <div style="font-size:11px; color:#7d8590; margin-top:3px;">Bannières Facebook</div>
+      </div>
+    </a>
+  </div>
+</div>
+
+<div class="footer">Carlytics Dashboard · carlytics.fr</div>
+
+</body>
+</html>

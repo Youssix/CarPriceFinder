@@ -176,12 +176,65 @@ curl -G http://localhost:3001/api/estimation \
 ## Business Context (Important)
 
 This is being productized as a **SaaS platform** for car dealers:
-- **MVP pricing**: 29€/mois (early bird 14€/mois)
 - **Target users**: Professional car dealers (15k France), individuals (50k), garages (8k)
 - **Roadmap**: See PRODUCT_BRIEF_COMMERCIAL.md, EXECUTIVE_SUMMARY.md
-- **Next milestone**: 100 paying users = 2,900€ MRR
+- **Next milestone**: premiers utilisateurs payants → MRR positif
 
 **When implementing features**: Prioritize features that improve dealer workflow (time saved, margin detection accuracy).
+
+## Modèle Freemium (Réel)
+
+**Ce que voit un utilisateur non-abonné :**
+- L'analyse tourne, les emojis (🟢🟡🔴) s'affichent = il voit si c'est une bonne affaire ou non
+- Les chiffres exacts (prix LBC, marge en €) sont **floutés**
+- Message d'upgrade affiché pour débloquer les chiffres
+
+**Ce que voit un abonné :**
+- Tout débloqué : prix marché ajusté, marge estimée en €, options détectées
+
+**Formule de communication EXTERNE (prospects, emails, posts) :**
+→ **"Gratuit pour tester, sans carte bancaire"**
+- Ne jamais écrire "Gratuit en mode indicateur 🟢🟡🔴" — jargon interne incompréhensible
+- Ne jamais mentionner "payant" dans un premier contact — refroidit les prospects
+- Ne jamais parler de "extension Chrome" — parler du résultat, pas de la techno
+
+## Acquisition & Marketing
+
+### Dashboard de suivi
+- **URL prod** : `carlytics.fr/suivi.html`
+- **PIN** : 1996
+- **Fichier local** : `acquisition/dashboard.html` (servi via `npx serve -p 5556`)
+- **Fichier prod** : `landing/suivi.html`
+
+### Canaux d'acquisition et priorités
+
+| Canal | Statut | Priorité | Volume |
+|-------|--------|----------|--------|
+| Cold email | ✅ Prêt | 🔥 Haute | 35 contacts |
+| LinkedIn DMs | ✅ Prêt | 🔥 Haute | 14 contacts |
+| Facebook groupes | ⏳ En attente | 🟡 Faible | Groupes = ventes, pas pros |
+| Forums VO | ❌ Abandonné | — | Forums morts en 2026 |
+
+### Fichiers d'acquisition (`/acquisition/`)
+- `contacts_cold_email.csv` — 35 contacts cold email
+- `emails_a_envoyer.md` — séquence email J0 / J+3 / J+7
+- `contacts_linkedin.csv` — 14 contacts LinkedIn (employés Auto1 exclus)
+- `linkedin_posts.md` — posts LinkedIn + DM template (vouvoiement)
+- `facebook_posts.md` — posts Facebook (faible priorité)
+- `forums_messages.md` — messages forums (abandonné)
+
+### To-do acquisition
+- **Lundi 8h** : envoyer 15 emails J0 depuis contact@carlytics.fr + 14 DMs LinkedIn
+- **Jeudi** : relances J+3
+- **Lundi +7** : bilan et ajustement messaging
+
+### Agents Claude utilisés (tâches ponctuelles)
+Les "agents" sont des tâches ponctuelles confiées à Claude, pas des processus persistants.
+- **Agent Cold Email** ✅ : génération de 35 contacts + séquence email complète
+- **Agent Démo** ✅ : création de la démo TikTok (demo-tiktok.html dans /screenshots)
+- **Agent LinkedIn** ✅ : recherche de 14 contacts marchands VO + DM template vouvoiement
+- **Agent Facebook** ⏳ : posts créés, faible priorité (groupes = ventes véhicules, pas pros)
+- **Agent Forums** ❌ : recherche effectuée → forums VO publics morts en 2026, abandonné
 
 ## Commercial Documentation
 
@@ -285,10 +338,13 @@ cd /opt/carlytics && git pull
 ```bash
 ssh root@72.61.96.39
 cd /opt/carlytics
-git pull
+git pull origin main
 docker compose build api   # ou: docker compose build dashboard
-docker compose up -d
+docker compose up -d api   # ⚠️ TOUJOURS builder avant up sinon l'ancien code tourne
 ```
+
+> ⚠️ **Erreur fréquente** : `docker compose up -d` sans `build` utilise l'ancienne image.
+> Toujours faire `build` après un `git pull`.
 
 ### Vérifier les logs en prod
 ```bash
@@ -307,7 +363,7 @@ docker compose ps                        # État des containers
 | Pro | 89€/mois | Illimitées | 10 |
 | Agence | 149€/mois | Illimitées | Illimitées |
 
-- **Freemium** : 5 analyses gratuites sans CB
+- **Freemium** : gratuit pour tester (emojis visibles, chiffres floutés pour non-abonnés)
 - Codes promo activés sur Stripe Checkout
 
 ## Authentication Flow
@@ -317,5 +373,23 @@ docker compose ps                        # État des containers
 3. User entre le code → `POST /api/auth/verify-code`
 4. JWT token retourné → stocké en localStorage dashboard
 5. Extension vérifie le token via `POST /api/auth/verify-token`
+
+## LeBonCoin & DataDome
+
+### Problème connu
+DataDome (anti-bot de LBC) bloque **toutes les IPs de datacenter** (Hostinger, DigitalOcean, OVH, AWS...).
+- LBC répond `{ads:[]}` vide — pas de captcha, difficile à détecter
+- Le ban est **temporaire** (quelques jours) si le volume de requêtes est raisonnable
+- L'IP Hostinger `72.61.96.39` a été bannie ~15 mars 2026 suite à trop de requêtes en tests
+
+### Comportement quand banni
+- Plugin affiche les cartes avec 🟢🟡🔴 mais "LBC: N/A"
+- Logs API : `🧹 Annonces après filtrage: 0` sur tous les fallbacks
+- Réponse API en ~60-100ms (pas de timeout)
+
+### Solution long terme
+- **Cache 7 jours** : chaque voiture analysée une seule fois → ~40 req/jour max
+- Ne jamais tester en rafale depuis le serveur
+- Si ban persistant : proxy résidentiel (Bright Data ~15$/mois)
 
 🔨 **Travail terminé !**

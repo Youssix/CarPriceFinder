@@ -2,13 +2,14 @@
   "manifest_version": 3,
   "name": "Carlytics – Analyse de prix véhicules d'occasion",
   "version": "2.1",
-  "description": "Analyse automatique des prix du marché véhicules d'occasion en temps réel. Détectez les meilleures opportunités d'achat, identifiez les options premium et estimez vos marges. Gratuit pour toujours.",
+  "description": "Analysez les prix du marché VO en temps réel. Détectez les meilleures opportunités d'achat et estimez vos marges.",
   "background": {
     "service_worker": "background.js"
   },
   "permissions": ["activeTab", "storage"],
   "host_permissions": [
-    "https://api.carlytics.fr/*"
+    "https://api.carlytics.fr/*",
+    "https://www.bcautoencheres.fr/*"
   ],
   "icons": {
     "16": "icons/icon16.png",
@@ -28,12 +29,21 @@
       "matches": ["https://www.auto1.com/*"],
       "js": ["inject.js", "content-bridge.js"],
       "run_at": "document_start"
+    },
+    {
+      "matches": ["https://www.bcautoencheres.fr/Lot*"],
+      "js": ["bca-inject.js", "content-bridge.js"],
+      "run_at": "document_start"
     }
   ],
   "web_accessible_resources": [
     {
       "resources": ["intercept.js"],
       "matches": ["https://www.auto1.com/*"]
+    },
+    {
+      "resources": ["bca-intercept.js"],
+      "matches": ["https://www.bcautoencheres.fr/*"]
     }
   ]
 }
