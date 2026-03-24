@@ -325,4 +325,45 @@ async function sendPasswordResetEmail(email, token) {
   }
 }
 
-module.exports = { sendAuthCode, sendAlertNotification, sendWelcomeEmail, sendSetPasswordEmail, sendPasswordResetEmail };
+async function sendContactEmail(name, email, message) {
+  if (!resend) {
+    console.log(`[📧 Email] No RESEND_API_KEY. Contact from ${email}: ${message}`);
+    return { success: true, fallback: true };
+  }
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: FROM_EMAIL,
+      to: 'contact@carlytics.fr',
+      reply_to: email,
+      subject: `[Contact] Message de ${name}`,
+      html: `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 20px;">
+          <h2 style="color: #1a1a2e; margin: 0 0 24px 0;">Nouveau message via carlytics.fr</h2>
+          <table style="width:100%; border-collapse:collapse;">
+            <tr><td style="padding:8px 0; color:#6b7280; width:80px;">Nom</td><td style="padding:8px 0; color:#1a1a2e; font-weight:600;">${name}</td></tr>
+            <tr><td style="padding:8px 0; color:#6b7280;">Email</td><td style="padding:8px 0;"><a href="mailto:${email}" style="color:#3b82f6;">${email}</a></td></tr>
+          </table>
+          <div style="margin-top:24px; padding:20px; background:#f8fafc; border-radius:8px; border-left:3px solid #3b82f6;">
+            <p style="margin:0; color:#374151; white-space:pre-wrap;">${message}</p>
+          </div>
+          <hr style="border:none; border-top:1px solid #e5e7eb; margin:24px 0 12px 0;">
+          <p style="color:#9ca3af; font-size:12px; margin:0;">Répondez directement à cet email pour contacter ${name}.</p>
+        </div>
+      `,
+    });
+
+    if (error) {
+      console.error('[📧 Email] Contact email error:', error);
+      return { success: false, error };
+    }
+
+    console.log(`[📧 Email] Contact email sent from ${email} (id: ${data.id})`);
+    return { success: true, id: data.id };
+  } catch (err) {
+    console.error('[📧 Email] Contact send failed:', err.message);
+    return { success: false, error: err.message };
+  }
+}
+
+module.exports = { sendAuthCode, sendAlertNotification, sendWelcomeEmail, sendSetPasswordEmail, sendPasswordResetEmail, sendContactEmail };

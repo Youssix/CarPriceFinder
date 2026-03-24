@@ -20,7 +20,7 @@ const {
 } = require('./db');
 const { matchAlerts } = require('./alertMatcher');
 const stripeRouter = require('./stripe');
-const { sendAuthCode } = require('./email');
+const { sendAuthCode, sendContactEmail } = require('./email');
 const app = express();
 const PORT = process.env.PORT || 9001;
 
@@ -1220,6 +1220,28 @@ cron.schedule('0 */6 * * *', async () => {
     } catch (err) {
         console.error('[⏰ Cron] Auth code cleanup error:', err.message);
     }
+});
+
+// Contact form
+app.post('/api/contact', express.json(), async (req, res) => {
+  const { name, email, message } = req.body || {};
+
+  if (!name || !email || !message) {
+    return res.status(400).json({ error: 'Champs manquants' });
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return res.status(400).json({ error: 'Email invalide' });
+  }
+  if (message.length > 2000) {
+    return res.status(400).json({ error: 'Message trop long' });
+  }
+
+  const result = await sendContactEmail(name.trim(), email.trim(), message.trim());
+  if (!result.success) {
+    return res.status(500).json({ error: 'Erreur envoi email' });
+  }
+
+  res.json({ success: true });
 });
 
 // Initialize DB then start server

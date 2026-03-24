@@ -181,6 +181,7 @@
         <a href="#how-it-works" class="header__link">Comment &ccedil;a marche</a>
         <a href="#pricing" class="header__link">Tarifs</a>
         <a href="#faq" class="header__link">FAQ</a>
+        <a href="#contact" class="header__link">Contact</a>
       </nav>
 
       <div class="header__cta">
@@ -202,6 +203,7 @@
     <a href="#how-it-works" class="mobile-nav__link" data-mobile-link>Comment &ccedil;a marche</a>
     <a href="#pricing" class="mobile-nav__link" data-mobile-link>Tarifs</a>
     <a href="#faq" class="mobile-nav__link" data-mobile-link>FAQ</a>
+    <a href="#contact" class="mobile-nav__link" data-mobile-link>Contact</a>
     <div class="mobile-nav__cta">
       <a href="https://app.carlytics.fr/login" class="btn btn--secondary">Connexion</a>
       <a href="https://chromewebstore.google.com/detail/enckjhmbkcinkhihbmehnkehflbcgdno" class="btn btn--primary">🧩 Ajouter à Chrome</a>
@@ -867,6 +869,75 @@
         </a>
       </div>
       <p class="cta-section__note">Indicateur gratuit &middot; Sans engagement &middot; Sans carte bancaire</p>
+    </div>
+  </section>
+
+  <!-- ============================
+       Contact
+       ============================ -->
+  <section id="contact" class="contact-section reveal">
+    <div class="container">
+      <h2 class="section-title">Nous contacter</h2>
+      <p class="section-subtitle mx-auto">Une question, un problème ou une suggestion&nbsp;? On vous répond sous 24h.</p>
+      <form class="contact-form" id="contact-form">
+        <div class="contact-form__row">
+          <div class="contact-form__group">
+            <label for="contact-name">Nom</label>
+            <input type="text" id="contact-name" placeholder="Votre nom" required>
+          </div>
+          <div class="contact-form__group">
+            <label for="contact-email">Email</label>
+            <input type="email" id="contact-email" placeholder="votre@email.com" required>
+          </div>
+        </div>
+        <div class="contact-form__group">
+          <label for="contact-message">Message</label>
+          <textarea id="contact-message" rows="5" placeholder="Décrivez votre demande..." required></textarea>
+        </div>
+        <div class="contact-form__footer">
+          <button type="submit" class="btn btn--primary btn--lg" id="contact-submit">Envoyer le message &rarr;</button>
+          <span class="contact-form__alt">ou écrivez directement à <a href="mailto:contact@carlytics.fr">contact@carlytics.fr</a></span>
+        </div>
+        <p id="contact-feedback" style="display:none; margin-top:12px; font-size:0.9rem;"></p>
+      </form>
+      <script>
+        document.getElementById('contact-form').addEventListener('submit', async function(e) {
+          e.preventDefault();
+          const btn = document.getElementById('contact-submit');
+          const feedback = document.getElementById('contact-feedback');
+          btn.disabled = true;
+          btn.textContent = 'Envoi en cours…';
+          feedback.style.display = 'none';
+
+          try {
+            const res = await fetch('https://api.carlytics.fr/api/contact', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                name: document.getElementById('contact-name').value,
+                email: document.getElementById('contact-email').value,
+                message: document.getElementById('contact-message').value,
+              })
+            });
+
+            if (res.ok) {
+              feedback.style.color = '#16a34a';
+              feedback.textContent = 'Message envoyé ! On vous répond sous 24h.';
+              this.reset();
+            } else {
+              throw new Error('Erreur serveur');
+            }
+          } catch {
+            feedback.style.color = '#dc2626';
+            feedback.textContent = 'Erreur lors de l\'envoi. Écrivez-nous directement à contact@carlytics.fr';
+            btn.disabled = false;
+            btn.textContent = 'Envoyer le message →';
+          }
+          feedback.style.display = 'block';
+          btn.disabled = false;
+          if (btn.textContent === 'Envoi en cours…') btn.textContent = 'Envoyer le message →';
+        });
+      </script>
     </div>
   </section>
 
