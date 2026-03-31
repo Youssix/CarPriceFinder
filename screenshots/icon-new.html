@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 128px; height: 128px; overflow: hidden;
+    background: #0a0f1e;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+</style>
+</head>
+<body>
+<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Background gradient -->
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f172a"/>
+      <stop offset="100%" style="stop-color:#1e1b4b"/>
+    </linearGradient>
+    <!-- C gradient -->
+    <linearGradient id="cGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6"/>
+      <stop offset="100%" style="stop-color:#8b5cf6"/>
+    </linearGradient>
+    <!-- Glow filter -->
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <!-- Subtle inner shadow -->
+    <filter id="innerGlow">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+
+  <!-- Background rounded square -->
+  <rect width="128" height="128" rx="28" fill="url(#bg)"/>
+
+  <!-- Subtle grid lines for depth -->
+  <line x1="0" y1="64" x2="128" y2="64" stroke="rgba(255,255,255,0.03)" stroke-width="1"/>
+  <line x1="64" y1="0" x2="64" y2="128" stroke="rgba(255,255,255,0.03)" stroke-width="1"/>
+
+  <!-- Glow orb behind C -->
+  <circle cx="64" cy="64" r="38" fill="rgba(59,130,246,0.12)"/>
+
+  <!-- The C letter — arc path, thick stroke -->
+  <path
+    d="M 88 38
+       A 36 36 0 1 0 88 90"
+    fill="none"
+    stroke="url(#cGrad)"
+    stroke-width="14"
+    stroke-linecap="round"
+    filter="url(#glow)"
+  />
+
+  <!-- Small accent dot at top tip -->
+  <circle cx="88" cy="38" r="5" fill="#60a5fa" opacity="0.9"/>
+  <!-- Small accent dot at bottom tip -->
+  <circle cx="88" cy="90" r="5" fill="#a78bfa" opacity="0.9"/>
+
+  <!-- Tiny spark dot top-right -->
+  <circle cx="100" cy="28" r="2.5" fill="#3b82f6" opacity="0.6"/>
+  <circle cx="108" cy="36" r="1.5" fill="#8b5cf6" opacity="0.5"/>
+</svg>
+</body>
+</html>

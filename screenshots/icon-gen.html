@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8">
+<style>
+  body { margin: 0; background: #fff; display: flex; flex-direction: column; align-items: center; padding: 30px; gap: 20px; font-family: sans-serif; }
+</style>
+</head>
+<body>
+<canvas id="c" width="128" height="128"></canvas>
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const W = 128, H = 128;
+
+// ── Background rounded rect ──────────────────────────────────
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+// Background
+const bg = ctx.createLinearGradient(0, 0, 128, 128);
+bg.addColorStop(0, '#1a2a6c');
+bg.addColorStop(1, '#0f1b4d');
+roundRect(ctx, 0, 0, W, H, 20);
+ctx.fillStyle = bg;
+ctx.fill();
+
+// ── White circle ─────────────────────────────────────────────
+const cx = 36, cy = 64, cr = 24;
+ctx.beginPath();
+ctx.arc(cx, cy, cr, 0, Math.PI * 2);
+ctx.fillStyle = 'white';
+ctx.fill();
+
+// ── Car silhouette (dark, inside circle) ─────────────────────
+ctx.save();
+ctx.beginPath();
+ctx.arc(cx, cy, cr, 0, Math.PI * 2);
+ctx.clip();
+
+ctx.fillStyle = '#1a2a6c';
+
+// Body
+const bx = cx - 14, by = cy + 4, bw = 28, bh = 11;
+ctx.beginPath();
+ctx.roundRect(bx, by, bw, bh, 3);
+ctx.fill();
+
+// Cabin
+ctx.beginPath();
+ctx.moveTo(cx - 11, by);
+ctx.bezierCurveTo(cx - 9, cy - 9, cx + 7, cy - 9, cx + 10, by);
+ctx.closePath();
+ctx.fill();
+
+// Wheels
+for (const wx of [cx - 7, cx + 8]) {
+  const wy = by + bh - 1;
+  ctx.beginPath();
+  ctx.arc(wx, wy, 5, 0, Math.PI * 2);
+  ctx.fillStyle = 'white';
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(wx, wy, 2, 0, Math.PI * 2);
+  ctx.fillStyle = '#1a2a6c';
+  ctx.fill();
+}
+ctx.restore();
+
+// ── Text "Carlytics" ──────────────────────────────────────────
+ctx.fillStyle = 'white';
+ctx.font = 'bold 17px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+ctx.textBaseline = 'middle';
+ctx.textAlign = 'left';
+// Measure to center in right zone [63..122]
+const textW = ctx.measureText('Carlytics').width;
+const tx = 63 + (60 - textW) / 2;
+ctx.fillText('Carlytics', tx, H / 2);
+
+// Export
+window._png = canvas.toDataURL('image/png');
+window._ready = true;
+</script>
+</body>
+</html>

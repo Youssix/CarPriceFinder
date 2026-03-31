@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"></head>
+<body>
+<canvas id="c128" width="128" height="128"></canvas>
+<canvas id="c48" width="48" height="48"></canvas>
+<canvas id="c16" width="16" height="16"></canvas>
+
+<script>
+function drawIcon(canvas) {
+  const ctx = canvas.getContext('2d');
+  const S = canvas.width;
+  const s = S / 128;
+
+  // Fond noir avec dégradé subtil
+  const grad = ctx.createLinearGradient(0, 0, S, S);
+  grad.addColorStop(0, '#1f2937');
+  grad.addColorStop(1, '#111827');
+  ctx.beginPath();
+  ctx.roundRect(0, 0, S, S, 22 * s);
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  const cx = S / 2, cy = S / 2;
+
+  // Cercle blanc
+  ctx.beginPath();
+  ctx.arc(cx, cy, 46 * s, 0, Math.PI * 2);
+  ctx.strokeStyle = 'white';
+  ctx.lineWidth = 6 * s;
+  ctx.stroke();
+
+  // Voiture — corps
+  ctx.fillStyle = 'white';
+  ctx.beginPath();
+  ctx.roundRect(cx - 28*s, cy + 8*s, 56*s, 18*s, 5*s);
+  ctx.fill();
+
+  // Toit
+  ctx.beginPath();
+  ctx.moveTo(cx - 18*s, cy + 8*s);
+  ctx.bezierCurveTo(cx - 14*s, cy - 14*s, cx + 14*s, cy - 14*s, cx + 18*s, cy + 8*s);
+  ctx.closePath();
+  ctx.fill();
+
+  // Roues — trous
+  ctx.beginPath(); ctx.arc(cx - 16*s, cy + 26*s, 8*s, 0, Math.PI*2);
+  ctx.fillStyle = '#1f2937'; ctx.fill();
+  ctx.beginPath(); ctx.arc(cx + 16*s, cy + 26*s, 8*s, 0, Math.PI*2); ctx.fill();
+
+  // Jantes
+  ctx.beginPath(); ctx.arc(cx - 16*s, cy + 26*s, 3.5*s, 0, Math.PI*2);
+  ctx.fillStyle = 'white'; ctx.fill();
+  ctx.beginPath(); ctx.arc(cx + 16*s, cy + 26*s, 3.5*s, 0, Math.PI*2); ctx.fill();
+}
+
+const c128 = document.getElementById('c128');
+const c48  = document.getElementById('c48');
+const c16  = document.getElementById('c16');
+
+drawIcon(c128);
+drawIcon(c48);
+drawIcon(c16);
+
+// Export automatique après rendu
+setTimeout(() => {
+  window._png128 = c128.toDataURL('image/png');
+  window._png48  = c48.toDataURL('image/png');
+  window._png16  = c16.toDataURL('image/png');
+  window._ready  = true;
+}, 200);
+</script>
+</body>
+</html>
