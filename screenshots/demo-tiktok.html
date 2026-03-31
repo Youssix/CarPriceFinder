@@ -6,10 +6,18 @@
 <title>Carlytics TikTok Demo</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { width: 100%; height: 100%; background: #000; }
   body {
-    width: 390px; height: 844px; overflow: hidden;
+    width: 100%; height: 100%;
+    display: flex; justify-content: center; align-items: center;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #000;
+  }
+  .wrapper {
+    width: 390px; height: 844px; overflow: hidden;
     background: linear-gradient(170deg, #0a0f1e 0%, #0f172a 50%, #0a1628 100%);
+    position: relative;
+    flex-shrink: 0;
   }
 
   /* ── TOP BRANDING ── */
@@ -179,7 +187,7 @@
     font-size: 6px; padding: 1px 5px; border-radius: 8px; font-weight: 700;
     font-family: -apple-system, sans-serif;
   }
-  .s-c-badge.hot { background: rgba(239,68,68,0.2); color: #f87171; }
+  .s-c-badge.hot { background: rgba(16,185,129,0.2); color: #10b981; }
   .s-c-badge.ok { background: rgba(16,185,129,0.15); color: #10b981; }
   .s-c-body { padding: 4px 6px; }
   .s-price-row { display: flex; gap: 3px; }
@@ -190,8 +198,8 @@
   .s-pbox-label { font-size: 5.5px; color: rgba(255,255,255,0.4); font-family: -apple-system, sans-serif; text-transform: uppercase; }
   .s-pbox-value { font-size: 8px; font-weight: 800; color: #fff; font-family: -apple-system, sans-serif; margin-top: 1px; }
   .s-pbox.lbc .s-pbox-value { color: #60a5fa; }
-  .s-pbox.mhot { background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.2); }
-  .s-pbox.mhot .s-pbox-value { color: #f87171; }
+  .s-pbox.mhot { background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.2); }
+  .s-pbox.mhot .s-pbox-value { color: #10b981; }
   .s-pbox.mgood .s-pbox-value { color: #10b981; }
 
   /* Loading in screen */
@@ -272,7 +280,7 @@
 
   /* ── INTRO ── */
   .intro {
-    position: fixed; inset: 0; z-index: 200;
+    position: absolute; inset: 0; z-index: 200;
     background: linear-gradient(160deg, #0a0f1e 0%, #0f172a 100%);
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
     transition: opacity 0.7s;
@@ -300,6 +308,7 @@
 </style>
 </head>
 <body>
+<div class="wrapper">
 
 <!-- INTRO -->
 <div class="intro" id="intro">
@@ -446,9 +455,11 @@
 <div class="bottom-cta" id="bottom-cta">
   <div class="cta-label">🔗 Extension Chrome gratuite</div>
   <div class="cta-url">carlytics.fr</div>
-  <div class="cta-badge">✓ 5 analyses offertes</div>
-  <div class="cta-sub">Disponible sur le Chrome Web Store</div>
+  <div class="cta-badge">✓ Gratuit · Sans carte bancaire</div>
+  <div class="cta-sub">Indicateur 🟢🟡🔴 illimité sur chaque voiture</div>
 </div>
+
+</div><!-- /wrapper -->
 
 <script>
   function show(id) { document.getElementById(id).classList.add('visible'); }
