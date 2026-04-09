@@ -21,10 +21,10 @@ function getStripe() {
 }
 
 // Mapping plan → variable d'environnement
+// ⚠️ Un seul plan payant depuis pricing v2 (2026-04). Les entrees Starter/Agency
+// ont ete retirees — elles seront reajoutees reactivement si un prospect le demande.
 const PLAN_PRICE_MAP = {
-  starter: process.env.STRIPE_PRICE_ID_STARTER,
-  pro:     process.env.STRIPE_PRICE_ID_PRO,
-  agency:  process.env.STRIPE_PRICE_ID_AGENCY,
+  pro: process.env.STRIPE_PRICE_ID_PRO,
 };
 
 // POST /api/create-checkout-session
