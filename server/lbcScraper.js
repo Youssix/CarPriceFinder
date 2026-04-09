@@ -764,7 +764,12 @@ app.get("/api/estimation", optionalApiKeyAuth, async (req, res) => {
     // Helper: execute one LBC search and return filtered ads
     async function lbcSearch(searchPayload) {
         const scraperApiKey = process.env.SCRAPERAPI_KEY;
-        const lbcUrl = "https://api.leboncoin.fr/api/adSearch/v4/ads";
+        // ⚠️ LBC a migré son API mobile le ~mars 2026 :
+        //   AVANT: https://api.leboncoin.fr/api/adSearch/v4/ads (404 depuis migration)
+        //   APRÈS: https://api.leboncoin.fr/finder/search
+        // Les anciens headers mobiles (api_key: ba0c2dad52b3ec) continuent de fonctionner.
+        // Le format de réponse est identique : { ads: [...] } avec price_cents, subject, attributes[]
+        const lbcUrl = "https://api.leboncoin.fr/finder/search";
         // When using ScraperAPI, use minimal headers (full mobile headers break DataDome via proxy)
         const headersToUse = scraperApiKey
             ? { 'api_key': process.env.LBC_API_KEY, 'Content-Type': 'application/json' }
