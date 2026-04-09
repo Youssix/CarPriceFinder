@@ -789,7 +789,9 @@ app.get("/api/estimation", optionalApiKeyAuth, async (req, res) => {
             ? `http://api.scraperapi.com?api_key=${scraperApiKey}&url=${encodeURIComponent(lbcUrl)}&keep_headers=true&premium=true&country_code=fr`
             : lbcUrl;
         const controller = new AbortController();
-        const abortTimer = setTimeout(() => controller.abort(), 1200);
+        // ScraperAPI (proxy résidentiel) ajoute 3-10s de latence → timeout plus long quand actif
+        const timeoutMs = scraperApiKey ? 15000 : 1200;
+        const abortTimer = setTimeout(() => controller.abort(), timeoutMs);
         let response;
         try {
             response = await fetch(fetchUrl, {
@@ -800,7 +802,7 @@ app.get("/api/estimation", optionalApiKeyAuth, async (req, res) => {
             });
         } catch (e) {
             clearTimeout(abortTimer);
-            if (e.name === 'AbortError') { console.warn('[⏱️ LBC] Timeout 1.2s — returning []'); return []; }
+            if (e.name === 'AbortError') { console.warn(`[⏱️ LBC] Timeout ${timeoutMs}ms — returning []`); return []; }
             throw e;
         }
         clearTimeout(abortTimer);
