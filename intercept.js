@@ -772,8 +772,12 @@
 
             // 🎁 First reveal (pricing v2) : si l'user n'est pas payant et n'a pas encore
             // consomme son reveal gratuit, on affiche les chiffres UNE fois et on pose le flag.
+            // NB : on ne consomme le reveal QUE si on a une vraie donnee LBC a montrer
+            // (estimatedPrice non null). Sinon l'user perdrait son aperçu offert sans
+            // rien voir, ce qui est injuste (meme logique que bca-intercept.js).
             let isFirstReveal = false;
-            if (!effectiveIsPaid) {
+            const hasRealLbcDataAuto1 = data.estimatedPrice != null;
+            if (!effectiveIsPaid && hasRealLbcDataAuto1) {
               const alreadyUsed = await getFirstRevealUsed();
               if (!alreadyUsed) {
                 effectiveIsPaid = true;
@@ -863,6 +867,7 @@
     const baseEstimate = analysisData.estimatedPrice || "N/A";
     const adjustedEstimate = analysisData.adjustedPrice || baseEstimate;
     const marketPrice = adjustedEstimate !== "N/A" ? parseInt(adjustedEstimate) : null;
+    const hasLbcData = marketPrice !== null && marketPrice !== undefined;
 
     let profit = 0;
     let profitPercent = 0;
@@ -874,8 +879,12 @@
       isProfit = profit > 0;
     }
 
-    // Indicateur couleur + label calcule une seule fois, utilise dans les 2 branches
-    const marginIndicator = computeMarginIndicator(profitPercent, isProfit);
+    // Indicateur couleur + label : seulement quand on a une marge calculable.
+    // Sinon on affiche un etat "pas de donnees LBC" propre, sinon le plugin
+    // renverrait 🔴 "À éviter" par défaut → faux positif trompeur pour un dealer.
+    const marginIndicator = hasLbcData
+      ? computeMarginIndicator(profitPercent, isProfit)
+      : { emoji: 'ℹ️', label: 'Aucune donnée LBC', color: '#95a5a6' };
 
     if (!isPaid) {
       // 🆓 GRATUIT: indicateur couleur + chiffres masqués + CTA upgrade
@@ -895,7 +904,7 @@
         font-size: 13px;
       `;
 
-      // Ligne 1 : indicateur + chiffres floutés
+      // Ligne 1 : indicateur + chiffres floutés (ou message "pas de data")
       const topRow = document.createElement('div');
       topRow.style = 'display: flex; align-items: center; gap: 10px;';
 
@@ -905,11 +914,17 @@
 
       const maskedSpan = document.createElement('span');
       maskedSpan.style = 'color: rgba(255,255,255,0.5); font-size: 12px; flex: 1;';
-      const blurredNums = document.createElement('span');
-      blurredNums.style = 'filter: blur(5px); color: #ccc; user-select: none; display: inline-block; letter-spacing: 1px;';
-      blurredNums.textContent = '12 345€ → 16 500€  (+4 155€)';
-      maskedSpan.appendChild(document.createTextNode('Marge estimée : '));
-      maskedSpan.appendChild(blurredNums);
+      if (hasLbcData) {
+        // Data dispo : afficher un placeholder flouté comme teaser
+        const blurredNums = document.createElement('span');
+        blurredNums.style = 'filter: blur(5px); color: #ccc; user-select: none; display: inline-block; letter-spacing: 1px;';
+        blurredNums.textContent = '12 345€ → 16 500€  (+4 155€)';
+        maskedSpan.appendChild(document.createTextNode('Marge estimée : '));
+        maskedSpan.appendChild(blurredNums);
+      } else {
+        // Pas de data LBC : message clair, pas de faux blur
+        maskedSpan.textContent = 'Pas de données LBC pour ce modèle';
+      }
 
       topRow.appendChild(indicatorSpan);
       topRow.appendChild(maskedSpan);
