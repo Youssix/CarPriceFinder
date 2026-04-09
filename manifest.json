@@ -1,14 +1,15 @@
 {
   "manifest_version": 3,
   "name": "Carlytics – Analyse de prix véhicules d'occasion",
-  "version": "2.2",
+  "version": "2.3",
   "description": "Analysez les prix du marché VO en temps réel. Détectez les meilleures opportunités d'achat et estimez vos marges.",
   "background": {
     "service_worker": "background.js"
   },
-  "permissions": ["activeTab", "storage"],
+  "permissions": ["activeTab", "storage", "tabs"],
   "host_permissions": [
     "https://api.carlytics.fr/*",
+    "https://app.carlytics.fr/*",
     "https://www.bcautoencheres.fr/*"
   ],
   "icons": {
@@ -34,6 +35,11 @@
       "matches": ["https://www.bcautoencheres.fr/Lot*"],
       "js": ["bca-inject.js", "content-bridge.js"],
       "run_at": "document_start"
+    },
+    {
+      "matches": ["https://app.carlytics.fr/*"],
+      "js": ["dashboard-sync.js"],
+      "run_at": "document_idle"
     }
   ],
   "web_accessible_resources": [
