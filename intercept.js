@@ -43,6 +43,50 @@
     });
   }
 
+  // --- First reveal (pricing v2) ---
+  // Lit/ecrit le flag firstRevealUsed via le bridge storage (meme mecanique
+  // que loadExtensionSettings). Utilise en flow : si l'user n'est pas payant
+  // et n'a pas encore consomme son reveal, on affiche les chiffres UNE fois
+  // et on set le flag immediatement.
+  function getFirstRevealUsed() {
+    return new Promise((resolve) => {
+      const requestId = 'fru_get_' + Math.random().toString(36).substr(2, 9);
+      const timer = setTimeout(() => {
+        window.removeEventListener('message', handler);
+        resolve(false); // fail-open : si le bridge ne repond pas, on considere non-consomme
+      }, 2000);
+
+      function handler(event) {
+        if (event.source !== window) return;
+        const msg = event.data;
+        if (!msg || msg.type !== 'STORAGE_RESPONSE' || msg.requestId !== requestId) return;
+        clearTimeout(timer);
+        window.removeEventListener('message', handler);
+        resolve(msg.data && msg.data.firstRevealUsed === true);
+      }
+
+      window.addEventListener('message', handler);
+      window.postMessage({
+        type: 'STORAGE_REQUEST',
+        action: 'get',
+        keys: ['firstRevealUsed'],
+        requestId
+      }, '*');
+    });
+  }
+
+  function setFirstRevealUsed() {
+    const requestId = 'fru_set_' + Math.random().toString(36).substr(2, 9);
+    window.postMessage({
+      type: 'STORAGE_REQUEST',
+      action: 'set',
+      data: { firstRevealUsed: true },
+      requestId
+    }, '*');
+    // Fire-and-forget : on n'attend pas la confirmation, le flag sera set
+    // avant le prochain render.
+  }
+
   // Listen for messages pushed by content-bridge.js (relayed from popup)
   window.addEventListener('message', (event) => {
     if (event.source !== window) return;
@@ -681,8 +725,28 @@
               loadingElement.remove();
             }
 
+            // 🔐 Source de vérité = serveur (data.isPaid). Évite de fake isPaid côté client.
+            // Si le serveur dit isPaid=false, on respecte même si extensionSettings.isPaid=true (apiKey rotated).
+            let effectiveIsPaid = data.isPaid === true;
+            if (effectiveIsPaid !== isPaid) {
+              console.log(`[🔐 Auth] Server isPaid=${effectiveIsPaid} (local cache=${isPaid}) — using server as source of truth`);
+            }
+
+            // 🎁 First reveal (pricing v2) : si l'user n'est pas payant et n'a pas encore
+            // consomme son reveal gratuit, on affiche les chiffres UNE fois et on pose le flag.
+            let isFirstReveal = false;
+            if (!effectiveIsPaid) {
+              const alreadyUsed = await getFirstRevealUsed();
+              if (!alreadyUsed) {
+                effectiveIsPaid = true;
+                isFirstReveal = true;
+                setFirstRevealUsed();
+                console.log('[🎁 First reveal] Voiture offerte — flag firstRevealUsed pose');
+              }
+            }
+
             // Render result
-            renderCarAnalysis(card, carDataForAI, data, euros, isPaid);
+            renderCarAnalysis(card, carDataForAI, data, euros, effectiveIsPaid, isFirstReveal);
 
             console.log(`[✅ VEHICULE ${i}] Analysis complete for ${stockId} (${data.aiAnalysis?.detectedOptions?.length || 0} options detected)`);
           })
@@ -752,7 +816,7 @@
     return div.innerHTML;
   }
 
-  function renderCarAnalysis(card, carData, analysisData, euros, isPaid) {
+  function renderCarAnalysis(card, carData, analysisData, euros, isPaid, isFirstReveal = false) {
     const pluginPriceDiv = document.createElement("div");
     pluginPriceDiv.className = "plugin-price";
 
@@ -893,6 +957,27 @@
 
       pluginPriceDiv.appendChild(pricesSection);
       pluginPriceDiv.appendChild(buttonsContainer);
+
+      // 🎁 Badge first reveal : informe l'user que c'est un one-shot gratuit
+      if (isFirstReveal) {
+        const giftBadge = document.createElement('div');
+        giftBadge.style = `
+          margin-top: 8px;
+          padding: 6px 10px;
+          background: linear-gradient(135deg, #f59e0b, #f97316);
+          color: white;
+          border-radius: 4px;
+          font-size: 11px;
+          font-weight: 600;
+          text-align: center;
+          width: 100%;
+        `;
+        giftBadge.innerHTML = '🎁 <strong>Aperçu offert</strong> — passe Pro (89€/mois) pour voir les chiffres sur toutes les voitures';
+        // On remplace le flex par un bloc pour que le badge passe en dessous
+        pluginPriceDiv.style.flexDirection = 'column';
+        pluginPriceDiv.style.alignItems = 'stretch';
+        pluginPriceDiv.appendChild(giftBadge);
+      }
     }
 
     // Insertion dans la page
