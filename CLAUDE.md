@@ -186,11 +186,14 @@ This is being productized as a **SaaS platform** for car dealers:
 
 **Ce que voit un utilisateur non-abonné :**
 - L'analyse tourne, les emojis (🟢🟡🔴) s'affichent = il voit si c'est une bonne affaire ou non
-- Les chiffres exacts (prix LBC, marge en €) sont **floutés**
-- Message d'upgrade affiché pour débloquer les chiffres
+- **Première voiture offerte** : les chiffres (prix LBC ajusté + marge €) sont visibles en clair UNE fois, avec un badge "🎁 Aperçu offert". Flag `firstRevealUsed` posé après consommation.
+- Voitures suivantes : chiffres **floutés** + message d'upgrade
+- Le flag est partagé entre Auto1 et BCA (1 seul reveal en tout, pas 1 par site)
 
-**Ce que voit un abonné :**
-- Tout débloqué : prix marché ajusté, marge estimée en €, options détectées
+**Ce que voit un abonné Pro :**
+- Tout débloqué : prix marché ajusté, marge estimée en €
+- Alertes push illimitées
+- Single-session : une seule connexion simultanée par compte (anti-sharing via rotation d'apiKey à chaque login)
 
 **Formule de communication EXTERNE (prospects, emails, posts) :**
 → **"Gratuit pour tester, sans carte bancaire"**
@@ -357,14 +360,17 @@ docker compose ps                        # État des containers
 
 ## Pricing Actuel
 
-| Plan | Prix | Analyses/mois | Alertes |
-|------|------|---------------|---------|
-| Starter | 49€/mois | 200 | 3 |
-| Pro | 89€/mois | Illimitées | 10 |
-| Agence | 149€/mois | Illimitées | Illimitées |
+**1 seul plan payant depuis avril 2026 (pricing v2).** Voir
+`docs/superpowers/specs/2026-04-09-pricing-v2-design.md` pour le spec complet.
 
-- **Freemium** : gratuit pour tester (emojis visibles, chiffres floutés pour non-abonnés)
+| Plan | Prix | Contenu |
+|------|------|---------|
+| Free | 0€ | Emojis 🟢🟡🔴 sur Auto1 + BCA, **première voiture offerte** (chiffres visibles one-shot) |
+| Pro | 89€/mois | Chiffres LBC + marge, alertes illimitées, single-session anti-sharing |
+
+- **Freemium** : gratuit pour tester, sans carte bancaire. Flag `firstRevealUsed` en `chrome.storage.local` (per install, pas per email).
 - Codes promo activés sur Stripe Checkout
+- Plans Starter (49€) et Agence (149€) : **retirés** du code et du pitch. Reviennent réactivement si un prospect le demande explicitement.
 
 ## Authentication Flow
 
