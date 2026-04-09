@@ -191,15 +191,20 @@
     const existing = document.getElementById(CARD_ID);
     if (existing) existing.remove();
 
-    const margin = analysis.adjustedPrice
-      ? Math.round(analysis.adjustedPrice - currentBid)
+    // ⚠️ L'API serveur renvoie estimatedPrice (pas adjustedPrice ni baseLbcPrice).
+    // Le freemium est géré côté extension via extensionSettings.isPaid,
+    // pas via un champ serveur (cohérent avec intercept.js Auto1).
+    const marketPrice = analysis.estimatedPrice || null;
+    const margin = marketPrice !== null
+      ? Math.round(marketPrice - currentBid)
       : null;
 
     const marginEmoji = margin === null ? '⏳' : margin > 500 ? '🟢' : margin > 0 ? '🟡' : '🔴';
-    const isSubscribed = analysis.subscribed !== false;
+    const isPaid = extensionSettings.isPaid === true;
+    const isLoggedIn = extensionSettings.apiKey && extensionSettings.apiKey.trim() !== '';
 
     const formatPrice = (p) => p ? `${Math.round(p).toLocaleString('fr-FR')} €` : '—';
-    const blurClass = isSubscribed ? '' : 'style="filter:blur(5px);user-select:none"';
+    const blurClass = isPaid ? '' : 'style="filter:blur(5px);user-select:none"';
 
     const card = document.createElement('div');
     card.id = CARD_ID;
@@ -233,20 +238,53 @@
         </div>
         <div style="background:#f8f9fa;border-radius:8px;padding:8px;text-align:center">
           <div style="font-size:11px;color:#666;margin-bottom:2px">Prix marché LBC</div>
-          <div style="font-weight:700;font-size:15px" ${blurClass}>${formatPrice(analysis.adjustedPrice || analysis.baseLbcPrice)}</div>
+          <div style="font-weight:700;font-size:15px" ${blurClass}>${isPaid ? formatPrice(marketPrice) : '•• ••• €'}</div>
         </div>
       </div>
-      <div style="background:${margin > 500 ? '#d5f4e6' : margin > 0 ? '#fef9e7' : '#fdecea'};border-radius:8px;padding:10px;text-align:center">
+      <div style="background:${margin !== null && margin > 500 ? '#d5f4e6' : margin !== null && margin > 0 ? '#fef9e7' : '#fdecea'};border-radius:8px;padding:10px;text-align:center">
         <div style="font-size:12px;color:#666;margin-bottom:2px">Marge estimée</div>
-        <div style="font-size:22px;font-weight:800" ${blurClass}>${marginEmoji} ${isSubscribed && margin !== null ? formatPrice(margin) : '•••'}</div>
+        <div style="font-size:22px;font-weight:800">${marginEmoji} <span ${blurClass}>${isPaid && margin !== null ? formatPrice(margin) : '•• ••• €'}</span></div>
       </div>
-      ${analysis.detectedOptions?.length ? `<div style="margin-top:8px;font-size:11px;color:#666">Options : ${analysis.detectedOptions.join(', ')}</div>` : ''}
-      ${!isSubscribed ? `<div style="margin-top:8px;font-size:11px;text-align:center"><a href="https://app.carlytics.fr" target="_blank" style="color:#3498db;text-decoration:none">Débloquer les chiffres →</a></div>` : ''}
-      ${analysis.fromCache ? `<div style="margin-top:6px;font-size:10px;color:#aaa;text-align:right">📦 Depuis le cache</div>` : ''}
     `;
 
+    // CTA upgrade (seulement si pas Premium) — même pattern que intercept.js Auto1
+    if (!isPaid) {
+      const upgradeWrapper = document.createElement('div');
+      upgradeWrapper.style.cssText = 'margin-top:10px;text-align:center';
+
+      const upgradeUrl = isLoggedIn
+        ? 'https://app.carlytics.fr/upgrade'
+        : 'https://app.carlytics.fr/signup';
+
+      const upgradeLink = document.createElement('a');
+      upgradeLink.href = upgradeUrl;
+      upgradeLink.target = '_blank';
+      upgradeLink.rel = 'noopener noreferrer';
+      upgradeLink.style.cssText = `
+        display: block;
+        padding: 8px 12px;
+        background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+        color: white;
+        border-radius: 6px;
+        text-decoration: none;
+        font-size: 12px;
+        font-weight: 600;
+      `;
+      upgradeLink.textContent = isLoggedIn
+        ? '⭐ Débloquer les chiffres — Passer Premium'
+        : '🔓 Voir les chiffres — Créer un compte gratuit';
+      upgradeLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        console.log('[🎯 Carlytics BCA] Upgrade click →', upgradeUrl);
+        window.open(upgradeUrl, '_blank', 'noopener,noreferrer');
+      });
+
+      upgradeWrapper.appendChild(upgradeLink);
+      card.appendChild(upgradeWrapper);
+    }
+
     document.body.appendChild(card);
-    console.log('[🎯 Carlytics BCA] Carte injectée', { vehicle, currentBid, margin });
+    console.log('[🎯 Carlytics BCA] Carte injectée', { vehicle, currentBid, marketPrice, margin, isPaid });
   }
 
   function showLoadingCard(vehicle, currentBid) {
