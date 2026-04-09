@@ -807,9 +807,15 @@ app.get("/api/estimation", optionalApiKeyAuth, async (req, res) => {
         }
         clearTimeout(abortTimer);
         const text = await response.text();
-        if (!text || text.length < 10) return [];
+        if (!text || text.length < 10) {
+            console.warn(`[⚠️ LBC] Empty response (status=${response.status}, length=${text ? text.length : 0}, body="${text || ''}")`);
+            return [];
+        }
         let data;
-        try { data = JSON.parse(text); } catch (_) { return []; }
+        try { data = JSON.parse(text); } catch (e) {
+            console.warn(`[⚠️ LBC] JSON parse failed (status=${response.status}, length=${text.length}, first200="${text.substring(0, 200)}")`);
+            return [];
+        }
         // Detect DataDome captcha block — skip all fallbacks immediately
         if (!data.ads && data.url && data.url.includes('captcha')) {
             console.warn('[🚫 DataDome] IP bloquée par captcha — skip fallbacks');
