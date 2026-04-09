@@ -32,6 +32,47 @@
     });
   }
 
+  // ─── First reveal (pricing v2) ─────────────────────────────────────────────
+  // Meme pattern qu'intercept.js : lit/ecrit le flag firstRevealUsed via le
+  // bridge storage. Le flag est partage entre Auto1 et BCA (une seule carte
+  // debloquée en tout, pas une par site).
+  function getFirstRevealUsed() {
+    return new Promise((resolve) => {
+      const requestId = 'bca_fru_get_' + Math.random().toString(36).substr(2, 9);
+      const timer = setTimeout(() => {
+        window.removeEventListener('message', handler);
+        resolve(false);
+      }, 2000);
+
+      function handler(event) {
+        if (event.source !== window) return;
+        const msg = event.data;
+        if (!msg || msg.type !== 'STORAGE_RESPONSE' || msg.requestId !== requestId) return;
+        clearTimeout(timer);
+        window.removeEventListener('message', handler);
+        resolve(msg.data && msg.data.firstRevealUsed === true);
+      }
+
+      window.addEventListener('message', handler);
+      window.postMessage({
+        type: 'STORAGE_REQUEST',
+        action: 'get',
+        keys: ['firstRevealUsed'],
+        requestId
+      }, '*');
+    });
+  }
+
+  function setFirstRevealUsed() {
+    const requestId = 'bca_fru_set_' + Math.random().toString(36).substr(2, 9);
+    window.postMessage({
+      type: 'STORAGE_REQUEST',
+      action: 'set',
+      data: { firstRevealUsed: true },
+      requestId
+    }, '*');
+  }
+
   // ─── Brands connus (multi-mots en premier) ────────────────────────────────
   const KNOWN_BRANDS = [
     'Alfa Romeo', 'Aston Martin', 'Land Rover', 'Mercedes-Benz',
@@ -186,21 +227,21 @@
   // ─── Injection de la carte prix ────────────────────────────────────────────
   const CARD_ID = 'carlytics-bca-card';
 
-  function injectCard(vehicle, currentBid, analysis) {
+  function injectCard(vehicle, currentBid, analysis, isFirstReveal = false) {
     // Éviter les doublons
     const existing = document.getElementById(CARD_ID);
     if (existing) existing.remove();
 
     // ⚠️ L'API serveur renvoie estimatedPrice (pas adjustedPrice ni baseLbcPrice).
-    // Le freemium est géré côté extension via extensionSettings.isPaid,
-    // pas via un champ serveur (cohérent avec intercept.js Auto1).
+    // 🔐 isPaid = source de vérité serveur (analysis.isPaid). Si le serveur dit false,
+    // on respecte même si extensionSettings.isPaid=true (cas apiKey rotated).
     const marketPrice = analysis.estimatedPrice || null;
     const margin = marketPrice !== null
       ? Math.round(marketPrice - currentBid)
       : null;
 
     const marginEmoji = margin === null ? '⏳' : margin > 500 ? '🟢' : margin > 0 ? '🟡' : '🔴';
-    const isPaid = extensionSettings.isPaid === true;
+    const isPaid = analysis.isPaid === true;
     const isLoggedIn = extensionSettings.apiKey && extensionSettings.apiKey.trim() !== '';
 
     const formatPrice = (p) => p ? `${Math.round(p).toLocaleString('fr-FR')} €` : '—';
@@ -247,7 +288,26 @@
       </div>
     `;
 
-    // CTA upgrade (seulement si pas Premium) — même pattern que intercept.js Auto1
+    // 🎁 Badge first reveal : si on est en mode "reveal offert" on affiche
+    // le badge et on n'affiche PAS le CTA upgrade (il ne servirait a rien —
+    // les chiffres sont deja visibles en one-shot sur cette carte).
+    if (isFirstReveal) {
+      const giftBadge = document.createElement('div');
+      giftBadge.style.cssText = `
+        margin-top: 10px;
+        padding: 8px 10px;
+        background: linear-gradient(135deg, #f59e0b, #f97316);
+        color: white;
+        border-radius: 6px;
+        font-size: 11px;
+        font-weight: 600;
+        text-align: center;
+      `;
+      giftBadge.innerHTML = '🎁 <strong>Aperçu offert</strong><br>Passe Pro (89€/mois) pour voir les chiffres sur toutes les voitures';
+      card.appendChild(giftBadge);
+    }
+
+    // CTA upgrade (seulement si pas Premium ET pas en first reveal)
     if (!isPaid) {
       const upgradeWrapper = document.createElement('div');
       upgradeWrapper.style.cssText = 'margin-top:10px;text-align:center';
@@ -397,7 +457,22 @@
 
     try {
       const analysis = await callEstimation(vehicleData, currentBidPrice);
-      injectCard(vehicleData, currentBidPrice, analysis);
+
+      // 🎁 First reveal (pricing v2) : si le serveur dit isPaid=false et que
+      // l'utilisateur n'a pas encore consomme son reveal, on flip analysis.isPaid
+      // pour cette carte et on pose le flag.
+      let isFirstReveal = false;
+      if (analysis.isPaid !== true) {
+        const alreadyUsed = await getFirstRevealUsed();
+        if (!alreadyUsed) {
+          analysis.isPaid = true;
+          isFirstReveal = true;
+          setFirstRevealUsed();
+          console.log('[🎁 BCA First reveal] Carte offerte — flag firstRevealUsed pose');
+        }
+      }
+
+      injectCard(vehicleData, currentBidPrice, analysis, isFirstReveal);
     } catch (err) {
       console.error('[❌ BCA] Erreur analyse:', err.message);
       showErrorCard(err.message);
