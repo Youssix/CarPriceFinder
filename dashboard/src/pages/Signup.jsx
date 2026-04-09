@@ -5,9 +5,14 @@ import { useAuth } from '../hooks/useAuth';
 const API_URL = import.meta.env.VITE_API_URL || 'https://api.carlytics.fr';
 
 export default function Signup() {
-  const [step, setStep] = useState('email'); // 'email' | 'code'
+  const [step, setStep] = useState('email'); // 'email' | 'code' | 'setup-password'
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [tempApiKey, setTempApiKey] = useState('');
+  const [tempEmail, setTempEmail] = useState('');
+  const [tempStatus, setTempStatus] = useState('free');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
@@ -51,7 +56,42 @@ export default function Signup() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Code invalide ou expire');
-      login(data.apiKey, data.email, data.status || 'free');
+      // Stocker temporairement et passer au setup mot de passe
+      setTempApiKey(data.apiKey);
+      setTempEmail(data.email);
+      setTempStatus(data.status || 'free');
+      setStep('setup-password');
+    } catch (err) {
+      setError(err.message);
+    }
+    setLoading(false);
+  };
+
+  const handleSetupPassword = async (e) => {
+    e.preventDefault();
+    setError('');
+    if (password.length < 8) {
+      setError('Mot de passe trop court (8 caracteres minimum)');
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError('Les mots de passe ne correspondent pas');
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/api/auth/update-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-Key': tempApiKey,
+        },
+        body: JSON.stringify({ password }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Erreur serveur');
+      // Login + redirect dashboard
+      login(tempApiKey, tempEmail, tempStatus);
       navigate('/');
     } catch (err) {
       setError(err.message);
@@ -64,12 +104,14 @@ export default function Signup() {
       <div className="login-card">
         <h1 className="login-logo">Carlytics</h1>
         <p className="login-subtitle">
-          {step === 'email' ? 'Creer un compte gratuit' : 'Verifiez votre email'}
+          {step === 'email' && 'Creer un compte gratuit'}
+          {step === 'code' && 'Verifiez votre email'}
+          {step === 'setup-password' && 'Choisissez un mot de passe'}
         </p>
 
         {error && <div className="error-message" role="alert">{error}</div>}
 
-        {step === 'email' ? (
+        {step === 'email' && (
           <form onSubmit={handleRequestCode}>
             <div className="form-group">
               <label htmlFor="signup-email">Email</label>
@@ -91,7 +133,9 @@ export default function Signup() {
               Gratuit pour tester, sans carte bancaire
             </p>
           </form>
-        ) : (
+        )}
+
+        {step === 'code' && (
           <form onSubmit={handleVerifyCode}>
             <p style={{ fontSize: '13px', color: 'var(--color-text-secondary)', marginBottom: '16px', textAlign: 'center' }}>
               Un code a 6 chiffres a ete envoye a <strong>{email}</strong>
@@ -113,7 +157,7 @@ export default function Signup() {
               />
             </div>
             <button type="submit" className="btn btn-primary btn-full" disabled={loading || code.length !== 6}>
-              {loading ? 'Verification...' : 'Valider et se connecter'}
+              {loading ? 'Verification...' : 'Valider le code'}
             </button>
             <div style={{ textAlign: 'center', marginTop: '12px' }}>
               <button
@@ -125,6 +169,47 @@ export default function Signup() {
                 Changer d'email
               </button>
             </div>
+          </form>
+        )}
+
+        {step === 'setup-password' && (
+          <form onSubmit={handleSetupPassword}>
+            <p style={{ fontSize: '13px', color: 'var(--color-text-secondary)', marginBottom: '16px', textAlign: 'center' }}>
+              Email verifie. Choisissez un mot de passe pour vous reconnecter facilement.
+            </p>
+            <div className="form-group">
+              <label htmlFor="setup-password">Mot de passe</label>
+              <input
+                id="setup-password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+                autoComplete="new-password"
+                autoFocus
+                minLength={8}
+              />
+            </div>
+            <div className="form-group">
+              <label htmlFor="setup-password-confirm">Confirmer le mot de passe</label>
+              <input
+                id="setup-password-confirm"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+                autoComplete="new-password"
+                minLength={8}
+              />
+            </div>
+            <button type="submit" className="btn btn-primary btn-full" disabled={loading || password.length < 8}>
+              {loading ? 'Enregistrement...' : 'Creer mon compte'}
+            </button>
+            <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', textAlign: 'center', marginTop: '12px' }}>
+              8 caracteres minimum
+            </p>
           </form>
         )}
 

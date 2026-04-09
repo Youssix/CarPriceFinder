@@ -10,6 +10,7 @@ const {
   getSavedVehicles, saveVehicle, deleteSavedVehicle,
   getAlerts, createAlert, updateAlert, deleteAlert,
   createFreeSubscriber,
+  rotateApiKey,
   createAuthCode, verifyAuthCode,
   getObservationStats, getActiveAlertCount, getObservations,
   getRecentDeals, getUnseenAlertMatches, markAlertMatchesSeen,
@@ -323,9 +324,14 @@ app.post('/api/auth/verify-code', async (req, res) => {
             return res.status(403).json({ ok: false, error: 'Compte inactif' });
         }
 
+        // 🔐 Single-session anti-sharing : rotate l'apiKey pour invalider l'ancienne.
+        // Toute session active sur un autre device recevra 401 au prochain call.
+        const newApiKey = await rotateApiKey(subscriber.id);
+        console.log(`[🔐 Auth] apiKey rotated for ${subscriber.email} (verify-code)`);
+
         res.json({
             ok: true,
-            apiKey: subscriber.api_key,
+            apiKey: newApiKey,
             email: subscriber.email,
             status: subscriber.subscription_status,
             isPaid: subscriber.subscription_status === 'active'
@@ -375,8 +381,10 @@ app.post('/api/auth/google', express.json(), async (req, res) => {
             return res.status(403).json({ ok: false, error: 'Abonnement inactif ou expiré' });
         }
 
-        console.log(`[🔐 Auth] Google SSO login: ${email}`);
-        res.json({ ok: true, apiKey: subscriber.api_key, email: subscriber.email });
+        // 🔐 Single-session : rotate apiKey
+        const newApiKey = await rotateApiKey(subscriber.id);
+        console.log(`[🔐 Auth] Google SSO login + apiKey rotated: ${email}`);
+        res.json({ ok: true, apiKey: newApiKey, email: subscriber.email });
 
     } catch (err) {
         console.error('[🔐 Auth] Google SSO error:', err.message);
@@ -401,8 +409,10 @@ app.post('/api/auth/login', express.json(), async (req, res) => {
             return res.status(403).json({ ok: false, error: 'Compte inactif' });
         }
 
-        console.log(`[🔐 Auth] Password login: ${email}`);
-        res.json({ ok: true, apiKey: sub.api_key, email: sub.email, isPaid: sub.subscription_status === 'active' });
+        // 🔐 Single-session : rotate apiKey pour invalider les autres devices
+        const newApiKey = await rotateApiKey(sub.id);
+        console.log(`[🔐 Auth] Password login + apiKey rotated: ${email}`);
+        res.json({ ok: true, apiKey: newApiKey, email: sub.email, isPaid: sub.subscription_status === 'active' });
 
     } catch (err) {
         console.error('[🔐 Auth] Login error:', err.message);
@@ -657,7 +667,8 @@ app.get("/api/estimation", optionalApiKeyAuth, async (req, res) => {
             cacheStats.hits++;
             const hitRate = ((cacheStats.hits / (cacheStats.hits + cacheStats.misses)) * 100).toFixed(1);
             console.log(`[💾 Cache DB] HIT for key: ${hitKey} (hit rate: ${hitRate}%)`);
-            return res.json(cachedResult);
+            // 🔐 isPaid côté serveur (source de vérité, pas le flag client-side)
+            return res.json({ ...cachedResult, isPaid: !!req.subscriber });
         }
         cacheStats.misses++;
     } catch (err) {
@@ -894,7 +905,8 @@ app.get("/api/estimation", optionalApiKeyAuth, async (req, res) => {
             console.log(`[💾 Cache DB] NOT CACHED - No valid LBC price for key: ${primaryCacheKey}`);
         }
 
-        res.json(responseData);
+        // 🔐 isPaid côté serveur (source de vérité, pas le flag client-side)
+        res.json({ ...responseData, isPaid: !!req.subscriber });
 
         // Log observation for ML training (non-blocking)
         if (req.subscriber) {
@@ -913,7 +925,7 @@ app.get("/api/estimation", optionalApiKeyAuth, async (req, res) => {
     } catch (error) {
         if (error.message === 'DATADOME_BLOCKED') {
             // IP banned by DataDome — return graceful empty response (don't show error to user)
-            return res.json({ ok: true, estimatedPrice: null, lowPrice: null, highPrice: null, count: 0, results: [], warning: 'LBC temporairement indisponible' });
+            return res.json({ ok: true, estimatedPrice: null, lowPrice: null, highPrice: null, count: 0, results: [], warning: 'LBC temporairement indisponible', isPaid: !!req.subscriber });
         }
         console.error("❌ Scraping failed:", error);
         res.status(500).json({ ok: false, error: error.message });

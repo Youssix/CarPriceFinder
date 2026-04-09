@@ -43,16 +43,16 @@
     });
   }
 
-  // --- First reveal (pricing v2) ---
-  // Lit/ecrit le flag firstRevealUsed via le bridge storage (meme mecanique
-  // que loadExtensionSettings). Utilise en flow : si l'user n'est pas payant
-  // et n'a pas encore consomme son reveal, on affiche les chiffres UNE fois
-  // et on set le flag immediatement.
+  // --- First reveal Auto1 (pricing v2) ---
+  // Flag SEPARE de BCA : 1 reveal par site (firstRevealUsedAuto1 / firstRevealUsedBca).
+  // Lit/ecrit via le bridge storage. Si l'user n'est pas payant et n'a pas encore
+  // consomme son reveal Auto1, on affiche les chiffres UNE fois et on set le flag.
   function getFirstRevealUsed() {
     return new Promise((resolve) => {
       const requestId = 'fru_get_' + Math.random().toString(36).substr(2, 9);
       const timer = setTimeout(() => {
         window.removeEventListener('message', handler);
+        console.warn('[🎁 Auto1] getFirstRevealUsed bridge timeout — fail-open (reveal autorisé)');
         resolve(false); // fail-open : si le bridge ne repond pas, on considere non-consomme
       }, 2000);
 
@@ -62,14 +62,16 @@
         if (!msg || msg.type !== 'STORAGE_RESPONSE' || msg.requestId !== requestId) return;
         clearTimeout(timer);
         window.removeEventListener('message', handler);
-        resolve(msg.data && msg.data.firstRevealUsed === true);
+        const used = !!(msg.data && msg.data.firstRevealUsedAuto1 === true);
+        console.log('[🎁 Auto1] getFirstRevealUsed →', { raw: msg.data, used });
+        resolve(used);
       }
 
       window.addEventListener('message', handler);
       window.postMessage({
         type: 'STORAGE_REQUEST',
         action: 'get',
-        keys: ['firstRevealUsed'],
+        keys: ['firstRevealUsedAuto1'],
         requestId
       }, '*');
     });
@@ -80,21 +82,54 @@
     window.postMessage({
       type: 'STORAGE_REQUEST',
       action: 'set',
-      data: { firstRevealUsed: true },
+      data: { firstRevealUsedAuto1: true },
       requestId
     }, '*');
-    // Fire-and-forget : on n'attend pas la confirmation, le flag sera set
-    // avant le prochain render.
+    console.log('[🎁 Auto1] setFirstRevealUsed → flag pose');
+    // Fire-and-forget : le flag sera set avant le prochain render (requestTimeout delay).
   }
 
-  // Listen for messages pushed by content-bridge.js (relayed from popup)
+  // Helper commun : calcule l'indicateur couleur + label a partir d'une marge %
+  function computeMarginIndicator(profitPercent, isProfit) {
+    if (isProfit && profitPercent >= 15) return { emoji: '🟢', label: 'Bonne affaire', color: '#2ecc71' };
+    if (isProfit && profitPercent >= 5)  return { emoji: '🟡', label: 'Affaire correcte', color: '#f39c12' };
+    return { emoji: '🔴', label: 'À éviter', color: '#e74c3c' };
+  }
+
+  // Memoire des dernieres hits recues (pour re-injecter apres login dashboard)
+  let lastHits = null;
+
+  // Listen for messages pushed by content-bridge.js (relayed from popup/dashboard sync)
   window.addEventListener('message', (event) => {
     if (event.source !== window) return;
     const msg = event.data;
 
     if (msg && msg.type === 'SETTINGS_PUSH') {
+      const prevApiKey = extensionSettings.apiKey;
+      const prevIsPaid = extensionSettings.isPaid === true;
       extensionSettings = { ...extensionSettings, ...msg.settings };
       console.log('[⚙️ Settings] Updated via bridge push:', extensionSettings);
+
+      // 🔄 Bug 4 fix : si l'apiKey ou le statut isPaid a change (login/logout
+      // depuis le dashboard), on re-injecte les cards en utilisant les dernieres
+      // hits recues. Sans ca, l'user doit refresh plusieurs fois pour voir les
+      // chiffres apparaitre apres login.
+      const newApiKey = extensionSettings.apiKey;
+      const newIsPaid = extensionSettings.isPaid === true;
+      const authChanged = prevApiKey !== newApiKey || prevIsPaid !== newIsPaid;
+      if (authChanged && lastHits && lastHits.length > 0) {
+        console.log('[🔄 Auth change] apiKey/isPaid changed — re-injection des cards', {
+          prevApiKey: prevApiKey ? '***' : '(none)',
+          newApiKey: newApiKey ? '***' : '(none)',
+          prevIsPaid,
+          newIsPaid,
+          hitsCount: lastHits.length
+        });
+        // Supprimer les cards existantes (.plugin-price et .plugin-loading)
+        document.querySelectorAll('.plugin-price, .plugin-loading').forEach(el => el.remove());
+        // Re-injecter avec les nouveaux settings (source de verite = data.isPaid serveur)
+        injectPluginPrices(lastHits);
+      }
     }
 
     if (msg && msg.type === 'VEHICLE_REMOVED' && msg.stockNumber) {
@@ -628,6 +663,9 @@
     // Attendre que les settings soient chargés via le bridge (max 2s)
     await settingsReady;
 
+    // Memoriser les hits pour permettre la re-injection apres login (Bug 4)
+    lastHits = hits;
+
     // 🔐 Vérification abonnement (isPaid stocké lors du login)
     const isPaid = extensionSettings.isPaid === true;
     console.log(`[🔐 Auth] ${isPaid ? 'Abonné — chiffres complets' : 'Gratuit — indicateur couleur uniquement'}`);
@@ -836,12 +874,13 @@
       isProfit = profit > 0;
     }
 
+    // Indicateur couleur + label calcule une seule fois, utilise dans les 2 branches
+    const marginIndicator = computeMarginIndicator(profitPercent, isProfit);
+
     if (!isPaid) {
       // 🆓 GRATUIT: indicateur couleur + chiffres masqués + CTA upgrade
-      const profitColor = isProfit && profitPercent >= 15 ? '#2ecc71' :
-                          isProfit && profitPercent >= 5  ? '#f39c12' : '#e74c3c';
-      const indicator   = isProfit && profitPercent >= 15 ? '🟢 Bonne affaire' :
-                          isProfit && profitPercent >= 5  ? '🟡 Affaire correcte' : '🔴 À éviter';
+      const profitColor = marginIndicator.color;
+      const indicator   = `${marginIndicator.emoji} ${marginIndicator.label}`;
 
       pluginPriceDiv.style = `
         margin: 8px 0;
@@ -908,14 +947,14 @@
       pluginPriceDiv.appendChild(upgradeLink);
 
     } else {
-      // 💎 ABONNÉ: carte complète avec chiffres exacts
+      // 💎 ABONNÉ (ou first reveal): indicateur couleur + chiffres exacts
       pluginPriceDiv.style = `
         margin: 8px 0;
         padding: 10px 14px;
         border-radius: 4px;
         background: #2c3e50;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        border: none;
+        border-left: 4px solid ${marginIndicator.color};
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -923,7 +962,7 @@
         font-size: 13px;
       `;
 
-      // Section gauche: Prix face à face
+      // Section gauche: Indicateur 🟢🟡🔴 + label + Prix face à face
       const pricesSection = document.createElement('div');
       pricesSection.style = `
         display: flex;
@@ -935,6 +974,8 @@
       `;
 
       pricesSection.innerHTML = `
+        <span style="font-weight: 700; font-size: 14px; color: ${marginIndicator.color}; white-space: nowrap;">${marginIndicator.emoji} ${marginIndicator.label}</span>
+        <span style="color: #95a5a6;">|</span>
         <span style="color: #3498db;">AUTO1: <strong style="color: #ffffff;">${auto1Price.toFixed(0)}€</strong></span>
         <span style="color: #95a5a6;">|</span>
         <span style="color: #e67e22;">LBC: <strong style="color: #ffffff;">${marketPrice ? marketPrice + '€' : 'N/A'}</strong></span>

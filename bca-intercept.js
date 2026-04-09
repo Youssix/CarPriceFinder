@@ -32,15 +32,15 @@
     });
   }
 
-  // ─── First reveal (pricing v2) ─────────────────────────────────────────────
-  // Meme pattern qu'intercept.js : lit/ecrit le flag firstRevealUsed via le
-  // bridge storage. Le flag est partage entre Auto1 et BCA (une seule carte
-  // debloquée en tout, pas une par site).
+  // ─── First reveal BCA (pricing v2) ─────────────────────────────────────────
+  // Flag SEPARE d'Auto1 : 1 reveal par site (firstRevealUsedAuto1 / firstRevealUsedBca).
+  // Un user qui a consomme son reveal Auto1 a toujours droit a son reveal BCA.
   function getFirstRevealUsed() {
     return new Promise((resolve) => {
       const requestId = 'bca_fru_get_' + Math.random().toString(36).substr(2, 9);
       const timer = setTimeout(() => {
         window.removeEventListener('message', handler);
+        console.warn('[🎁 BCA] getFirstRevealUsed bridge timeout — fail-open (reveal autorisé)');
         resolve(false);
       }, 2000);
 
@@ -50,14 +50,16 @@
         if (!msg || msg.type !== 'STORAGE_RESPONSE' || msg.requestId !== requestId) return;
         clearTimeout(timer);
         window.removeEventListener('message', handler);
-        resolve(msg.data && msg.data.firstRevealUsed === true);
+        const used = !!(msg.data && msg.data.firstRevealUsedBca === true);
+        console.log('[🎁 BCA] getFirstRevealUsed →', { raw: msg.data, used });
+        resolve(used);
       }
 
       window.addEventListener('message', handler);
       window.postMessage({
         type: 'STORAGE_REQUEST',
         action: 'get',
-        keys: ['firstRevealUsed'],
+        keys: ['firstRevealUsedBca'],
         requestId
       }, '*');
     });
@@ -68,10 +70,46 @@
     window.postMessage({
       type: 'STORAGE_REQUEST',
       action: 'set',
-      data: { firstRevealUsed: true },
+      data: { firstRevealUsedBca: true },
       requestId
     }, '*');
+    console.log('[🎁 BCA] setFirstRevealUsed → flag pose');
   }
+
+  // Helper commun : calcule l'indicateur couleur + label a partir d'une marge €
+  // Seuils BCA en euros (pas en %) pour etre coherent avec le comportement actuel.
+  function computeMarginIndicatorBca(margin) {
+    if (margin === null || margin === undefined) return { emoji: '⏳', label: 'Analyse...', color: '#95a5a6' };
+    if (margin > 500) return { emoji: '🟢', label: 'Bonne affaire', color: '#2ecc71' };
+    if (margin > 0)   return { emoji: '🟡', label: 'Affaire correcte', color: '#f39c12' };
+    return { emoji: '🔴', label: 'À éviter', color: '#e74c3c' };
+  }
+
+  // Listen for messages pushed by content-bridge.js (relayed from dashboard sync)
+  // Bug 4 fix : si l'apiKey ou isPaid change (login/logout dashboard), on relance
+  // l'analyse pour refresh la carte sans que l'user ait a refresh la page BCA.
+  window.addEventListener('message', (event) => {
+    if (event.source !== window) return;
+    const msg = event.data;
+    if (!msg || msg.type !== 'SETTINGS_PUSH') return;
+
+    const prevApiKey = extensionSettings.apiKey;
+    const prevIsPaid = extensionSettings.isPaid === true;
+    extensionSettings = { ...extensionSettings, ...msg.settings };
+    console.log('[⚙️ BCA Settings] Updated via bridge push:', extensionSettings);
+
+    const newApiKey = extensionSettings.apiKey;
+    const newIsPaid = extensionSettings.isPaid === true;
+    const authChanged = prevApiKey !== newApiKey || prevIsPaid !== newIsPaid;
+    if (authChanged && currentBidPrice && vehicleData) {
+      console.log('[🔄 BCA Auth change] apiKey/isPaid changed — relance analyse');
+      // Reset le flag pour permettre la relance, et supprimer la carte existante
+      analysisTriggered = false;
+      const existing = document.getElementById(CARD_ID);
+      if (existing) existing.remove();
+      triggerAnalysis();
+    }
+  });
 
   // ─── Brands connus (multi-mots en premier) ────────────────────────────────
   const KNOWN_BRANDS = [
@@ -240,7 +278,9 @@
       ? Math.round(marketPrice - currentBid)
       : null;
 
-    const marginEmoji = margin === null ? '⏳' : margin > 500 ? '🟢' : margin > 0 ? '🟡' : '🔴';
+    // Indicateur couleur + label partage entre branches paid et non-paid
+    const marginIndicator = computeMarginIndicatorBca(margin);
+    const marginEmoji = marginIndicator.emoji;
     const isPaid = analysis.isPaid === true;
     const isLoggedIn = extensionSettings.apiKey && extensionSettings.apiKey.trim() !== '';
 
@@ -285,6 +325,7 @@
       <div style="background:${margin !== null && margin > 500 ? '#d5f4e6' : margin !== null && margin > 0 ? '#fef9e7' : '#fdecea'};border-radius:8px;padding:10px;text-align:center">
         <div style="font-size:12px;color:#666;margin-bottom:2px">Marge estimée</div>
         <div style="font-size:22px;font-weight:800">${marginEmoji} <span ${blurClass}>${isPaid && margin !== null ? formatPrice(margin) : '•• ••• €'}</span></div>
+        <div style="font-size:12px;font-weight:700;color:${marginIndicator.color};margin-top:4px">${marginIndicator.label}</div>
       </div>
     `;
 

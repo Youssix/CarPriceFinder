@@ -68,6 +68,17 @@ async function updateSubscriptionStatus(stripeCustomerId, status) {
   );
 }
 
+// Rotate apiKey: regenerates a new key and invalidates the old one.
+// Used on each login (single-session anti-sharing: any previous device gets 401).
+async function rotateApiKey(subscriberId) {
+  const newApiKey = generateApiKey();
+  await pool.query(
+    'UPDATE subscribers SET api_key = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
+    [newApiKey, subscriberId]
+  );
+  return newApiKey;
+}
+
 async function updateSubscription(stripeCustomerId, subscriptionId, status) {
   await pool.query(
     "UPDATE subscribers SET stripe_subscription_id = $1, subscription_status = $2, updated_at = CURRENT_TIMESTAMP WHERE stripe_customer_id = $3",
@@ -394,7 +405,7 @@ async function setSubscriberPassword(email, plainPassword) {
 
 async function verifySubscriberPassword(email, plainPassword) {
   const result = await pool.query(
-    `SELECT api_key, email, subscription_status, password_hash
+    `SELECT id, api_key, email, subscription_status, password_hash
      FROM subscribers WHERE email = $1`,
     [email]
   );
@@ -413,6 +424,7 @@ module.exports = {
   getSubscriberByStripeCustomer,
   createSubscriber,
   createFreeSubscriber,
+  rotateApiKey,
   updateSubscriptionStatus,
   updateSubscription,
   isEventProcessed,

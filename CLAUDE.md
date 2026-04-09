@@ -185,10 +185,10 @@ This is being productized as a **SaaS platform** for car dealers:
 ## Modèle Freemium (Réel)
 
 **Ce que voit un utilisateur non-abonné :**
-- L'analyse tourne, les emojis (🟢🟡🔴) s'affichent = il voit si c'est une bonne affaire ou non
-- **Première voiture offerte** : les chiffres (prix LBC ajusté + marge €) sont visibles en clair UNE fois, avec un badge "🎁 Aperçu offert". Flag `firstRevealUsed` posé après consommation.
+- L'analyse tourne, les emojis (🟢🟡🔴) + label ("Bonne affaire" / "Affaire correcte" / "À éviter") s'affichent sur chaque voiture (y compris en mode chiffres visibles)
+- **Première voiture offerte PAR SITE** : les chiffres (prix LBC ajusté + marge €) sont visibles en clair UNE fois sur Auto1 ET UNE fois sur BCA, avec un badge "🎁 Aperçu offert".
+- Flags séparés : `firstRevealUsedAuto1` + `firstRevealUsedBca` → 1 reveal par site, pas partagé. Un user qui a consommé son reveal Auto1 a toujours droit à son reveal BCA (et inversement).
 - Voitures suivantes : chiffres **floutés** + message d'upgrade
-- Le flag est partagé entre Auto1 et BCA (1 seul reveal en tout, pas 1 par site)
 
 **Ce que voit un abonné Pro :**
 - Tout débloqué : prix marché ajusté, marge estimée en €

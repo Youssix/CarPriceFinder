@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Carlytics — Guide de démarrage (2 minutes)</title>
+  <style>
+    /* Print-first design — A4 portrait, no margins from browser */
+    @page {
+      size: A4 portrait;
+      margin: 12mm;
+    }
+
+    :root {
+      --primary: #3b82f6;
+      --primary-dark: #2563eb;
+      --green: #10b981;
+      --orange: #f59e0b;
+      --red: #ef4444;
+      --dark: #1a1a2e;
+      --gray-600: #4b5563;
+      --gray-400: #9ca3af;
+      --gray-100: #f3f4f6;
+      --gray-50: #f9fafb;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html {
+      font-size: 10.5pt;
+    }
+
+    body {
+      font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: var(--dark);
+      background: white;
+      line-height: 1.45;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    .page {
+      max-width: 186mm;
+      margin: 0 auto;
+    }
+
+    /* Header */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 2px solid var(--primary);
+      padding-bottom: 8pt;
+      margin-bottom: 12pt;
+    }
+    .logo {
+      font-size: 18pt;
+      font-weight: 800;
+      color: var(--dark);
+      letter-spacing: -0.5pt;
+    }
+    .logo span { color: var(--primary); }
+    .tagline {
+      font-size: 9pt;
+      color: var(--gray-600);
+      text-align: right;
+    }
+    .tagline strong { color: var(--dark); }
+
+    /* Hero */
+    h1 {
+      font-size: 16pt;
+      font-weight: 800;
+      line-height: 1.25;
+      margin-bottom: 4pt;
+    }
+    h1 .highlight { color: var(--primary); }
+    .subtitle {
+      color: var(--gray-600);
+      font-size: 10pt;
+      margin-bottom: 10pt;
+    }
+
+    /* Steps grid */
+    .steps {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8pt;
+      margin-bottom: 10pt;
+    }
+    .step {
+      background: var(--gray-50);
+      border: 1px solid var(--gray-100);
+      border-left: 3px solid var(--primary);
+      border-radius: 4pt;
+      padding: 8pt 10pt;
+    }
+    .step-number {
+      display: inline-block;
+      background: var(--primary);
+      color: white;
+      font-weight: 700;
+      font-size: 8pt;
+      padding: 1pt 6pt;
+      border-radius: 10pt;
+      margin-bottom: 4pt;
+    }
+    .step h2 {
+      font-size: 11pt;
+      font-weight: 700;
+      margin-bottom: 3pt;
+    }
+    .step p {
+      font-size: 9pt;
+      color: var(--gray-600);
+      margin-bottom: 2pt;
+    }
+    .step code {
+      display: inline-block;
+      background: #fff;
+      border: 1px solid var(--gray-100);
+      padding: 1pt 4pt;
+      font-family: "SF Mono", Menlo, monospace;
+      font-size: 8pt;
+      border-radius: 2pt;
+    }
+
+    /* Indicators section */
+    .indicators {
+      background: var(--gray-50);
+      border-radius: 6pt;
+      padding: 10pt 12pt;
+      margin-bottom: 10pt;
+    }
+    .indicators h3 {
+      font-size: 11pt;
+      font-weight: 700;
+      margin-bottom: 6pt;
+    }
+    .indicators-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 6pt;
+    }
+    .indicator {
+      text-align: center;
+      padding: 6pt 4pt;
+      background: white;
+      border-radius: 4pt;
+      border: 1px solid var(--gray-100);
+    }
+    .indicator-dot {
+      font-size: 16pt;
+      line-height: 1;
+    }
+    .indicator-label {
+      font-size: 9pt;
+      font-weight: 600;
+      margin-top: 2pt;
+    }
+    .indicator-desc {
+      font-size: 8pt;
+      color: var(--gray-600);
+      margin-top: 1pt;
+    }
+
+    /* First reveal box */
+    .reveal-box {
+      background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+      border: 1px solid var(--orange);
+      border-radius: 6pt;
+      padding: 10pt 12pt;
+      margin-bottom: 10pt;
+      display: flex;
+      align-items: center;
+      gap: 10pt;
+    }
+    .reveal-box .icon {
+      font-size: 22pt;
+    }
+    .reveal-box h3 {
+      font-size: 11pt;
+      font-weight: 700;
+      color: #92400e;
+      margin-bottom: 2pt;
+    }
+    .reveal-box p {
+      font-size: 9pt;
+      color: #78350f;
+    }
+
+    /* Pro plan */
+    .pro-plan {
+      border: 2px solid var(--primary);
+      border-radius: 6pt;
+      padding: 10pt 12pt;
+      margin-bottom: 10pt;
+      background: white;
+    }
+    .pro-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 5pt;
+    }
+    .pro-title {
+      font-size: 12pt;
+      font-weight: 800;
+    }
+    .pro-title .badge {
+      display: inline-block;
+      background: var(--primary);
+      color: white;
+      font-size: 7pt;
+      font-weight: 700;
+      padding: 1pt 5pt;
+      border-radius: 8pt;
+      vertical-align: middle;
+      margin-left: 4pt;
+    }
+    .pro-price {
+      font-size: 14pt;
+      font-weight: 800;
+      color: var(--primary);
+    }
+    .pro-price small { font-size: 9pt; color: var(--gray-600); font-weight: 500; }
+    .pro-features {
+      list-style: none;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 3pt 10pt;
+      margin-top: 4pt;
+    }
+    .pro-features li {
+      font-size: 9pt;
+      color: var(--gray-600);
+      padding-left: 14pt;
+      position: relative;
+    }
+    .pro-features li::before {
+      content: "✓";
+      position: absolute;
+      left: 0;
+      color: var(--primary);
+      font-weight: 700;
+    }
+
+    /* FAQ mini */
+    .faq {
+      margin-bottom: 10pt;
+    }
+    .faq h3 {
+      font-size: 11pt;
+      font-weight: 700;
+      margin-bottom: 5pt;
+    }
+    .faq-item {
+      margin-bottom: 5pt;
+    }
+    .faq-q {
+      font-size: 9pt;
+      font-weight: 600;
+    }
+    .faq-a {
+      font-size: 9pt;
+      color: var(--gray-600);
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--gray-100);
+      padding-top: 6pt;
+      margin-top: 6pt;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 8pt;
+      color: var(--gray-600);
+    }
+    footer strong { color: var(--dark); }
+
+    /* Print instructions — shown on screen only */
+    .print-hint {
+      position: fixed;
+      top: 10pt;
+      right: 10pt;
+      background: var(--primary);
+      color: white;
+      padding: 8pt 12pt;
+      border-radius: 6pt;
+      font-size: 9pt;
+      box-shadow: 0 2px 8px rgba(0,0,0,.15);
+      cursor: pointer;
+      z-index: 1000;
+    }
+    .print-hint:hover { background: var(--primary-dark); }
+    @media print {
+      .print-hint { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <button class="print-hint" onclick="window.print()">🖨️ Imprimer / Enregistrer en PDF</button>
+
+  <div class="page">
+    <header>
+      <div class="logo">Car<span>lytics</span></div>
+      <div class="tagline">
+        <strong>Guide de démarrage</strong><br>
+        Prêt à analyser en 2 minutes
+      </div>
+    </header>
+
+    <h1>Achetez vos VO <span class="highlight">sans jamais ouvrir LeBonCoin</span></h1>
+    <p class="subtitle">Carlytics compare automatiquement chaque voiture Auto1 ou BCA Auto Enchères avec les prix LeBonCoin du marché. Vous voyez la marge avant d'enchérir.</p>
+
+    <div class="steps">
+      <div class="step">
+        <span class="step-number">1</span>
+        <h2>Installez l'extension</h2>
+        <p>Rendez-vous sur <code>carlytics.fr</code> et cliquez sur "Ajouter à Chrome". Aucune carte bancaire, 2 minutes.</p>
+      </div>
+      <div class="step">
+        <span class="step-number">2</span>
+        <h2>Ouvrez Auto1 ou BCA</h2>
+        <p>Visitez <code>auto1.com</code> ou <code>bcautoencheres.fr</code>. L'extension se lance automatiquement sur chaque fiche véhicule.</p>
+      </div>
+      <div class="step">
+        <span class="step-number">3</span>
+        <h2>Lisez l'indicateur 🟢🟡🔴</h2>
+        <p>Un indicateur couleur s'affiche sur chaque voiture, selon la marge potentielle estimée via LeBonCoin.</p>
+      </div>
+      <div class="step">
+        <span class="step-number">4</span>
+        <h2>Décidez en 3 secondes</h2>
+        <p>Vert = bonne affaire. Orange = marge correcte. Rouge = à éviter. Vous pouvez enchérir en confiance.</p>
+      </div>
+    </div>
+
+    <div class="indicators">
+      <h3>Les 3 indicateurs, expliqués</h3>
+      <div class="indicators-grid">
+        <div class="indicator">
+          <div class="indicator-dot">🟢</div>
+          <div class="indicator-label">Bonne marge</div>
+          <div class="indicator-desc">Prix Auto1 nettement inférieur au marché LBC</div>
+        </div>
+        <div class="indicator">
+          <div class="indicator-dot">🟡</div>
+          <div class="indicator-label">Marge correcte</div>
+          <div class="indicator-desc">Marge visible mais à négocier ou attendre une baisse</div>
+        </div>
+        <div class="indicator">
+          <div class="indicator-dot">🔴</div>
+          <div class="indicator-label">À éviter</div>
+          <div class="indicator-desc">Prix trop proche ou supérieur au marché LBC</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="reveal-box">
+      <div class="icon">🎁</div>
+      <div>
+        <h3>Votre première voiture est offerte</h3>
+        <p>Sur la toute première voiture analysée après installation, les chiffres complets (prix LBC ajusté + marge en €) sont visibles en clair. C'est votre aperçu sans engagement — pour voir exactement ce que l'outil donne avant de décider.</p>
+      </div>
+    </div>
+
+    <div class="pro-plan">
+      <div class="pro-header">
+        <div class="pro-title">Pro <span class="badge">TOUT INCLUS</span></div>
+        <div class="pro-price">89€<small> /mois</small></div>
+      </div>
+      <ul class="pro-features">
+        <li>Prix LBC ajusté sur chaque voiture</li>
+        <li>Marge estimée en euros et en %</li>
+        <li>Alertes bonnes affaires illimitées</li>
+        <li>Compatible Auto1 + BCA Auto Enchères</li>
+        <li>Détection options premium (M-Sport, AMG…)</li>
+        <li>Sans engagement — résiliable en 1 clic</li>
+      </ul>
+    </div>
+
+    <div class="faq">
+      <h3>Questions fréquentes</h3>
+      <div class="faq-item">
+        <div class="faq-q">Est-ce qu'Auto1 ou BCA peuvent détecter l'extension ?</div>
+        <div class="faq-a">Non. L'extension ne fait aucune requête vers leurs serveurs. Elle analyse uniquement les données déjà affichées sur votre écran.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">D'où viennent les prix LeBonCoin ?</div>
+        <div class="faq-a">Nos serveurs interrogent l'API mobile publique de LeBonCoin et calculent une moyenne ajustée pour l'âge, le km et les options détectées.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Puis-je partager mon compte Pro avec un collègue ?</div>
+        <div class="faq-a">Non. Un compte = une session active. Si un collègue se connecte, vous êtes automatiquement déconnecté. Pour plusieurs utilisateurs, contactez-nous.</div>
+      </div>
+    </div>
+
+    <footer>
+      <div><strong>carlytics.fr</strong> · contact@carlytics.fr</div>
+      <div>Version 2.3 · Avril 2026</div>
+    </footer>
+  </div>
+</body>
+</html>

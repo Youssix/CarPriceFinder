@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Carlytics – Analyse de prix véhicules d'occasion",
-  "version": "2.3",
+  "version": "2.4",
   "description": "Analysez les prix du marché VO en temps réel. Détectez les meilleures opportunités d'achat et estimez vos marges.",
   "background": {
     "service_worker": "background.js"
