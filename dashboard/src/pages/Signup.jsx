@@ -1,0 +1,140 @@
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth';
+
+const API_URL = import.meta.env.VITE_API_URL || 'https://api.carlytics.fr';
+
+export default function Signup() {
+  const [step, setStep] = useState('email'); // 'email' | 'code'
+  const [email, setEmail] = useState('');
+  const [code, setCode] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const { login } = useAuth();
+  const navigate = useNavigate();
+
+  const handleRequestCode = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/api/signup-free`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim().toLowerCase() }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        if (data.alreadyPaid) {
+          setError('Vous avez deja un compte payant. Connectez-vous avec votre mot de passe.');
+          setTimeout(() => navigate('/login'), 2500);
+          return;
+        }
+        throw new Error(data.error || 'Impossible d\'envoyer le code');
+      }
+      setStep('code');
+    } catch (err) {
+      setError(err.message);
+    }
+    setLoading(false);
+  };
+
+  const handleVerifyCode = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/api/auth/verify-code`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim().toLowerCase(), code: code.trim() }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Code invalide ou expire');
+      login(data.apiKey, data.email, data.status || 'free');
+      navigate('/');
+    } catch (err) {
+      setError(err.message);
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div className="login-page">
+      <div className="login-card">
+        <h1 className="login-logo">Carlytics</h1>
+        <p className="login-subtitle">
+          {step === 'email' ? 'Creer un compte gratuit' : 'Verifiez votre email'}
+        </p>
+
+        {error && <div className="error-message" role="alert">{error}</div>}
+
+        {step === 'email' ? (
+          <form onSubmit={handleRequestCode}>
+            <div className="form-group">
+              <label htmlFor="signup-email">Email</label>
+              <input
+                id="signup-email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="votre@email.fr"
+                required
+                autoComplete="email"
+                autoFocus
+              />
+            </div>
+            <button type="submit" className="btn btn-primary btn-full" disabled={loading}>
+              {loading ? 'Envoi en cours...' : 'Recevoir le code par email'}
+            </button>
+            <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)', textAlign: 'center', marginTop: '12px' }}>
+              Gratuit pour tester, sans carte bancaire
+            </p>
+          </form>
+        ) : (
+          <form onSubmit={handleVerifyCode}>
+            <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.6)', marginBottom: '16px', textAlign: 'center' }}>
+              Un code a 6 chiffres a ete envoye a <strong>{email}</strong>
+            </p>
+            <div className="form-group">
+              <label htmlFor="signup-code">Code de verification</label>
+              <input
+                id="signup-code"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]{6}"
+                maxLength={6}
+                value={code}
+                onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
+                placeholder="123456"
+                required
+                autoFocus
+                style={{ letterSpacing: '4px', textAlign: 'center', fontSize: '18px' }}
+              />
+            </div>
+            <button type="submit" className="btn btn-primary btn-full" disabled={loading || code.length !== 6}>
+              {loading ? 'Verification...' : 'Valider et se connecter'}
+            </button>
+            <div style={{ textAlign: 'center', marginTop: '12px' }}>
+              <button
+                type="button"
+                onClick={() => { setStep('email'); setCode(''); setError(''); }}
+                className="btn btn-link"
+                style={{ fontSize: '12px' }}
+              >
+                Changer d'email
+              </button>
+            </div>
+          </form>
+        )}
+
+        <div style={{ textAlign: 'center', marginTop: '24px', paddingTop: '20px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+          <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.4)', marginBottom: '8px' }}>Deja un compte ?</p>
+          <a href="/login" style={{ fontSize: '13px', color: '#3b82f6', textDecoration: 'none' }}>
+            Se connecter →
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+}

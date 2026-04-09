@@ -57,9 +57,9 @@ export default function Login() {
 
         <div style={{ textAlign: 'center', marginTop: '24px', paddingTop: '20px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
           <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.4)', marginBottom: '8px' }}>Pas encore de compte ?</p>
-          <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.3)' }}>
-            Téléchargez l'extension Chrome et créez votre compte gratuitement.
-          </p>
+          <a href="/signup" style={{ fontSize: '14px', color: '#3b82f6', textDecoration: 'none', fontWeight: 600 }}>
+            Créer un compte gratuit →
+          </a>
         </div>
 
         <div style={{ textAlign: 'center', marginTop: '12px' }}>

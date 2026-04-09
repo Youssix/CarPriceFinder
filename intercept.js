@@ -813,9 +813,13 @@
 
       // Ligne 2 : bouton centré
       const isLoggedIn = extensionSettings.apiKey && extensionSettings.apiKey.trim() !== '';
+      const upgradeUrl = isLoggedIn
+        ? 'https://app.carlytics.fr/upgrade'
+        : 'https://app.carlytics.fr/signup';
       const upgradeLink = document.createElement('a');
-      upgradeLink.href = isLoggedIn ? 'https://carlytics.fr/#pricing' : '#';
-      upgradeLink.target = isLoggedIn ? '_blank' : '_self';
+      upgradeLink.href = upgradeUrl;
+      upgradeLink.target = '_blank';
+      upgradeLink.rel = 'noopener noreferrer';
       upgradeLink.style = `
         display: block;
         text-align: center;
@@ -830,12 +834,11 @@
         width: 100%;
       `;
       upgradeLink.textContent = isLoggedIn ? '⭐ Débloquer les chiffres — Passer Premium' : '🔓 Voir les chiffres — Créer un compte gratuit';
-      if (!isLoggedIn) {
-        upgradeLink.addEventListener('click', (e) => {
-          e.preventDefault();
-          window.postMessage({ type: 'CARLYTICS_OPEN_POPUP' }, '*');
-        });
-      }
+      upgradeLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        console.log('[🎯 Carlytics] Upgrade click →', upgradeUrl);
+        window.open(upgradeUrl, '_blank', 'noopener,noreferrer');
+      });
 
       pluginPriceDiv.appendChild(topRow);
       pluginPriceDiv.appendChild(upgradeLink);

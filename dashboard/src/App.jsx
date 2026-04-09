@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
 import Layout from './components/Layout';
 import Login from './pages/Login';
+import Signup from './pages/Signup';
 import Dashboard from './pages/Dashboard';
 import Vehicles from './pages/Vehicles';
 import Alerts from './pages/Alerts';
@@ -22,6 +23,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/signup" element={<Signup />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/" element={
         <ProtectedRoute>
