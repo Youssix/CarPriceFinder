@@ -1,46 +1,33 @@
 import { useState } from 'react';
 import { api } from '../api/client';
 
-const PLANS = [
-  {
-    id: 'starter',
-    name: 'Starter',
-    price: '49€',
-    period: '/mois',
-    features: ['200 analyses/mois', '3 alertes prix', 'Historique 30 jours', 'Support email'],
-    highlight: false,
-  },
-  {
-    id: 'pro',
-    name: 'Pro',
-    price: '89€',
-    period: '/mois',
-    features: ['Analyses illimitées', '10 alertes prix', 'Historique complet', 'Support prioritaire', 'Export CSV'],
-    highlight: true,
-  },
-  {
-    id: 'agency',
-    name: 'Agence',
-    price: '149€',
-    period: '/mois',
-    features: ['Analyses illimitées', 'Alertes illimitées', 'Historique complet', 'Support dédié', 'Export CSV', 'Multi-utilisateurs'],
-    highlight: false,
-  },
-];
+const PRO_PLAN = {
+  id: 'pro',
+  name: 'Pro',
+  price: '89€',
+  period: '/mois',
+  features: [
+    'Prix LBC ajusté visible sur chaque voiture',
+    'Marge estimée en euros et en %',
+    'Alertes push illimitées sur les bonnes affaires',
+    'Compatible Auto1 + BCA Auto Enchères',
+    'Sans engagement — résiliable en 1 clic',
+  ],
+};
 
 export default function Upgrade() {
-  const [loading, setLoading] = useState(null);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  async function handleUpgrade(planId) {
-    setLoading(planId);
+  async function handleUpgrade() {
+    setLoading(true);
     setError('');
     try {
-      const { url } = await api.createCheckoutSession(planId);
+      const { url } = await api.createCheckoutSession('pro');
       window.location.href = url;
     } catch (err) {
       setError(err.message || 'Erreur lors de la création du paiement');
-      setLoading(null);
+      setLoading(false);
     }
   }
 
@@ -48,33 +35,31 @@ export default function Upgrade() {
     <div className="upgrade-page">
       <div className="upgrade-header">
         <h1>Débloquez les chiffres complets</h1>
-        <p>Passez Premium pour voir les prix LBC, la marge estimée et toutes les analyses en détail.</p>
+        <p>Passez Pro pour voir les prix LBC, la marge estimée et toutes les analyses en détail.</p>
       </div>
 
       {error && <div className="upgrade-error">{error}</div>}
 
-      <div className="upgrade-plans">
-        {PLANS.map((plan) => (
-          <div key={plan.id} className={`upgrade-plan ${plan.highlight ? 'upgrade-plan--highlight' : ''}`}>
-            {plan.highlight && <div className="upgrade-plan__badge">Populaire</div>}
-            <div className="upgrade-plan__name">{plan.name}</div>
-            <div className="upgrade-plan__price">
-              {plan.price}<span className="upgrade-plan__period">{plan.period}</span>
-            </div>
-            <ul className="upgrade-plan__features">
-              {plan.features.map((f) => (
-                <li key={f}>✓ {f}</li>
-              ))}
-            </ul>
-            <button
-              className={`upgrade-plan__btn ${plan.highlight ? 'upgrade-plan__btn--primary' : ''}`}
-              onClick={() => handleUpgrade(plan.id)}
-              disabled={loading === plan.id}
-            >
-              {loading === plan.id ? 'Redirection...' : 'Choisir ce plan'}
-            </button>
+      <div className="upgrade-plans upgrade-plans--single">
+        <div className="upgrade-plan upgrade-plan--highlight">
+          <div className="upgrade-plan__badge">Tout inclus</div>
+          <div className="upgrade-plan__name">{PRO_PLAN.name}</div>
+          <div className="upgrade-plan__price">
+            {PRO_PLAN.price}<span className="upgrade-plan__period">{PRO_PLAN.period}</span>
           </div>
-        ))}
+          <ul className="upgrade-plan__features">
+            {PRO_PLAN.features.map((f) => (
+              <li key={f}>✓ {f}</li>
+            ))}
+          </ul>
+          <button
+            className="upgrade-plan__btn upgrade-plan__btn--primary"
+            onClick={handleUpgrade}
+            disabled={loading}
+          >
+            {loading ? 'Redirection...' : 'Passer Pro — 89€/mois'}
+          </button>
+        </div>
       </div>
 
       <p className="upgrade-footer">Sans engagement · Annulable à tout moment · Paiement sécurisé par Stripe</p>

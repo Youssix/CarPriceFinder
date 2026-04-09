@@ -954,6 +954,13 @@ a:hover {
   margin-bottom: 32px;
 }
 
+.upgrade-plans--single {
+  grid-template-columns: 1fr;
+  max-width: 420px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
 @media (max-width: 768px) {
   .upgrade-plans {
     grid-template-columns: 1fr;
