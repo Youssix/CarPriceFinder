@@ -78,8 +78,9 @@
 
   // Helper commun : calcule l'indicateur couleur + label a partir d'une marge €
   // Seuils BCA en euros (pas en %) pour etre coherent avec le comportement actuel.
+  // NB : cas margin=null (pas de data LBC) gere directement dans injectCard,
+  // pas ici, pour eviter le cascading "⏳ •• ••• € Analyse..." trompeur.
   function computeMarginIndicatorBca(margin) {
-    if (margin === null || margin === undefined) return { emoji: '⏳', label: 'Analyse...', color: '#95a5a6' };
     if (margin > 500) return { emoji: '🟢', label: 'Bonne affaire', color: '#2ecc71' };
     if (margin > 0)   return { emoji: '🟡', label: 'Affaire correcte', color: '#f39c12' };
     return { emoji: '🔴', label: 'À éviter', color: '#e74c3c' };
@@ -277,10 +278,13 @@
     const margin = marketPrice !== null
       ? Math.round(marketPrice - currentBid)
       : null;
+    const hasLbcData = margin !== null;
 
-    // Indicateur couleur + label partage entre branches paid et non-paid
-    const marginIndicator = computeMarginIndicatorBca(margin);
-    const marginEmoji = marginIndicator.emoji;
+    // Indicateur couleur + label : seulement quand on a une marge calculable.
+    // Sinon on affiche un etat "pas de donnees LBC" propre dans la card.
+    const marginIndicator = hasLbcData
+      ? computeMarginIndicatorBca(margin)
+      : { emoji: 'ℹ️', label: 'Aucune donnée LBC pour ce modèle', color: '#95a5a6' };
     const isPaid = analysis.isPaid === true;
     const isLoggedIn = extensionSettings.apiKey && extensionSettings.apiKey.trim() !== '';
 
@@ -306,6 +310,38 @@
       color: #2c3e50;
     `;
 
+    // Background du bloc marge : vert/jaune/rouge si data, gris neutre sinon
+    const marginBgColor = hasLbcData
+      ? (margin > 500 ? '#d5f4e6' : margin > 0 ? '#fef9e7' : '#fdecea')
+      : '#f1f3f5';
+
+    // Bloc "Prix marché LBC" : si pas de data, "—" en clair (pas de blur sur rien)
+    const marketPriceCell = hasLbcData
+      ? `<div style="font-weight:700;font-size:15px" ${blurClass}>${isPaid ? formatPrice(marketPrice) : '•• ••• €'}</div>`
+      : `<div style="font-weight:700;font-size:15px;color:#95a5a6">—</div>`;
+
+    // Bloc "Marge estimée" : 3 etats exclusifs pour eviter le cascading bug
+    //   1. pas de data LBC → "— / Aucune donnée LBC" (une seule ligne claire)
+    //   2. data + paid → "🟢 +3 500 € / Bonne affaire"
+    //   3. data + !paid → "🟢 •• ••• € / Bonne affaire" (blur sur le nombre)
+    let marginCellContent;
+    if (!hasLbcData) {
+      marginCellContent = `
+        <div style="font-size:18px;font-weight:700;color:#95a5a6">—</div>
+        <div style="font-size:11px;font-weight:600;color:#95a5a6;margin-top:4px">${marginIndicator.label}</div>
+      `;
+    } else if (isPaid) {
+      marginCellContent = `
+        <div style="font-size:22px;font-weight:800">${marginIndicator.emoji} ${formatPrice(margin)}</div>
+        <div style="font-size:12px;font-weight:700;color:${marginIndicator.color};margin-top:4px">${marginIndicator.label}</div>
+      `;
+    } else {
+      marginCellContent = `
+        <div style="font-size:22px;font-weight:800">${marginIndicator.emoji} <span style="filter:blur(5px);user-select:none">•• ••• €</span></div>
+        <div style="font-size:12px;font-weight:700;color:${marginIndicator.color};margin-top:4px">${marginIndicator.label}</div>
+      `;
+    }
+
     card.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <strong style="font-size:14px">🔍 Carlytics – Analyse BCA</strong>
@@ -319,13 +355,12 @@
         </div>
         <div style="background:#f8f9fa;border-radius:8px;padding:8px;text-align:center">
           <div style="font-size:11px;color:#666;margin-bottom:2px">Prix marché LBC</div>
-          <div style="font-weight:700;font-size:15px" ${blurClass}>${isPaid ? formatPrice(marketPrice) : '•• ••• €'}</div>
+          ${marketPriceCell}
         </div>
       </div>
-      <div style="background:${margin !== null && margin > 500 ? '#d5f4e6' : margin !== null && margin > 0 ? '#fef9e7' : '#fdecea'};border-radius:8px;padding:10px;text-align:center">
+      <div style="background:${marginBgColor};border-radius:8px;padding:10px;text-align:center">
         <div style="font-size:12px;color:#666;margin-bottom:2px">Marge estimée</div>
-        <div style="font-size:22px;font-weight:800">${marginEmoji} <span ${blurClass}>${isPaid && margin !== null ? formatPrice(margin) : '•• ••• €'}</span></div>
-        <div style="font-size:12px;font-weight:700;color:${marginIndicator.color};margin-top:4px">${marginIndicator.label}</div>
+        ${marginCellContent}
       </div>
     `;
 
@@ -502,8 +537,12 @@
       // 🎁 First reveal (pricing v2) : si le serveur dit isPaid=false et que
       // l'utilisateur n'a pas encore consomme son reveal, on flip analysis.isPaid
       // pour cette carte et on pose le flag.
+      // NB : on ne consomme le reveal QUE si on a une vraie donnee LBC a montrer
+      // (estimatedPrice non null). Sinon l'user perdrait son aperçu offert sans
+      // rien voir, ce qui est injuste.
       let isFirstReveal = false;
-      if (analysis.isPaid !== true) {
+      const hasRealLbcData = analysis.estimatedPrice != null;
+      if (analysis.isPaid !== true && hasRealLbcData) {
         const alreadyUsed = await getFirstRevealUsed();
         if (!alreadyUsed) {
           analysis.isPaid = true;
