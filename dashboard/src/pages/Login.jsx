@@ -55,15 +55,15 @@ export default function Login() {
           </a>
         </div>
 
-        <div style={{ textAlign: 'center', marginTop: '24px', paddingTop: '20px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-          <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.4)', marginBottom: '8px' }}>Pas encore de compte ?</p>
+        <div style={{ textAlign: 'center', marginTop: '24px', paddingTop: '20px', borderTop: '1px solid var(--color-border)' }}>
+          <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', marginBottom: '8px' }}>Pas encore de compte ?</p>
           <a href="/signup" style={{ fontSize: '14px', color: '#3b82f6', textDecoration: 'none', fontWeight: 600 }}>
             Créer un compte gratuit →
           </a>
         </div>
 
         <div style={{ textAlign: 'center', marginTop: '12px' }}>
-          <a href="https://carlytics.fr" style={{ fontSize: '12px', color: 'rgba(255,255,255,0.25)', textDecoration: 'none' }}>
+          <a href="https://carlytics.fr" style={{ fontSize: '12px', color: 'var(--color-text-muted)', textDecoration: 'none' }}>
             ← Retour à carlytics.fr
           </a>
         </div>

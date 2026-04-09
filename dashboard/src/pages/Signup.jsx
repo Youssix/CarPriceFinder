@@ -87,13 +87,13 @@ export default function Signup() {
             <button type="submit" className="btn btn-primary btn-full" disabled={loading}>
               {loading ? 'Envoi en cours...' : 'Recevoir le code par email'}
             </button>
-            <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)', textAlign: 'center', marginTop: '12px' }}>
+            <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', textAlign: 'center', marginTop: '12px' }}>
               Gratuit pour tester, sans carte bancaire
             </p>
           </form>
         ) : (
           <form onSubmit={handleVerifyCode}>
-            <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.6)', marginBottom: '16px', textAlign: 'center' }}>
+            <p style={{ fontSize: '13px', color: 'var(--color-text-secondary)', marginBottom: '16px', textAlign: 'center' }}>
               Un code a 6 chiffres a ete envoye a <strong>{email}</strong>
             </p>
             <div className="form-group">
@@ -128,8 +128,8 @@ export default function Signup() {
           </form>
         )}
 
-        <div style={{ textAlign: 'center', marginTop: '24px', paddingTop: '20px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-          <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.4)', marginBottom: '8px' }}>Deja un compte ?</p>
+        <div style={{ textAlign: 'center', marginTop: '24px', paddingTop: '20px', borderTop: '1px solid var(--color-border)' }}>
+          <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', marginBottom: '8px' }}>Deja un compte ?</p>
           <a href="/login" style={{ fontSize: '13px', color: '#3b82f6', textDecoration: 'none' }}>
             Se connecter →
           </a>
