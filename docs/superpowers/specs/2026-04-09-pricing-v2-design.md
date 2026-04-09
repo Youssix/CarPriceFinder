@@ -25,7 +25,6 @@ Le pricing actuel (Starter 49€ / Pro 89€ / Agence 149€) souffre de plusieu
 | Prix | 0€ | **89€/mois** |
 | Carte bancaire requise | Non | Oui |
 | Emojis 🟢🟡🔴 sur Auto1 + BCA | ✅ à vie, illimité | ✅ |
-| Options premium détectées (M-Sport, AMG, S-Line…) | ✅ visible (inchangé vs actuel) | ✅ |
 | Chiffres (prix LBC ajusté, marge €) | ❌ sauf **première voiture offerte** | ✅ illimité |
 | Alertes push | ❌ | ✅ illimité |
 | Sessions simultanées autorisées | — | **1** (single-session anti-sharing) |
@@ -50,7 +49,7 @@ Le pricing actuel (Starter 49€ / Pro 89€ / Agence 149€) souffre de plusieu
 Le problème du freemium actuel "emojis only forever" : l'utilisateur voit 🟢 mais ne sait jamais ce que vaut réellement le produit. Il peut rationaliser "l'emoji me suffit" et ne jamais passer Pro.
 
 Le first reveal résout ça :
-- Sur la toute première voiture qu'il consulte après install, les chiffres s'affichent en clair — prix LBC ajusté, marge estimée, options détectées.
+- Sur la toute première voiture qu'il consulte après install, les chiffres s'affichent en clair — prix LBC ajusté et marge estimée.
 - Message discret : "Voilà ce que tu verras sur chaque voiture en Pro."
 - Ensuite les chiffres repassent floutés, emojis continuent à vie.
 
@@ -129,6 +128,7 @@ renderCarAnalysis(card, carDataForAI, data, euros, effectiveIsPaid);
 - ❌ **Page "Historique" / "Export CSV"** dans le dashboard : ces features peuvent exister mais ne sont plus mises en avant. Aucune modif nécessaire.
 - ❌ **Codes promo** : déjà activés sur Stripe Checkout, on ne touche pas.
 - ❌ **Solution au scroll-burn** : avec un plan illimité, le scroll-burn devient un problème de coût serveur / ban DataDome, pas un problème utilisateur. Le cache 7 jours en place limite déjà l'impact. À monitorer, pas à refactorer maintenant.
+- ❌ **"Détection d'options premium" dans le pitch commercial** : l'algo (`aiOptionDetector.js` + `PREMIUM_OPTIONS`) reste actif côté serveur — il enrichit la recherche LBC et influence `adjustedPrice`, donc il améliore la précision de la marge affichée. Mais rien n'est jamais rendu visuellement dans la carte ("M-Sport ✅" n'existe nulle part). On arrête de le vendre comme une feature. Si un jour on veut le rendre réel, ce sera un spec séparé qui ajoutera l'affichage dans `renderCarAnalysis`.
 
 ## Plan de déploiement
 
