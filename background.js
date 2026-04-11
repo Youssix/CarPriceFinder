@@ -7,10 +7,13 @@ console.log('[🔧 Background] Service worker initialized');
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   // --- Fetch relay (existant) ---
   if (message.type === 'FETCH_REQUEST_BG') {
-    const { url, headers } = message;
-    console.log('[🔧 Background] Fetching:', url);
+    const { url, headers, method, body } = message;
+    console.log('[🔧 Background] Fetching:', url, method || 'GET');
 
-    fetch(url, { headers: headers || {} })
+    const fetchOpts = { method: method || 'GET', headers: headers || {} };
+    if (body) fetchOpts.body = body;
+
+    fetch(url, fetchOpts)
       .then(async (response) => {
         const status = response.status;
         const ok = response.ok;

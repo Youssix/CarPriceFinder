@@ -222,7 +222,18 @@
   }
 
   // ─── Fetch via bridge (même pattern qu'intercept.js) ──────────────────────
-  function fetchViaBridge(url, headers = {}) {
+  // Signature v2 : fetchViaBridge({url, headers, method, body}) — backward compat
+  // avec l'ancien fetchViaBridge(url, headers) conservee pour securite.
+  function fetchViaBridge(opts, headersLegacy = {}) {
+    let url, headers, method, body;
+    if (typeof opts === 'string') {
+      url = opts;
+      headers = headersLegacy;
+      method = 'GET';
+      body = null;
+    } else {
+      ({ url, headers = {}, method = 'GET', body = null } = opts || {});
+    }
     return new Promise((resolve, reject) => {
       const requestId = 'bca_' + Math.random().toString(36).substr(2, 9);
       const timer = setTimeout(() => {
@@ -240,27 +251,93 @@
       }
 
       window.addEventListener('message', handler);
-      window.postMessage({ type: 'FETCH_REQUEST', url, headers, requestId }, '*');
+      window.postMessage({ type: 'FETCH_REQUEST', url, headers, method, body, requestId }, '*');
     });
   }
 
-  async function callEstimation(vehicle, currentBid, retryCount = 0) {
-    const { brand, model, year, km, fuel } = vehicle;
-    const url = `${extensionSettings.serverUrl}/api/estimation?brand=${encodeURIComponent(brand)}&model=${encodeURIComponent(model)}&year=${year}&km=${km}&fuel=${encodeURIComponent(fuel)}`;
-
+  // Wrapper serveur Carlytics : ajoute X-API-Key + gere 401/403/429 + JSON body
+  async function callServer(opts, retryCount = 0) {
     const headers = {};
     if (extensionSettings.apiKey) headers['X-API-Key'] = extensionSettings.apiKey;
+    const method = opts.method || 'GET';
+    if (method !== 'GET') headers['Content-Type'] = 'application/json';
+    const body = method !== 'GET' && opts.body != null
+      ? (typeof opts.body === 'string' ? opts.body : JSON.stringify(opts.body))
+      : null;
 
-    const resp = await fetchViaBridge(url, headers);
+    const resp = await fetchViaBridge({ url: opts.url, headers, method, body });
     if (resp.error) throw new Error(resp.error);
     if (resp.status === 401) throw new Error('Clé API requise.');
     if (resp.status === 403) throw new Error('Abonnement expiré.');
     if (resp.status === 429 && retryCount < 2) {
       await new Promise(r => setTimeout(r, (resp.retryAfter || 3) * 1000));
-      return callEstimation(vehicle, currentBid, retryCount + 1);
+      return callServer(opts, retryCount + 1);
     }
     if (!resp.ok) throw new Error(`Erreur serveur: ${resp.status}`);
     return resp.data;
+  }
+
+  // Direct LBC fetch via service worker (residential IP + host_permissions bypass CORS).
+  async function lbcSearchFromClient(lbcUrl, payloadBody) {
+    const resp = await fetchViaBridge({
+      url: lbcUrl,
+      method: 'POST',
+      headers: {
+        'api_key': 'ba0c2dad52b3ec',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payloadBody)
+    });
+    if (resp.error) {
+      console.warn('[🛰️ BCA LBC] Fetch error:', resp.error);
+      return [];
+    }
+    if (!resp.ok) {
+      console.warn('[🛰️ BCA LBC] Non-ok status:', resp.status);
+      return [];
+    }
+    return (resp.data && Array.isArray(resp.data.ads)) ? resp.data.ads : [];
+  }
+
+  // Track 2 : 3-phase analysis (cache → client-side LBC fetches → server compute).
+  async function callEstimation(vehicle, currentBid) {
+    const { brand, model, year, km, fuel } = vehicle;
+
+    // Phase 1 : GET /api/lbc-payloads
+    const qs = new URLSearchParams({
+      brand: String(brand || ''),
+      model: String(model || ''),
+      year: String(year || ''),
+      km: String(km || ''),
+      fuel: String(fuel || '')
+    }).toString();
+    const phase1 = await callServer({ url: `${extensionSettings.serverUrl}/api/lbc-payloads?${qs}` });
+    if (phase1 && phase1.cached && phase1.data) {
+      console.log('[💾 BCA Cache] Hit — skip LBC for', `${brand} ${model}`);
+      return phase1.data;
+    }
+
+    // Phase 2 : loop payloads until ≥ 3 ads
+    const lbcUrl = (phase1 && phase1.lbcUrl) || 'https://api.leboncoin.fr/finder/search';
+    const payloads = (phase1 && phase1.payloads) || [];
+    let ads = [];
+    for (const { label, body } of payloads) {
+      try {
+        ads = await lbcSearchFromClient(lbcUrl, body);
+        console.log(`[🛰️ BCA LBC ${label}] ${ads.length} ads (${brand} ${model})`);
+      } catch (err) {
+        console.warn(`[🛰️ BCA LBC ${label}] Failed: ${err.message}`);
+        ads = [];
+      }
+      if (ads.length >= 3) break;
+    }
+
+    // Phase 3 : POST ads to /api/estimation-from-ads
+    return await callServer({
+      url: `${extensionSettings.serverUrl}/api/estimation-from-ads`,
+      method: 'POST',
+      body: { brand, model, year, km, fuel, ads }
+    });
   }
 
   // ─── Injection de la carte prix ────────────────────────────────────────────

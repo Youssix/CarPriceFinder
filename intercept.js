@@ -150,28 +150,108 @@
   // Simple fetch with retry logic
   const pendingRequests = new Map(); // Track requests in progress to avoid duplicates
 
-  async function fetchAnalysis(fetchUrl) {
-    // Check if request already in progress for this URL
-    if (pendingRequests.has(fetchUrl)) {
-      console.log('[🔄] Request already in progress, waiting...');
-      return await pendingRequests.get(fetchUrl);
+  // Track 2 entry point: analyzeCar runs the 3-phase flow for a single car.
+  // Phase 1 : GET /api/lbc-payloads (cache check, returns LBC payloads on miss)
+  // Phase 2 : client-side LBC fetches via service worker (residential IP, no DataDome)
+  // Phase 3 : POST /api/estimation-from-ads (server filters + caches + returns estimation)
+  // Dedup key = stockNumber (stable per vehicle) to avoid duplicate multi-roundtrip flows.
+  async function analyzeCar(carParams) {
+    const dedupKey = carParams.stockNumber || `${carParams.brand}|${carParams.model}|${carParams.year}|${carParams.km}`;
+    if (pendingRequests.has(dedupKey)) {
+      console.log('[🔄] Analysis already in progress for', dedupKey);
+      return await pendingRequests.get(dedupKey);
     }
-
-    // Create new request promise
-    const requestPromise = performFetch(fetchUrl);
-    pendingRequests.set(fetchUrl, requestPromise);
-
+    const promise = runAnalyzeCar(carParams);
+    pendingRequests.set(dedupKey, promise);
     try {
-      const result = await requestPromise;
-      return result;
+      return await promise;
     } finally {
-      // Cleanup pending request after completion
-      pendingRequests.delete(fetchUrl);
+      pendingRequests.delete(dedupKey);
     }
   }
 
+  async function runAnalyzeCar(carParams) {
+    const { brand, model, year, km, fuel, gearbox, doors, carModel, carData } = carParams;
+
+    // Phase 1 : ask server for cache hit or LBC payloads
+    const qs = new URLSearchParams({
+      brand: String(brand || ''),
+      model: String(model || ''),
+      year: String(year || ''),
+      km: String(km || ''),
+      fuel: String(fuel || ''),
+      gearbox: String(gearbox || ''),
+      carModel: String(carModel || ''),
+      doors: String(doors || ''),
+      carData: JSON.stringify(carData || {})
+    }).toString();
+    const phase1Url = `${extensionSettings.serverUrl}/api/lbc-payloads?${qs}`;
+    const phase1 = await performFetch({ url: phase1Url });
+    if (phase1 && phase1.cached && phase1.data) {
+      console.log('[💾 Cache] Hit — skip LBC fetch for', carParams.stockNumber || `${brand} ${model}`);
+      return phase1.data;
+    }
+
+    // Phase 2 : run LBC searches in order (main → fallback1 → fallback2) until ≥ 3 ads
+    const lbcUrl = (phase1 && phase1.lbcUrl) || 'https://api.leboncoin.fr/finder/search';
+    const payloads = (phase1 && phase1.payloads) || [];
+    let ads = [];
+    for (const { label, body } of payloads) {
+      try {
+        ads = await lbcSearchFromClient(lbcUrl, body);
+        console.log(`[🛰️ LBC ${label}] ${ads.length} ads (${brand} ${model})`);
+      } catch (err) {
+        console.warn(`[🛰️ LBC ${label}] Failed: ${err.message}`);
+        ads = [];
+      }
+      if (ads.length >= 3) break;
+    }
+
+    // Phase 3 : POST ads to server for filtering / median / caching
+    const phase3Url = `${extensionSettings.serverUrl}/api/estimation-from-ads`;
+    return await performFetch({
+      url: phase3Url,
+      method: 'POST',
+      body: { brand, model, year, km, fuel, gearbox, doors, carModel, carData, ads }
+    });
+  }
+
+  // Direct LBC fetch via service worker (residential IP + host_permissions bypass CORS).
+  // Returns raw ads array (or [] on error). Safe to call from page context via bridge.
+  async function lbcSearchFromClient(lbcUrl, payloadBody) {
+    const resp = await fetchViaBridge({
+      url: lbcUrl,
+      method: 'POST',
+      headers: {
+        'api_key': 'ba0c2dad52b3ec',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payloadBody)
+    });
+    if (resp.error) {
+      console.warn('[🛰️ LBC] Fetch error:', resp.error);
+      return [];
+    }
+    if (!resp.ok) {
+      console.warn('[🛰️ LBC] Non-ok status:', resp.status);
+      return [];
+    }
+    return (resp.data && Array.isArray(resp.data.ads)) ? resp.data.ads : [];
+  }
+
   // Relay fetch through content-bridge.js (extension context) to bypass mixed content blocks
-  function fetchViaBridge(url, headers = {}) {
+  // Signature v2 : fetchViaBridge({ url, headers, method, body }) — still tolerates old
+  // positional call fetchViaBridge(url, headers) for safety.
+  function fetchViaBridge(opts, headersLegacy = {}) {
+    let url, headers, method, body;
+    if (typeof opts === 'string') {
+      url = opts;
+      headers = headersLegacy;
+      method = 'GET';
+      body = null;
+    } else {
+      ({ url, headers = {}, method = 'GET', body = null } = opts || {});
+    }
     return new Promise((resolve, reject) => {
       const requestId = Math.random().toString(36).substr(2, 9);
       const timeout = extensionSettings.requestTimeout || 10000;
@@ -191,21 +271,29 @@
       }
 
       window.addEventListener('message', handler);
-      window.postMessage({ type: 'FETCH_REQUEST', url, headers, requestId }, '*');
+      window.postMessage({ type: 'FETCH_REQUEST', url, headers, method, body, requestId }, '*');
     });
   }
 
-  async function performFetch(fetchUrl, retryCount = 0) {
+  async function performFetch(fetchOpts, retryCount = 0) {
     const MAX_RETRIES = 1;
+    // Backwards compat : allow performFetch(url) or performFetch({url, method, body})
+    const opts = typeof fetchOpts === 'string' ? { url: fetchOpts } : fetchOpts;
+    const method = opts.method || 'GET';
 
     try {
       const headers = {};
       if (extensionSettings.apiKey) {
         headers['X-API-Key'] = extensionSettings.apiKey;
       }
+      if (method !== 'GET') headers['Content-Type'] = 'application/json';
+
+      const body = method !== 'GET' && opts.body != null
+        ? (typeof opts.body === 'string' ? opts.body : JSON.stringify(opts.body))
+        : null;
 
       // Route through content-bridge.js to bypass mixed content (HTTPS page → HTTP localhost)
-      const resp = await fetchViaBridge(fetchUrl, headers);
+      const resp = await fetchViaBridge({ url: opts.url, headers, method, body });
 
       if (resp.error) {
         throw new Error(resp.error);
@@ -224,14 +312,14 @@
         const retryAfter = resp.retryAfter || 2;
         console.warn(`[⏳ Rate Limit] Waiting ${retryAfter}s before retry (attempt ${retryCount + 1}/${MAX_RETRIES})...`);
         await sleep(retryAfter * 1000);
-        return await performFetch(fetchUrl, retryCount + 1);
+        return await performFetch(opts, retryCount + 1);
       }
 
       if (!resp.ok) {
         throw new Error(`Server error: ${resp.status}`);
       }
 
-      return resp.data; // Server returns fromCache: true if cached
+      return resp.data;
 
     } catch (error) {
       console.error('[❌ Fetch] Error:', error.message);
@@ -748,14 +836,21 @@
         const gearbox = (car.gearType || "").toLowerCase();
         const carModel = (car.mainType || "").trim();
         const doors = car.doors || "";
-        // ✅ FIX: Ne plus envoyer vehicle_type - incohérent entre Auto1 et LBC
-        // const vehicleType = mapBodyType(car.bodyType || "");
 
-        let estUrl = `${extensionSettings.serverUrl}/api/estimation?model=${encodeURIComponent(searchModel)}&year=${year}&km=${km}&brand=${brand}&fuel=${fuel}&gearbox=${gearbox}&carModel=${encodeURIComponent(carModel)}&doors=${encodeURIComponent(doors)}&carData=${encodeURIComponent(JSON.stringify(carDataForAI))}`;
-        // if (vehicleType) estUrl += `&vehicle_type=${encodeURIComponent(vehicleType)}`;
-
-        // ✅ SIMPLIFIED: Direct server call - cache handled by server
-        fetchAnalysis(estUrl)
+        // Track 2 : client-side LBC scraping via service worker (residential IP).
+        // analyzeCar() runs the 3-phase flow (cache → LBC fetches → server compute).
+        analyzeCar({
+          brand,
+          model: searchModel,
+          year,
+          km,
+          fuel,
+          gearbox,
+          doors,
+          carModel,
+          carData: carDataForAI,
+          stockNumber: stockId
+        })
           .then(async data => {
             // Remove loading indicator
             const loadingElement = card.querySelector(".plugin-loading");

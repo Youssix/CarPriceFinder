@@ -27,14 +27,17 @@ window.addEventListener('message', async (event) => {
   if (!message || !message.type) return;
 
   // --- FETCH RELAY via background service worker (bypasses mixed content HTTPS→HTTP) ---
+  // Supports POST with body for Track 2 (direct LBC scraping + new /api/estimation-from-ads)
   if (message.type === 'FETCH_REQUEST') {
-    const { url, headers, requestId } = message;
+    const { url, headers, method, body, requestId } = message;
     try {
       // Forward to background service worker which has no mixed content restrictions
       const response = await chrome.runtime.sendMessage({
         type: 'FETCH_REQUEST_BG',
         url,
-        headers
+        headers,
+        method,
+        body
       });
       window.postMessage({
         type: 'FETCH_RESPONSE',

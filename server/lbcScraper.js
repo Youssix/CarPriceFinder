@@ -266,6 +266,161 @@ function enqueueLbcCall(fn) {
     return fn();
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// TRACK 2 — Client-side LBC scraping helpers
+// Client extension does the LBC fetch (via browser residential IP) and sends
+// raw ads to /api/estimation-from-ads. Server handles payload construction,
+// filtering, median calculation and caching — but NEVER hits LBC directly.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Build the LBC search payload(s) for a given vehicle. Returns an array of
+// payloads tried in order by the client: main search → fallback 1 (no fuel) →
+// fallback 2 (no u_car_model, no fuel). Each payload is the exact body to POST
+// to https://api.leboncoin.fr/finder/search.
+function buildLbcPayloads(params) {
+    const { brand, model, year, km, fuel, gearbox, doors, colour, critair, carModel, minPrice = 500 } = params;
+
+    const rawBrand = brand || "";
+    const brandMapped = brandMap[rawBrand.toUpperCase()] || rawBrand;
+    const yearInt = parseInt(year);
+    const kmInt = parseInt(km);
+    const minPriceInt = parseInt(minPrice);
+
+    const enums = { ad_type: ["offer"] };
+    if (brand) enums.u_car_brand = [brandMapped.toUpperCase()];
+
+    const mappedFuel = mapFuelType(fuel);
+    if (mappedFuel) enums.fuel = [mappedFuel];
+
+    const mappedGearbox = mapGearbox(gearbox);
+    if (mappedGearbox) enums.gearbox = [mappedGearbox];
+
+    if (doors) {
+        if (doors === "4") {
+            enums.doors = ["4", "5"];
+        } else {
+            enums.doors = [doors];
+        }
+    }
+
+    if (colour) enums.vehicule_color = [colour];
+    if (critair) enums.critair = [critair];
+
+    const resolvedCarModel = carModel || model;
+    let keywordsText = model;
+    if (brand && resolvedCarModel) {
+        let modelClean = resolvedCarModel.trim();
+        const brandUpper = brandMapped.toUpperCase();
+        const needsSpacePreserved = brandUpper.includes("ALFA ROMEO");
+        const brandForModel = needsSpacePreserved ? brandUpper : brandUpper.replace(/ /g, '-');
+
+        if (brandMapped.toUpperCase() === "MERCEDES-BENZ" && modelClean.includes('-Klasse')) {
+            const base = modelClean.replace(/-Klasse$/, '');
+            keywordsText = `${brandMapped} ${base}`;
+            enums.u_car_model = [
+                `${brandForModel}_${base}`,
+                `${brandForModel}_Classe ${base}`
+            ];
+        } else if (brandMapped.toUpperCase() === "VOLKSWAGEN" && modelClean.startsWith('Golf')) {
+            modelClean = 'Golf';
+            enums.u_car_model = [`${brandForModel}_${modelClean}`];
+        } else {
+            enums.u_car_model = [`${brandForModel}_${modelClean}`];
+        }
+    }
+
+    const payload = {
+        extend: true,
+        filters: {
+            category: { id: "2" },
+            enums,
+            keywords: { text: keywordsText },
+            ranges: {
+                regdate: { min: yearInt - 3 },
+                mileage: { max: kmInt + 30000 },
+                price: { min: minPriceInt }
+            }
+        },
+        listing_source: "direct-search",
+        offset: 0,
+        limit: 35,
+        limit_alu: 3,
+        sort_by: "price",
+        sort_order: "asc"
+    };
+
+    // Fallback 1 : drop fuel filter
+    const fb1 = JSON.parse(JSON.stringify(payload));
+    delete fb1.filters.enums.fuel;
+
+    // Fallback 2 : drop u_car_model + fuel, keywords only
+    const fb2 = JSON.parse(JSON.stringify(payload));
+    delete fb2.filters.enums.fuel;
+    delete fb2.filters.enums.u_car_model;
+
+    return {
+        brandMapped,
+        yearInt,
+        kmInt,
+        minPriceInt,
+        payloads: [
+            { label: 'main', body: payload },
+            { label: 'fallback1', body: fb1 },
+            { label: 'fallback2', body: fb2 }
+        ]
+    };
+}
+
+// Filter raw LBC ads with the same rules as lbcSearch: drop blacklist keywords
+// (pieces/scams), require car attributes, enforce min price.
+function filterLbcAds(ads, minPriceInt) {
+    if (!Array.isArray(ads)) return [];
+    return ads.filter(ad => {
+        if (!ad || typeof ad !== 'object') return false;
+        const titleLower = (ad.subject || '').toLowerCase();
+        const bodyLower = (ad.body || '').toLowerCase();
+        const hasBlacklist = blacklistKeywords.some(w => titleLower.includes(w) || bodyLower.includes(w));
+        const attrs = Array.isArray(ad.attributes) ? ad.attributes : [];
+        const hasCarAttrs = attrs.some(a => a.key === "doors" && a.value) &&
+                            attrs.some(a => a.key === "seats" && a.value) &&
+                            attrs.some(a => a.key === "vehicle_type" && a.value !== "");
+        const priceValid = (ad.price_cents || 0) >= minPriceInt * 100;
+        return !hasBlacklist && hasCarAttrs && priceValid;
+    });
+}
+
+// Compute median/low/high/count from filtered ads. Mirrors the math in
+// /api/estimation so the client response shape stays identical.
+function computeEstimationFromFilteredAds(filteredAds) {
+    const prices = filteredAds
+        .map(ad => ad.price_cents / 100)
+        .filter(price => typeof price === 'number' && isFinite(price))
+        .sort((a, b) => a - b);
+
+    let estimatedPrice = null;
+    if (prices.length > 0) {
+        const mid = Math.floor(prices.length / 2);
+        estimatedPrice = prices.length % 2 === 0
+            ? (prices[mid - 1] + prices[mid]) / 2
+            : prices[mid];
+    }
+
+    const lowPrice = prices.length ? prices[0] : null;
+    const highPrice = prices.length ? prices[prices.length - 1] : null;
+    const potentialPlusValue = highPrice && lowPrice ? Math.round((highPrice - lowPrice) * 0.2) : null;
+
+    return {
+        ok: true,
+        estimatedPrice: estimatedPrice ? Math.round(estimatedPrice) : null,
+        lowPrice,
+        highPrice,
+        potentialPlusValue,
+        count: filteredAds.length,
+        results: filteredAds.slice(0, 10),
+        warning: filteredAds.length < 3 ? "Pas assez d'annonces fiables – élargis les ranges ?" : null
+    };
+}
+
 // === Auth Routes (Magic Link) ===
 
 // POST /api/auth/request-code - Request a login code
@@ -937,6 +1092,161 @@ app.get("/api/estimation", optionalApiKeyAuth, async (req, res) => {
         }
         console.error("❌ Scraping failed:", error);
         res.status(500).json({ ok: false, error: error.message });
+    }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TRACK 2 — Client-side LBC scraping endpoints
+// ─────────────────────────────────────────────────────────────────────────────
+
+// GET /api/lbc-payloads
+//   Phase 1 of client-side scraping. Either returns a cached estimation
+//   (client skips the LBC call entirely), or returns the LBC payloads the
+//   client must POST to https://api.leboncoin.fr/finder/search.
+app.use('/api/lbc-payloads', rateLimiter);
+app.get('/api/lbc-payloads', optionalApiKeyAuth, async (req, res) => {
+    // Extract stockNumber for per-vehicle cache key (same rule as /api/estimation)
+    let stockNumber = null;
+    try {
+        if (req.query.carData) {
+            const carData = JSON.parse(req.query.carData);
+            stockNumber = carData.stockNumber;
+        }
+    } catch (_) {}
+
+    const { model, brand, year, km, fuel, gearbox, doors, colour, critair, min_price = 500 } = req.query;
+    if (!model || !brand || !year || !km) {
+        return res.status(400).json({ ok: false, error: "Paramètres manquants (model, brand, year, km)" });
+    }
+
+    const built = buildLbcPayloads({
+        brand, model, year, km, fuel, gearbox, doors, colour, critair,
+        carModel: req.query.carModel,
+        minPrice: min_price
+    });
+
+    // Model-level cache key: shared across all vehicles of same brand/model/year
+    const modelCacheKey = `model_${built.brandMapped.toUpperCase()}_${model}_${built.yearInt}`;
+    const primaryCacheKey = stockNumber || modelCacheKey;
+
+    // Cache check (same strategy as /api/estimation)
+    try {
+        const keysToCheck = stockNumber ? [primaryCacheKey, modelCacheKey] : [modelCacheKey];
+        for (const key of keysToCheck) {
+            const cachedResult = await getCachedEstimation(key);
+            if (cachedResult) {
+                cacheStats.hits++;
+                const hitRate = ((cacheStats.hits / (cacheStats.hits + cacheStats.misses)) * 100).toFixed(1);
+                console.log(`[💾 Cache DB] HIT for key: ${key} (hit rate: ${hitRate}%) [lbc-payloads]`);
+                return res.json({
+                    ok: true,
+                    cached: true,
+                    data: { ...cachedResult, isPaid: !!req.subscriber }
+                });
+            }
+        }
+        cacheStats.misses++;
+    } catch (err) {
+        console.error('[💾 Cache DB] Read error (lbc-payloads):', err.message);
+        cacheStats.misses++;
+    }
+
+    // Cache miss → return payloads for client to execute
+    res.json({
+        ok: true,
+        cached: false,
+        lbcUrl: 'https://api.leboncoin.fr/finder/search',
+        payloads: built.payloads,
+        cacheKeys: { primary: primaryCacheKey, model: modelCacheKey },
+        isPaid: !!req.subscriber
+    });
+});
+
+// POST /api/estimation-from-ads
+//   Phase 2 of client-side scraping. Client sends the raw ads from LBC plus
+//   the original car params. Server filters, computes median/low/high, caches,
+//   and returns the same response shape as /api/estimation.
+app.use('/api/estimation-from-ads', rateLimiter);
+app.post('/api/estimation-from-ads', optionalApiKeyAuth, express.json({ limit: '2mb' }), async (req, res) => {
+    const { model, brand, year, km, fuel, gearbox, doors, colour, critair, min_price = 500, carModel, carData, ads } = req.body || {};
+    if (!model || !brand || !year || !km) {
+        return res.status(400).json({ ok: false, error: "Paramètres manquants (model, brand, year, km)" });
+    }
+    if (!Array.isArray(ads)) {
+        return res.status(400).json({ ok: false, error: "Param 'ads' manquant ou invalide (doit être un tableau)" });
+    }
+
+    let stockNumber = null;
+    try {
+        if (carData) {
+            const parsed = typeof carData === 'string' ? JSON.parse(carData) : carData;
+            stockNumber = parsed?.stockNumber || null;
+        }
+    } catch (_) {}
+
+    const built = buildLbcPayloads({ brand, model, year, km, fuel, gearbox, doors, colour, critair, carModel, minPrice: min_price });
+    const modelCacheKey = `model_${built.brandMapped.toUpperCase()}_${model}_${built.yearInt}`;
+    const primaryCacheKey = stockNumber || modelCacheKey;
+
+    // Re-check cache : another client may have landed faster during the round-trip
+    try {
+        const keysToCheck = stockNumber ? [primaryCacheKey, modelCacheKey] : [modelCacheKey];
+        for (const key of keysToCheck) {
+            const cachedResult = await getCachedEstimation(key);
+            if (cachedResult) {
+                cacheStats.hits++;
+                console.log(`[💾 Cache DB] HIT for key: ${key} [estimation-from-ads]`);
+                return res.json({ ...cachedResult, isPaid: !!req.subscriber });
+            }
+        }
+    } catch (err) {
+        console.error('[💾 Cache DB] Read error (estimation-from-ads):', err.message);
+    }
+
+    const filtered = filterLbcAds(ads, built.minPriceInt);
+    console.log(`[📥 Client ads] brand=${brand} model=${model} raw=${ads.length} filtered=${filtered.length}`);
+    const responseData = computeEstimationFromFilteredAds(filtered);
+
+    // Cache only if we got a real price
+    const hasValidPrice = responseData.estimatedPrice &&
+                         typeof responseData.estimatedPrice === 'number' &&
+                         responseData.estimatedPrice > 0;
+
+    if (hasValidPrice) {
+        const keysToStore = [primaryCacheKey];
+        if (stockNumber && stockNumber !== modelCacheKey) keysToStore.push(modelCacheKey);
+        for (const key of keysToStore) {
+            setCachedEstimation(key, responseData)
+                .then(() => {
+                    cacheStats.stores++;
+                    console.log(`[💾 Cache DB] STORED for key: ${key} (${responseData.estimatedPrice}€) [estimation-from-ads]`);
+                })
+                .catch(err => console.error('[💾 Cache DB] Store error:', err.message));
+        }
+    } else {
+        console.log(`[💾 Cache DB] NOT CACHED - No valid LBC price for key: ${primaryCacheKey} [estimation-from-ads]`);
+    }
+
+    // Source of truth = server (not client-side flag)
+    res.json({ ...responseData, isPaid: !!req.subscriber });
+
+    // Log observation for ML training (non-blocking)
+    if (req.subscriber) {
+        logPriceObservation(req.subscriber.id, {
+            stockNumber,
+            brand,
+            model,
+            year: built.yearInt,
+            km: built.kmInt,
+            fuel, gearbox, doors,
+            auto1Price: null,
+            estimatedPrice: responseData.estimatedPrice,
+            lowPrice: responseData.lowPrice,
+            highPrice: responseData.highPrice,
+            count: responseData.count,
+            options: [],
+            rawParams: req.body
+        }).catch(err => console.error('[📊 ML] Failed to log observation:', err.message));
     }
 });
 

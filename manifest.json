@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Carlytics – Analyse de prix véhicules d'occasion",
-  "version": "2.4",
+  "version": "2.5",
   "description": "Analysez les prix du marché VO en temps réel. Détectez les meilleures opportunités d'achat et estimez vos marges.",
   "background": {
     "service_worker": "background.js"
@@ -10,7 +10,8 @@
   "host_permissions": [
     "https://api.carlytics.fr/*",
     "https://app.carlytics.fr/*",
-    "https://www.bcautoencheres.fr/*"
+    "https://www.bcautoencheres.fr/*",
+    "https://api.leboncoin.fr/*"
   ],
   "icons": {
     "16": "icons/icon16.png",
