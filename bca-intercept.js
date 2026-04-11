@@ -283,8 +283,11 @@
       url: lbcUrl,
       method: 'POST',
       headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'User-Agent': 'LBC;iOS;16.4.1;iPhone;phone;UUID;wifi;6.102.0;24.32.1930',
         'api_key': 'ba0c2dad52b3ec',
-        'Content-Type': 'application/json'
+        'Accept-Language': 'fr-FR,fr;q=0.9'
       },
       body: JSON.stringify(payloadBody)
     });

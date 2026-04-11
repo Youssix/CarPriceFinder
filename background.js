@@ -4,6 +4,26 @@
 
 console.log('[🔧 Background] Service worker initialized');
 
+// Override User-Agent for LBC API requests to mimic mobile app (bypass DataDome fingerprint)
+chrome.declarativeNetRequest.updateDynamicRules({
+  removeRuleIds: [1],
+  addRules: [{
+    id: 1,
+    priority: 1,
+    action: {
+      type: 'modifyHeaders',
+      requestHeaders: [
+        { header: 'User-Agent', operation: 'set', value: 'LBC;iOS;16.4.1;iPhone;phone;UUID;wifi;6.102.0;24.32.1930' }
+      ]
+    },
+    condition: {
+      urlFilter: 'api.leboncoin.fr',
+      resourceTypes: ['xmlhttprequest', 'other']
+    }
+  }]
+}).then(() => console.log('[🔧 Background] LBC User-Agent rule installed'))
+  .catch(e => console.warn('[🔧 Background] DNR rule error:', e.message));
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   // --- Fetch relay (existant) ---
   if (message.type === 'FETCH_REQUEST_BG') {
@@ -19,7 +39,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         const ok = response.ok;
         const retryAfter = response.headers.get('Retry-After');
         let data = null;
-        try { data = await response.json(); } catch (_) {}
+        const rawText = await response.text();
+        try { data = JSON.parse(rawText); } catch (_) {}
+        // Diagnostic: log LBC responses to detect DataDome blocks
+        if (url.includes('leboncoin.fr')) {
+          const adsCount = data && Array.isArray(data.ads) ? data.ads.length : 'N/A';
+          console.log(`[🔧 BG LBC] ${status} | ads=${adsCount} | raw=${rawText.substring(0, 200)}`);
+        }
         sendResponse({ ok, status, retryAfter, data });
       })
       .catch((error) => {

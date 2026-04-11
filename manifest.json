@@ -6,7 +6,7 @@
   "background": {
     "service_worker": "background.js"
   },
-  "permissions": ["activeTab", "storage", "tabs"],
+  "permissions": ["activeTab", "storage", "tabs", "declarativeNetRequest"],
   "host_permissions": [
     "https://api.carlytics.fr/*",
     "https://app.carlytics.fr/*",

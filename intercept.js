@@ -219,7 +219,7 @@
   // Global LBC rate limiter : max 12 calls per 60s to stay well under LBC's ~100/min.
   // Shared across all batches (scroll loads). Uses a sliding window of timestamps.
   const lbcCallTimestamps = [];
-  const LBC_MAX_CALLS = 12;
+  const LBC_MAX_CALLS = 8;
   const LBC_WINDOW_MS = 60000;
 
   async function lbcRateLimit() {
@@ -245,8 +245,11 @@
       url: lbcUrl,
       method: 'POST',
       headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'User-Agent': 'LBC;iOS;16.4.1;iPhone;phone;UUID;wifi;6.102.0;24.32.1930',
         'api_key': 'ba0c2dad52b3ec',
-        'Content-Type': 'application/json'
+        'Accept-Language': 'fr-FR,fr;q=0.9'
       },
       body: JSON.stringify(payloadBody)
     });
@@ -255,10 +258,14 @@
       return [];
     }
     if (!resp.ok) {
-      console.warn('[🛰️ LBC] Non-ok status:', resp.status);
+      console.warn('[🛰️ LBC] Non-ok status:', resp.status, resp.data);
       return [];
     }
-    return (resp.data && Array.isArray(resp.data.ads)) ? resp.data.ads : [];
+    if (!resp.data || !Array.isArray(resp.data.ads)) {
+      console.warn('[🛰️ LBC] 200 but no ads array — DataDome block?', JSON.stringify(resp.data)?.substring(0, 200));
+      return [];
+    }
+    return resp.data.ads;
   }
 
   // Relay fetch through content-bridge.js (extension context) to bypass mixed content blocks
