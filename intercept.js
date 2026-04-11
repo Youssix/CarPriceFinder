@@ -216,9 +216,31 @@
     });
   }
 
+  // Global LBC rate limiter : max 12 calls per 60s to stay well under LBC's ~100/min.
+  // Shared across all batches (scroll loads). Uses a sliding window of timestamps.
+  const lbcCallTimestamps = [];
+  const LBC_MAX_CALLS = 12;
+  const LBC_WINDOW_MS = 60000;
+
+  async function lbcRateLimit() {
+    const now = Date.now();
+    // Purge expired timestamps
+    while (lbcCallTimestamps.length > 0 && lbcCallTimestamps[0] < now - LBC_WINDOW_MS) {
+      lbcCallTimestamps.shift();
+    }
+    if (lbcCallTimestamps.length >= LBC_MAX_CALLS) {
+      const waitMs = lbcCallTimestamps[0] + LBC_WINDOW_MS - now + 100;
+      console.log(`[⏳ LBC Rate] ${lbcCallTimestamps.length}/${LBC_MAX_CALLS} calls in window — waiting ${Math.round(waitMs/1000)}s`);
+      await sleep(waitMs);
+      return lbcRateLimit(); // Re-check after wait
+    }
+    lbcCallTimestamps.push(now);
+  }
+
   // Direct LBC fetch via service worker (residential IP + host_permissions bypass CORS).
   // Returns raw ads array (or [] on error). Safe to call from page context via bridge.
   async function lbcSearchFromClient(lbcUrl, payloadBody) {
+    await lbcRateLimit();
     const resp = await fetchViaBridge({
       url: lbcUrl,
       method: 'POST',
