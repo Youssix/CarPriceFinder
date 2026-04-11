@@ -216,14 +216,24 @@
     });
   }
 
-  // Global LBC rate limiter : max 12 calls per 60s to stay well under LBC's ~100/min.
+  // Global LBC rate limiter : max 8 calls per 60s to stay well under LBC's ~100/min.
   // Shared across all batches (scroll loads). Uses a sliding window of timestamps.
   const lbcCallTimestamps = [];
   const LBC_MAX_CALLS = 8;
   const LBC_WINDOW_MS = 60000;
 
+  // DataDome cooldown: if LBC returns 403, stop all calls for 30 min
+  let lbcCooldownUntil = 0;
+  const LBC_COOLDOWN_MS = 30 * 60 * 1000; // 30 minutes
+
   async function lbcRateLimit() {
+    // Check DataDome cooldown first
     const now = Date.now();
+    if (now < lbcCooldownUntil) {
+      const remainMin = Math.ceil((lbcCooldownUntil - now) / 60000);
+      console.log(`[🛑 LBC Cooldown] DataDome ban actif — skip LBC pendant encore ${remainMin} min`);
+      return 'COOLDOWN';
+    }
     // Purge expired timestamps
     while (lbcCallTimestamps.length > 0 && lbcCallTimestamps[0] < now - LBC_WINDOW_MS) {
       lbcCallTimestamps.shift();
@@ -235,19 +245,21 @@
       return lbcRateLimit(); // Re-check after wait
     }
     lbcCallTimestamps.push(now);
+    return 'OK';
   }
 
   // Direct LBC fetch via service worker (residential IP + host_permissions bypass CORS).
   // Returns raw ads array (or [] on error). Safe to call from page context via bridge.
   async function lbcSearchFromClient(lbcUrl, payloadBody) {
-    await lbcRateLimit();
+    const rateStatus = await lbcRateLimit();
+    if (rateStatus === 'COOLDOWN') return [];
+
     const resp = await fetchViaBridge({
       url: lbcUrl,
       method: 'POST',
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
-        'User-Agent': 'LBC;iOS;16.4.1;iPhone;phone;UUID;wifi;6.102.0;24.32.1930',
         'api_key': 'ba0c2dad52b3ec',
         'Accept-Language': 'fr-FR,fr;q=0.9'
       },
@@ -258,11 +270,21 @@
       return [];
     }
     if (!resp.ok) {
-      console.warn('[🛰️ LBC] Non-ok status:', resp.status, resp.data);
+      console.warn('[🛰️ LBC] Non-ok status:', resp.status);
+      // DataDome 403 → activate cooldown to stop hammering
+      if (resp.status === 403) {
+        lbcCooldownUntil = Date.now() + LBC_COOLDOWN_MS;
+        console.warn(`[🛑 LBC] DataDome 403 détecté — cooldown 30 min activé`);
+      }
       return [];
     }
     if (!resp.data || !Array.isArray(resp.data.ads)) {
       console.warn('[🛰️ LBC] 200 but no ads array — DataDome block?', JSON.stringify(resp.data)?.substring(0, 200));
+      // Also trigger cooldown on captcha-style 200 responses
+      if (resp.data && resp.data.url && resp.data.url.includes('captcha')) {
+        lbcCooldownUntil = Date.now() + LBC_COOLDOWN_MS;
+        console.warn(`[🛑 LBC] DataDome captcha détecté — cooldown 30 min activé`);
+      }
       return [];
     }
     return resp.data.ads;
