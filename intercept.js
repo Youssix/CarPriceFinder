@@ -196,15 +196,46 @@
     const lbcUrl = (phase1 && phase1.lbcUrl) || 'https://api.leboncoin.fr/finder/search';
     const payloads = (phase1 && phase1.payloads) || [];
     let ads = [];
-    for (const { label, body } of payloads) {
-      try {
-        ads = await lbcSearchFromClient(lbcUrl, body);
-        console.log(`[🛰️ LBC ${label}] ${ads.length} ads (${brand} ${model})`);
-      } catch (err) {
-        console.warn(`[🛰️ LBC ${label}] Failed: ${err.message}`);
-        ads = [];
+
+    // Skip Phase 2 entirely if DataDome cooldown active
+    if (Date.now() < lbcCooldownUntil) {
+      console.log(`[🛑 Cooldown] Skip client LBC — cooldown ${Math.ceil((lbcCooldownUntil - Date.now()) / 60000)} min restant`);
+    } else {
+      for (const { label, body } of payloads) {
+        // Re-check cooldown between calls (another car may have triggered it)
+        if (Date.now() < lbcCooldownUntil) {
+          console.log('[🛑 Cooldown] Abort remaining payloads');
+          break;
+        }
+        try {
+          ads = await lbcSearchFromClient(lbcUrl, body);
+          console.log(`[🛰️ LBC ${label}] ${ads.length} ads (${brand} ${model})`);
+        } catch (err) {
+          console.warn(`[🛰️ LBC ${label}] Failed: ${err.message}`);
+          ads = [];
+        }
+        if (ads.length >= 3) break;
       }
-      if (ads.length >= 3) break;
+    }
+
+    // Fallback serveur : si client LBC bloqué (0 ads + cooldown actif), tenter via serveur
+    if (ads.length === 0 && lbcCooldownUntil > Date.now()) {
+      console.log('[🔄 Fallback] Client LBC bloqué → essai serveur /api/estimation');
+      const fallbackQs = new URLSearchParams({
+        brand: String(brand || ''), model: String(model || ''),
+        year: String(year || ''), km: String(km || ''),
+        fuel: String(fuel || ''), gearbox: String(gearbox || ''),
+        carModel: String(carModel || ''), doors: String(doors || ''),
+        price: String((carData && carData.price) || ''),
+        carData: JSON.stringify(carData || {})
+      }).toString();
+      const fallbackUrl = `${extensionSettings.serverUrl}/api/estimation?${fallbackQs}`;
+      const fallback = await performFetch({ url: fallbackUrl });
+      if (fallback && fallback.medianPrice) {
+        console.log('[🔄 Fallback] Serveur OK — medianPrice:', fallback.medianPrice);
+        return fallback;
+      }
+      console.warn('[🔄 Fallback] Serveur aussi bloqué — aucune donnée LBC');
     }
 
     // Phase 3 : POST ads to server for filtering / median / caching
