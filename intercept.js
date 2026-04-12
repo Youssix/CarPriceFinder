@@ -1007,31 +1007,43 @@
     return parts[parts.length - 1];
   }
 
-  // Tentative d'injection automatique sur page détail au chargement
-  if (isDetailPage()) {
+  // ✅ SPA navigation: intercepter pushState pour détecter navigation vers fiche détail
+  function waitForElement(selector, callback, maxMs = 8000) {
+    const el = document.querySelector(selector);
+    if (el) { callback(el); return; }
+    const observer = new MutationObserver(() => {
+      const found = document.querySelector(selector);
+      if (found) { observer.disconnect(); callback(found); }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+    setTimeout(() => observer.disconnect(), maxMs);
+  }
+
+  function tryInjectDetailPage() {
+    if (!isDetailPage()) return;
     const stockNumber = getDetailPageStockNumber();
+    console.log(`[🔍 Detail SPA] URL détail détectée, stockNumber=${stockNumber}`);
     try {
       const stored = sessionStorage.getItem('carlyticsLastHits');
-      if (stored) {
-        const hits = JSON.parse(stored);
-        const matchingCar = hits.find(car => car.stockNumber === stockNumber);
-        if (matchingCar) {
-          console.log(`[🔍 Detail auto-init] Véhicule ${stockNumber} trouvé dans sessionStorage`);
-          // Attendre que le DOM soit prêt
-          const tryInject = () => {
-            if (document.querySelector('.car-details')) {
-              injectDetailPageCard(matchingCar);
-            } else {
-              setTimeout(tryInject, 300);
-            }
-          };
-          setTimeout(tryInject, 500);
-        } else {
-          console.log(`[🔍 Detail auto-init] ${stockNumber} pas dans sessionStorage`);
-        }
-      }
-    } catch(e) {}
+      if (!stored) { console.log('[🔍 Detail SPA] sessionStorage vide'); return; }
+      const hits = JSON.parse(stored);
+      const matchingCar = hits.find(car => car.stockNumber === stockNumber);
+      if (!matchingCar) { console.log(`[🔍 Detail SPA] ${stockNumber} pas dans sessionStorage`); return; }
+      console.log(`[🔍 Detail SPA] Véhicule trouvé — attente .car-details`);
+      waitForElement('.car-details', () => injectDetailPageCard(matchingCar));
+    } catch(e) { console.warn('[🔍 Detail SPA] Erreur:', e); }
   }
+
+  // Intercepter history.pushState (SPA navigation)
+  const _origPushState = history.pushState.bind(history);
+  history.pushState = function(...args) {
+    _origPushState(...args);
+    setTimeout(tryInjectDetailPage, 100);
+  };
+  window.addEventListener('popstate', () => setTimeout(tryInjectDetailPage, 100));
+
+  // Au chargement initial (accès direct à une fiche détail)
+  if (isDetailPage()) tryInjectDetailPage();
 
   async function injectDetailPageCard(car) {
     await settingsReady;
