@@ -25,16 +25,18 @@
   let _quotaRemaining = null; // null = not loaded yet
   let _quotaLoaded = false;
   let _userIsPaid = false;
+  let _isLoggedIn = false;
 
   async function fetchQuota() {
     try {
       await settingsReady;
       if (!extensionSettings.apiKey) {
-        console.warn('[📊 Quota] No apiKey — defaulting to free with 5 remaining');
-        _quotaRemaining = 5;
+        console.warn('[📊 Quota] No apiKey — user not logged in');
+        _isLoggedIn = false;
         _quotaLoaded = true;
         return;
       }
+      _isLoggedIn = true;
       console.log('[📊 Quota] Fetching from', extensionSettings.serverUrl);
       const res = await performFetch({
         url: `${extensionSettings.serverUrl}/api/quota?site=auto1`
@@ -112,7 +114,7 @@
           hitsCount: lastHits.length
         });
         // Supprimer les cards existantes (.plugin-price, .plugin-loading, .carlytics-analyse-btn)
-        document.querySelectorAll('.plugin-price, .plugin-loading, .carlytics-analyse-btn').forEach(el => el.remove());
+        document.querySelectorAll('.plugin-price, .plugin-loading, .carlytics-analyse-btn, .carlytics-login-prompt').forEach(el => el.remove());
         // Reset quota state so it re-fetches on re-injection
         _quotaLoaded = false;
         _quotaRemaining = null;
@@ -893,10 +895,39 @@
       await fetchQuota();
     }
 
-    const isPaid = _userIsPaid;
-    console.log(`[🔐 Auth] ${isPaid ? 'Abonn\u00e9 — auto-analyse' : 'Gratuit — bouton Analyser (quota)'}`);
+    // Not logged in → show connect prompt on first car only
+    if (!_isLoggedIn) {
+      console.log('[🔐 Auth] Non connecté — affichage prompt connexion');
+      const firstCar = hits[0];
+      if (firstCar) {
+        const card = document.querySelector(`.big-car-card[data-qa-id="${firstCar.stockNumber}"]`);
+        if (card && !card.querySelector('.carlytics-login-prompt')) {
+          const prompt = document.createElement('div');
+          prompt.className = 'carlytics-login-prompt';
+          prompt.style.cssText = `
+            margin: 8px 0; padding: 12px 14px; border-radius: 4px;
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            color: white; font-size: 13px; text-align: center;
+            border: 1px solid rgba(96,165,250,0.3);
+          `;
+          prompt.innerHTML = `
+            <div style="font-weight:700; margin-bottom:6px;">🔍 Carlytics</div>
+            <div style="color: rgba(255,255,255,0.7); margin-bottom:8px;">Connectez-vous pour analyser les prix du marché</div>
+            <div style="color: rgba(255,255,255,0.5); font-size: 11px;">Cliquez sur l'icône Carlytics en haut à droite de Chrome</div>
+          `;
+          const insertLocation = card.querySelector('.big-car-card__title');
+          if (insertLocation && insertLocation.parentNode) {
+            insertLocation.parentNode.insertBefore(prompt, insertLocation.nextSibling);
+          }
+        }
+      }
+      return;
+    }
 
-    console.log(`[🔍 injectPluginPrices] ${hits.length} v\u00e9hicules \u00e0 traiter (timeout: ${extensionSettings.requestTimeout}ms, paid=${isPaid})`);
+    const isPaid = _userIsPaid;
+    console.log(`[🔐 Auth] ${isPaid ? 'Abonné — auto-analyse' : 'Gratuit — bouton Analyser (quota)'}`);
+
+    console.log(`[🔍 injectPluginPrices] ${hits.length} véhicules à traiter (timeout: ${extensionSettings.requestTimeout}ms, paid=${isPaid})`);
 
     if (isPaid) {
       // ✅ PAID USER: Auto-analyze all cars (existing behavior)

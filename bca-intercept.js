@@ -599,6 +599,32 @@
     document.body.appendChild(card);
   }
 
+  // ─── Card "Connectez-vous" pour users non loggés ────────────────────────────
+  function showLoginCard(vehicle, currentBid) {
+    const existing = document.getElementById(CARD_ID);
+    if (existing) existing.remove();
+
+    const card = document.createElement('div');
+    card.id = CARD_ID;
+    card.style.cssText = `
+      position: fixed; bottom: 24px; right: 24px; z-index: 99999;
+      background: #fff; border: 2px solid #2c3e50; border-radius: 12px;
+      padding: 16px 20px; min-width: 280px; max-width: 340px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.18);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 13px; color: #2c3e50; text-align: center;
+    `;
+    card.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <strong>🔍 Carlytics</strong>
+        <span style="cursor:pointer;font-size:18px" onclick="document.getElementById('${CARD_ID}').remove()">×</span>
+      </div>
+      <div style="color:#666;margin-bottom:8px;">Connectez-vous pour analyser les prix du marché</div>
+      <div style="color:#999;font-size:11px;">Cliquez sur l'icône Carlytics en haut à droite de Chrome</div>
+    `;
+    document.body.appendChild(card);
+  }
+
   // ─── Déclenchement de l'analyse ────────────────────────────────────────────
   async function triggerAnalysis() {
     if (analysisTriggered) return;
@@ -608,6 +634,13 @@
 
     // Fetch quota if not loaded yet
     if (!_quotaLoaded) await fetchQuota();
+
+    // Not logged in: show login prompt
+    if (!extensionSettings.apiKey) {
+      console.log('[🎯 BCA] Non connecté — affichage prompt connexion');
+      showLoginCard(vehicleData, currentBidPrice);
+      return;
+    }
 
     // Pro users: auto-analyze
     if (_userIsPaid) {
