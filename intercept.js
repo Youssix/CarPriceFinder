@@ -1066,14 +1066,9 @@
   async function injectDetailPageCard(car) {
     await settingsReady;
 
-    const container = document.querySelector('.car-details');
-    if (!container) {
-      console.warn('[❌ Detail] .car-details introuvable');
-      return;
-    }
-
-    // Eviter double injection
-    if (container.querySelector('.plugin-price') || container.querySelector('.plugin-loading')) return;
+    // Injecter dans document.body (hors React) pour éviter l'effacement au re-render
+    const DETAIL_CARD_ID = 'carlytics-detail-card';
+    if (document.getElementById(DETAIL_CARD_ID)) return;
 
     const stockId = car.stockNumber;
     const price = car.searchPrice || car.minimumBid || car.mpPrice;
@@ -1081,9 +1076,24 @@
 
     const euros = (price / 100).toFixed(0) + " €";
 
-    // Loading indicator
+    // Panneau fixe collé en haut à gauche, hors de l'arbre React
+    const wrapper = document.createElement('div');
+    wrapper.id = DETAIL_CARD_ID;
+    wrapper.style.cssText = `
+      position: fixed;
+      top: 80px;
+      left: 16px;
+      z-index: 99999;
+      width: 300px;
+    `;
+    document.body.appendChild(wrapper);
+
+    // Loading indicator dans le wrapper fixe
     const loadingDiv = createLoadingIndicator(extensionSettings.requestTimeout);
-    container.insertBefore(loadingDiv, container.firstChild);
+    wrapper.appendChild(loadingDiv);
+
+    // Alias container = wrapper pour renderCarAnalysis
+    const container = wrapper;
 
     const carDataForAI = {
       manufacturerName: car.manufacturerName,
