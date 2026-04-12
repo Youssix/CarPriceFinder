@@ -981,6 +981,114 @@
           });
       }, i * extensionSettings.requestTimeout);
     });
+
+    // ✅ DETAIL PAGE: si on est sur une fiche individuelle, injecter pour ce véhicule
+    if (isDetailPage()) {
+      const stockNumber = getDetailPageStockNumber();
+      const matchingCar = hits.find(car => car.stockNumber === stockNumber);
+      if (matchingCar) {
+        console.log(`[🔍 Detail page] Véhicule trouvé dans lastHits: ${stockNumber}`);
+        injectDetailPageCard(matchingCar);
+      } else {
+        console.log(`[🔍 Detail page] Véhicule ${stockNumber} pas dans lastHits`);
+      }
+    }
+  }
+
+  function isDetailPage() {
+    return window.location.pathname.includes('/app/merchant/car/');
+  }
+
+  function getDetailPageStockNumber() {
+    const parts = window.location.pathname.split('/');
+    return parts[parts.length - 1];
+  }
+
+  async function injectDetailPageCard(car) {
+    await settingsReady;
+
+    const container = document.querySelector('.car-details');
+    if (!container) {
+      console.warn('[❌ Detail] .car-details introuvable');
+      return;
+    }
+
+    // Eviter double injection
+    if (container.querySelector('.plugin-price') || container.querySelector('.plugin-loading')) return;
+
+    const stockId = car.stockNumber;
+    const price = car.searchPrice || car.minimumBid || car.mpPrice;
+    if (!price) return;
+
+    const euros = (price / 100).toFixed(0) + " €";
+
+    // Loading indicator
+    const loadingDiv = createLoadingIndicator(extensionSettings.requestTimeout);
+    container.insertBefore(loadingDiv, container.firstChild);
+
+    const carDataForAI = {
+      manufacturerName: car.manufacturerName,
+      mainType: car.mainType,
+      description: car.description || car.title || '',
+      equipment: car.equipment || car.features || [],
+      trim: car.trim || car.variant || '',
+      bodyType: car.bodyType,
+      fuelType: car.fuelType,
+      gearType: car.gearType,
+      doors: car.doors,
+      seats: car.seats,
+      power: car.power || car.horsepower,
+      engine: car.engine || car.engineSize,
+      exteriorColor: car.exteriorColor,
+      interiorColor: car.interiorColor,
+      firstRegistrationDate: car.firstRegistrationDate,
+      km: car.km,
+      price: price,
+      stockNumber: stockId,
+      images: car.images || []
+    };
+
+    const searchModel = `${car.manufacturerName} ${car.mainType}`.trim();
+    const year = new Date(car.firstRegistrationDate).getFullYear();
+    const isPaid = extensionSettings.isPaid === true;
+
+    try {
+      const data = await analyzeCar({
+        brand: car.manufacturerName.toUpperCase(),
+        model: searchModel,
+        year,
+        km: car.km,
+        fuel: (car.fuelType || "").toLowerCase(),
+        gearbox: (car.gearType || "").toLowerCase(),
+        doors: car.doors || "",
+        carModel: (car.mainType || "").trim(),
+        carData: carDataForAI,
+        stockNumber: stockId
+      });
+
+      const loadingElement = container.querySelector(".plugin-loading");
+      if (loadingElement) loadingElement.remove();
+
+      let effectiveIsPaid = data.isPaid === true;
+      let isFirstReveal = false;
+      const hasRealLbcData = data.estimatedPrice != null;
+      if (!effectiveIsPaid && hasRealLbcData) {
+        const alreadyUsed = await getFirstRevealUsed();
+        if (!alreadyUsed) {
+          effectiveIsPaid = true;
+          isFirstReveal = true;
+          setFirstRevealUsed();
+          console.log('[🎁 First reveal] Fiche détail — reveal consommé');
+        }
+      }
+
+      renderCarAnalysis(container, carDataForAI, data, euros, effectiveIsPaid, isFirstReveal);
+      console.log(`[✅ Detail page] Carte injectée pour ${stockId}`);
+    } catch (err) {
+      const loadingElement = container.querySelector(".plugin-loading");
+      if (loadingElement) loadingElement.remove();
+      renderErrorMessage(container, err.message);
+    }
   }
 
   function createLoadingIndicator(timeout) {
