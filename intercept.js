@@ -836,6 +836,9 @@
     // Memoriser les hits pour permettre la re-injection apres login (Bug 4)
     lastHits = hits;
 
+    // Persister dans sessionStorage pour la page détail (survit à la navigation)
+    try { sessionStorage.setItem('carlyticsLastHits', JSON.stringify(hits)); } catch(e) {}
+
     // 🔐 Vérification abonnement (isPaid stocké lors du login)
     const isPaid = extensionSettings.isPaid === true;
     console.log(`[🔐 Auth] ${isPaid ? 'Abonné — chiffres complets' : 'Gratuit — indicateur couleur uniquement'}`);
@@ -1002,6 +1005,32 @@
   function getDetailPageStockNumber() {
     const parts = window.location.pathname.split('/');
     return parts[parts.length - 1];
+  }
+
+  // Tentative d'injection automatique sur page détail au chargement
+  if (isDetailPage()) {
+    const stockNumber = getDetailPageStockNumber();
+    try {
+      const stored = sessionStorage.getItem('carlyticsLastHits');
+      if (stored) {
+        const hits = JSON.parse(stored);
+        const matchingCar = hits.find(car => car.stockNumber === stockNumber);
+        if (matchingCar) {
+          console.log(`[🔍 Detail auto-init] Véhicule ${stockNumber} trouvé dans sessionStorage`);
+          // Attendre que le DOM soit prêt
+          const tryInject = () => {
+            if (document.querySelector('.car-details')) {
+              injectDetailPageCard(matchingCar);
+            } else {
+              setTimeout(tryInject, 300);
+            }
+          };
+          setTimeout(tryInject, 500);
+        } else {
+          console.log(`[🔍 Detail auto-init] ${stockNumber} pas dans sessionStorage`);
+        }
+      }
+    } catch(e) {}
   }
 
   async function injectDetailPageCard(car) {
