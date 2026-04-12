@@ -336,8 +336,8 @@ function buildLbcPayloads(params) {
             enums,
             keywords: { text: keywordsText },
             ranges: {
-                regdate: { min: yearInt - 3 },
-                mileage: { max: kmInt + 30000 },
+                regdate: { min: yearInt - 2, max: yearInt + 2 },
+                mileage: { min: Math.max(0, kmInt - 60000), max: kmInt + 60000 },
                 price: { min: minPriceInt }
             }
         },
@@ -903,12 +903,12 @@ app.get("/api/estimation", optionalApiKeyAuth, async (req, res) => {
             keywords: { text: keywordsText },
             ranges: {
                 regdate: {
-                    min: yearInt - 3
-                    // ✅ Pas de max - permet de trouver des véhicules plus récents vendus moins cher
+                    min: yearInt - 2,
+                    max: yearInt + 2
                 },
                 mileage: {
-                    max: kmInt + 30000
-                    // ✅ Pas de min - permet de trouver des véhicules avec moins de km vendus moins cher
+                    min: Math.max(0, kmInt - 60000),
+                    max: kmInt + 60000
                 },
                 price: { // Ajout: filtre prix min pour éviter scams
                     min: minPriceInt,
