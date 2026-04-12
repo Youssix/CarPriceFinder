@@ -6,94 +6,33 @@
     serverUrl: 'https://api.carlytics.fr',
     apiKey: ''
   };
-  
+
   // ✅ SIMPLIFIED: No cache stats needed - server handles caching
-  
-  // Load settings via content-bridge.js (STORAGE_REQUEST postMessage bridge)
-  // intercept.js runs in PAGE context → no direct chrome.storage access
+
+  // Load settings via shared bridge (carlytics-shared.js)
   function loadExtensionSettings() {
-    return new Promise((resolve) => {
-      const requestId = 'settings_' + Math.random().toString(36).substr(2, 9);
-      const timer = setTimeout(() => {
-        window.removeEventListener('message', handler);
-        console.warn('[⚙️ Settings] Bridge timeout — using defaults');
-        resolve();
-      }, 2000);
-
-      function handler(event) {
-        if (event.source !== window) return;
-        const msg = event.data;
-        if (!msg || msg.type !== 'STORAGE_RESPONSE' || msg.requestId !== requestId) return;
-        clearTimeout(timer);
-        window.removeEventListener('message', handler);
-        if (msg.data && msg.data.carFinderSettings) {
-          extensionSettings = { ...extensionSettings, ...msg.data.carFinderSettings };
-          console.log('[⚙️ Settings] Loaded via bridge:', extensionSettings);
-        }
-        resolve();
+    return window.__carlytics.bridgeGet(['carFinderSettings'], 'settings').then((data) => {
+      if (data && data.carFinderSettings) {
+        extensionSettings = { ...extensionSettings, ...data.carFinderSettings };
+        console.log('[⚙️ Settings] Loaded via bridge:', extensionSettings);
       }
-
-      window.addEventListener('message', handler);
-      window.postMessage({
-        type: 'STORAGE_REQUEST',
-        action: 'get',
-        keys: ['carFinderSettings'],
-        requestId
-      }, '*');
+      // Expose settings for shared fetchViaBridge timeout
+      window.__carlyticsSettings = extensionSettings;
     });
   }
 
-  // --- First reveal Auto1 (pricing v2) ---
-  // Flag SEPARE de BCA : 1 reveal par site (firstRevealUsedAuto1 / firstRevealUsedBca).
-  // Lit/ecrit via le bridge storage. Si l'user n'est pas payant et n'a pas encore
-  // consomme son reveal Auto1, on affiche les chiffres UNE fois et on set le flag.
+  // First reveal — uses shared helpers with Auto1-specific flag name
   function getFirstRevealUsed() {
-    return new Promise((resolve) => {
-      const requestId = 'fru_get_' + Math.random().toString(36).substr(2, 9);
-      const timer = setTimeout(() => {
-        window.removeEventListener('message', handler);
-        console.warn('[🎁 Auto1] getFirstRevealUsed bridge timeout — fail-open (reveal autorisé)');
-        resolve(false); // fail-open : si le bridge ne repond pas, on considere non-consomme
-      }, 2000);
-
-      function handler(event) {
-        if (event.source !== window) return;
-        const msg = event.data;
-        if (!msg || msg.type !== 'STORAGE_RESPONSE' || msg.requestId !== requestId) return;
-        clearTimeout(timer);
-        window.removeEventListener('message', handler);
-        const used = !!(msg.data && msg.data.firstRevealUsedAuto1 === true);
-        console.log('[🎁 Auto1] getFirstRevealUsed →', { raw: msg.data, used });
-        resolve(used);
-      }
-
-      window.addEventListener('message', handler);
-      window.postMessage({
-        type: 'STORAGE_REQUEST',
-        action: 'get',
-        keys: ['firstRevealUsedAuto1'],
-        requestId
-      }, '*');
-    });
+    return window.__carlytics.getFirstRevealUsed('firstRevealUsedAuto1');
   }
-
   function setFirstRevealUsed() {
-    const requestId = 'fru_set_' + Math.random().toString(36).substr(2, 9);
-    window.postMessage({
-      type: 'STORAGE_REQUEST',
-      action: 'set',
-      data: { firstRevealUsedAuto1: true },
-      requestId
-    }, '*');
+    window.__carlytics.setFirstRevealUsed('firstRevealUsedAuto1');
     console.log('[🎁 Auto1] setFirstRevealUsed → flag pose');
-    // Fire-and-forget : le flag sera set avant le prochain render (requestTimeout delay).
   }
 
-  // Helper commun : calcule l'indicateur couleur + label a partir d'une marge %
+  // Margin indicator — delegates to shared
   function computeMarginIndicator(profitPercent, isProfit) {
-    if (isProfit && profitPercent >= 15) return { emoji: '🟢', label: 'Bonne affaire', color: '#2ecc71' };
-    if (isProfit && profitPercent >= 5)  return { emoji: '🟡', label: 'Affaire correcte', color: '#f39c12' };
-    return { emoji: '🔴', label: 'À éviter', color: '#e74c3c' };
+    return window.__carlytics.computeMarginIndicator(profitPercent, isProfit, 'percent');
   }
 
   // Memoire des dernieres hits recues (pour re-injecter apres login dashboard)
@@ -321,92 +260,13 @@
     return resp.data.ads;
   }
 
-  // Relay fetch through content-bridge.js (extension context) to bypass mixed content blocks
-  // Signature v2 : fetchViaBridge({ url, headers, method, body }) — still tolerates old
-  // positional call fetchViaBridge(url, headers) for safety.
-  function fetchViaBridge(opts, headersLegacy = {}) {
-    let url, headers, method, body;
-    if (typeof opts === 'string') {
-      url = opts;
-      headers = headersLegacy;
-      method = 'GET';
-      body = null;
-    } else {
-      ({ url, headers = {}, method = 'GET', body = null } = opts || {});
-    }
-    return new Promise((resolve, reject) => {
-      const requestId = Math.random().toString(36).substr(2, 9);
-      const timeout = extensionSettings.requestTimeout || 10000;
-
-      const timer = setTimeout(() => {
-        window.removeEventListener('message', handler);
-        reject(new Error('Failed to fetch'));
-      }, timeout);
-
-      function handler(event) {
-        if (event.source !== window) return;
-        const msg = event.data;
-        if (!msg || msg.type !== 'FETCH_RESPONSE' || msg.requestId !== requestId) return;
-        clearTimeout(timer);
-        window.removeEventListener('message', handler);
-        resolve(msg);
-      }
-
-      window.addEventListener('message', handler);
-      window.postMessage({ type: 'FETCH_REQUEST', url, headers, method, body, requestId }, '*');
-    });
+  // Fetch bridge and server call wrapper — delegate to shared (carlytics-shared.js)
+  function fetchViaBridge(opts, headersLegacy) {
+    return window.__carlytics.fetchViaBridge(opts, headersLegacy);
   }
 
-  async function performFetch(fetchOpts, retryCount = 0) {
-    const MAX_RETRIES = 1;
-    // Backwards compat : allow performFetch(url) or performFetch({url, method, body})
-    const opts = typeof fetchOpts === 'string' ? { url: fetchOpts } : fetchOpts;
-    const method = opts.method || 'GET';
-
-    try {
-      const headers = {};
-      if (extensionSettings.apiKey) {
-        headers['X-API-Key'] = extensionSettings.apiKey;
-      }
-      if (method !== 'GET') headers['Content-Type'] = 'application/json';
-
-      const body = method !== 'GET' && opts.body != null
-        ? (typeof opts.body === 'string' ? opts.body : JSON.stringify(opts.body))
-        : null;
-
-      // Route through content-bridge.js to bypass mixed content (HTTPS page → HTTP localhost)
-      const resp = await fetchViaBridge({ url: opts.url, headers, method, body });
-
-      if (resp.error) {
-        throw new Error(resp.error);
-      }
-
-      // Handle 401/403 auth errors with specific messages
-      if (resp.status === 401) {
-        throw new Error((resp.data && resp.data.error) || 'Clé API requise. Configurez-la dans les paramètres de l\'extension.');
-      }
-      if (resp.status === 403) {
-        throw new Error((resp.data && resp.data.error) || 'Abonnement expiré ou clé invalide.');
-      }
-
-      // Handle 429 rate limit with retry (max 1 retry)
-      if (resp.status === 429 && retryCount < MAX_RETRIES) {
-        const retryAfter = resp.retryAfter || 2;
-        console.warn(`[⏳ Rate Limit] Waiting ${retryAfter}s before retry (attempt ${retryCount + 1}/${MAX_RETRIES})...`);
-        await sleep(retryAfter * 1000);
-        return await performFetch(opts, retryCount + 1);
-      }
-
-      if (!resp.ok) {
-        throw new Error(`Server error: ${resp.status}`);
-      }
-
-      return resp.data;
-
-    } catch (error) {
-      console.error('[❌ Fetch] Error:', error.message);
-      throw error;
-    }
+  async function performFetch(fetchOpts, retryCount) {
+    return window.__carlytics.callServer(fetchOpts, extensionSettings, retryCount);
   }
 
   function sleep(ms) {

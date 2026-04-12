@@ -6,84 +6,28 @@
     apiKey: ''
   };
 
-  // Load settings via content-bridge.js (same bridge as intercept.js)
+  // Load settings via shared bridge (carlytics-shared.js)
   function loadExtensionSettings() {
-    return new Promise((resolve) => {
-      const requestId = 'bca_settings_' + Math.random().toString(36).substr(2, 9);
-      const timer = setTimeout(() => {
-        window.removeEventListener('message', handler);
-        resolve();
-      }, 2000);
-
-      function handler(event) {
-        if (event.source !== window) return;
-        const msg = event.data;
-        if (!msg || msg.type !== 'STORAGE_RESPONSE' || msg.requestId !== requestId) return;
-        clearTimeout(timer);
-        window.removeEventListener('message', handler);
-        if (msg.data && msg.data.carFinderSettings) {
-          extensionSettings = { ...extensionSettings, ...msg.data.carFinderSettings };
-        }
-        resolve();
+    return window.__carlytics.bridgeGet(['carFinderSettings'], 'bca_settings').then((data) => {
+      if (data && data.carFinderSettings) {
+        extensionSettings = { ...extensionSettings, ...data.carFinderSettings };
       }
-
-      window.addEventListener('message', handler);
-      window.postMessage({ type: 'STORAGE_REQUEST', action: 'get', keys: ['carFinderSettings'], requestId }, '*');
+      window.__carlyticsSettings = extensionSettings;
     });
   }
 
-  // ─── First reveal BCA (pricing v2) ─────────────────────────────────────────
-  // Flag SEPARE d'Auto1 : 1 reveal par site (firstRevealUsedAuto1 / firstRevealUsedBca).
-  // Un user qui a consomme son reveal Auto1 a toujours droit a son reveal BCA.
+  // First reveal — uses shared helpers with BCA-specific flag name
   function getFirstRevealUsed() {
-    return new Promise((resolve) => {
-      const requestId = 'bca_fru_get_' + Math.random().toString(36).substr(2, 9);
-      const timer = setTimeout(() => {
-        window.removeEventListener('message', handler);
-        console.warn('[🎁 BCA] getFirstRevealUsed bridge timeout — fail-open (reveal autorisé)');
-        resolve(false);
-      }, 2000);
-
-      function handler(event) {
-        if (event.source !== window) return;
-        const msg = event.data;
-        if (!msg || msg.type !== 'STORAGE_RESPONSE' || msg.requestId !== requestId) return;
-        clearTimeout(timer);
-        window.removeEventListener('message', handler);
-        const used = !!(msg.data && msg.data.firstRevealUsedBca === true);
-        console.log('[🎁 BCA] getFirstRevealUsed →', { raw: msg.data, used });
-        resolve(used);
-      }
-
-      window.addEventListener('message', handler);
-      window.postMessage({
-        type: 'STORAGE_REQUEST',
-        action: 'get',
-        keys: ['firstRevealUsedBca'],
-        requestId
-      }, '*');
-    });
+    return window.__carlytics.getFirstRevealUsed('firstRevealUsedBca');
   }
-
   function setFirstRevealUsed() {
-    const requestId = 'bca_fru_set_' + Math.random().toString(36).substr(2, 9);
-    window.postMessage({
-      type: 'STORAGE_REQUEST',
-      action: 'set',
-      data: { firstRevealUsedBca: true },
-      requestId
-    }, '*');
+    window.__carlytics.setFirstRevealUsed('firstRevealUsedBca');
     console.log('[🎁 BCA] setFirstRevealUsed → flag pose');
   }
 
-  // Helper commun : calcule l'indicateur couleur + label a partir d'une marge €
-  // Seuils BCA en euros (pas en %) pour etre coherent avec le comportement actuel.
-  // NB : cas margin=null (pas de data LBC) gere directement dans injectCard,
-  // pas ici, pour eviter le cascading "⏳ •• ••• € Analyse..." trompeur.
+  // Margin indicator — delegates to shared (BCA uses euro thresholds)
   function computeMarginIndicatorBca(margin) {
-    if (margin > 500) return { emoji: '🟢', label: 'Bonne affaire', color: '#2ecc71' };
-    if (margin > 0)   return { emoji: '🟡', label: 'Affaire correcte', color: '#f39c12' };
-    return { emoji: '🔴', label: 'À éviter', color: '#e74c3c' };
+    return window.__carlytics.computeMarginIndicator(margin, false, 'euros');
   }
 
   // Listen for messages pushed by content-bridge.js (relayed from dashboard sync)
@@ -221,60 +165,13 @@
     return null;
   }
 
-  // ─── Fetch via bridge (même pattern qu'intercept.js) ──────────────────────
-  // Signature v2 : fetchViaBridge({url, headers, method, body}) — backward compat
-  // avec l'ancien fetchViaBridge(url, headers) conservee pour securite.
-  function fetchViaBridge(opts, headersLegacy = {}) {
-    let url, headers, method, body;
-    if (typeof opts === 'string') {
-      url = opts;
-      headers = headersLegacy;
-      method = 'GET';
-      body = null;
-    } else {
-      ({ url, headers = {}, method = 'GET', body = null } = opts || {});
-    }
-    return new Promise((resolve, reject) => {
-      const requestId = 'bca_' + Math.random().toString(36).substr(2, 9);
-      const timer = setTimeout(() => {
-        window.removeEventListener('message', handler);
-        reject(new Error('Timeout'));
-      }, extensionSettings.requestTimeout || 10000);
-
-      function handler(event) {
-        if (event.source !== window) return;
-        const msg = event.data;
-        if (!msg || msg.type !== 'FETCH_RESPONSE' || msg.requestId !== requestId) return;
-        clearTimeout(timer);
-        window.removeEventListener('message', handler);
-        resolve(msg);
-      }
-
-      window.addEventListener('message', handler);
-      window.postMessage({ type: 'FETCH_REQUEST', url, headers, method, body, requestId }, '*');
-    });
+  // Fetch bridge and server call wrapper — delegate to shared (carlytics-shared.js)
+  function fetchViaBridge(opts, headersLegacy) {
+    return window.__carlytics.fetchViaBridge(opts, headersLegacy);
   }
 
-  // Wrapper serveur Carlytics : ajoute X-API-Key + gere 401/403/429 + JSON body
-  async function callServer(opts, retryCount = 0) {
-    const headers = {};
-    if (extensionSettings.apiKey) headers['X-API-Key'] = extensionSettings.apiKey;
-    const method = opts.method || 'GET';
-    if (method !== 'GET') headers['Content-Type'] = 'application/json';
-    const body = method !== 'GET' && opts.body != null
-      ? (typeof opts.body === 'string' ? opts.body : JSON.stringify(opts.body))
-      : null;
-
-    const resp = await fetchViaBridge({ url: opts.url, headers, method, body });
-    if (resp.error) throw new Error(resp.error);
-    if (resp.status === 401) throw new Error('Clé API requise.');
-    if (resp.status === 403) throw new Error('Abonnement expiré.');
-    if (resp.status === 429 && retryCount < 2) {
-      await new Promise(r => setTimeout(r, (resp.retryAfter || 3) * 1000));
-      return callServer(opts, retryCount + 1);
-    }
-    if (!resp.ok) throw new Error(`Erreur serveur: ${resp.status}`);
-    return resp.data;
+  async function callServer(opts, retryCount) {
+    return window.__carlytics.callServer(opts, extensionSettings, retryCount);
   }
 
   // Direct LBC fetch via service worker (residential IP + host_permissions bypass CORS).

@@ -164,3 +164,40 @@ CREATE TABLE IF NOT EXISTS beta_testers (
 
 CREATE INDEX IF NOT EXISTS idx_beta_testers_email ON beta_testers(email);
 CREATE INDEX IF NOT EXISTS idx_beta_testers_status ON beta_testers(status);
+
+-- API activity logs for monitoring (who calls what, vehicle searches, paid vs free)
+CREATE TABLE IF NOT EXISTS api_logs (
+  id BIGSERIAL PRIMARY KEY,
+  -- Who
+  subscriber_id BIGINT REFERENCES subscribers(id),
+  email TEXT,
+  user_tier TEXT NOT NULL DEFAULT 'anonymous',
+  ip TEXT,
+  user_agent TEXT,
+  -- What
+  method TEXT NOT NULL,
+  path TEXT NOT NULL,
+  -- Vehicle context (estimation endpoints only)
+  brand TEXT,
+  model TEXT,
+  year INT,
+  km INT,
+  fuel TEXT,
+  stock_number TEXT,
+  -- Result
+  status_code INT,
+  cache_hit BOOLEAN,
+  lbc_count INT,
+  estimated_price INT,
+  duration_ms INT,
+  error TEXT,
+  -- Metadata
+  source TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_api_logs_subscriber ON api_logs(subscriber_id);
+CREATE INDEX IF NOT EXISTS idx_api_logs_created ON api_logs(created_at);
+CREATE INDEX IF NOT EXISTS idx_api_logs_path ON api_logs(path);
+CREATE INDEX IF NOT EXISTS idx_api_logs_tier ON api_logs(user_tier);
+CREATE INDEX IF NOT EXISTS idx_api_logs_brand_model ON api_logs(brand, model);

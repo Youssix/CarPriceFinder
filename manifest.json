@@ -45,11 +45,11 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["intercept.js"],
+      "resources": ["carlytics-shared.js", "intercept.js"],
       "matches": ["https://www.auto1.com/*"]
     },
     {
-      "resources": ["bca-intercept.js"],
+      "resources": ["carlytics-shared.js", "bca-intercept.js"],
       "matches": ["https://www.bcautoencheres.fr/*"]
     }
   ]
