@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Carlytics — Demo</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #111;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  font-family: -apple-system, "Segoe UI", sans-serif;
+}
+
+.video-frame {
+  width: 960px;
+  height: 540px;
+  background: #f5f5f5;
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 30px 80px rgba(0,0,0,0.6);
+}
+
+/* ── BROWSER CHROME ── */
+.browser-bar {
+  background: #e8e8e8;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  gap: 8px;
+  border-bottom: 1px solid #d0d0d0;
+}
+.browser-dots { display: flex; gap: 5px; }
+.dot { width: 11px; height: 11px; border-radius: 50%; }
+.dot-r { background: #ff5f57; }
+.dot-y { background: #febc2e; }
+.dot-g { background: #28c840; }
+.browser-url {
+  flex: 1;
+  background: white;
+  border-radius: 6px;
+  height: 24px;
+  margin: 0 12px;
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  font-size: 11px;
+  color: #555;
+}
+
+/* ── AUTO1 PAGE MOCK ── */
+.auto1-page {
+  background: #fff;
+  height: calc(100% - 38px);
+  display: flex;
+  flex-direction: column;
+}
+
+.auto1-header {
+  background: #c0392b;
+  color: white;
+  padding: 8px 20px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+
+.auto1-content {
+  display: flex;
+  flex: 1;
+  gap: 0;
+  padding: 20px;
+  gap: 24px;
+}
+
+.car-photo {
+  width: 260px;
+  height: 180px;
+  background: linear-gradient(135deg, #ddd 0%, #ccc 100%);
+  border-radius: 8px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 48px;
+  overflow: hidden;
+}
+.car-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.car-info {
+  flex: 1;
+}
+.car-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin-bottom: 12px;
+}
+.car-specs {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  color: #555;
+}
+.spec-row {
+  display: flex;
+  gap: 12px;
+}
+.spec { color: #777; }
+.spec strong { color: #333; }
+
+.auto1-price-block {
+  text-align: right;
+  flex-shrink: 0;
+}
+.auto1-original {
+  font-size: 13px;
+  color: #999;
+  text-decoration: line-through;
+  margin-bottom: 2px;
+}
+.auto1-current {
+  font-size: 22px;
+  font-weight: 800;
+  color: #c0392b;
+}
+.auto1-save {
+  font-size: 11px;
+  color: #555;
+  margin-top: 2px;
+}
+.timer {
+  font-size: 11px;
+  color: #e67e22;
+  font-weight: 600;
+  margin-top: 8px;
+}
+
+/* ── CARLYTICS CARD ── */
+.carlytics-card {
+  position: absolute;
+  top: 80px;
+  left: 20px;
+  width: 300px;
+  background: #1a2332;
+  border-radius: 12px;
+  padding: 14px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  opacity: 0;
+  transform: translateY(-8px);
+  transition: opacity 0.4s ease, transform 0.4s ease;
+  z-index: 10;
+}
+.carlytics-card.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.card-logo {
+  font-size: 11px;
+  font-weight: 800;
+  color: #fff;
+}
+.card-logo span { color: #3b82f6; }
+.badge-green {
+  background: rgba(16,185,129,0.2);
+  color: #10b981;
+  border: 1px solid rgba(16,185,129,0.4);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 20px;
+  margin-left: auto;
+}
+
+.card-prices {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.price-col {
+  flex: 1;
+  text-align: center;
+}
+.price-col .plabel {
+  font-size: 8px;
+  color: rgba(255,255,255,0.4);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-bottom: 3px;
+}
+.price-col .pval {
+  font-size: 15px;
+  font-weight: 800;
+  color: white;
+}
+.price-col.highlight .pval { color: #10b981; }
+.price-divider {
+  display: flex;
+  align-items: center;
+  color: rgba(255,255,255,0.3);
+  font-size: 14px;
+  padding-top: 14px;
+}
+
+.card-tags {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.tag {
+  background: rgba(59,130,246,0.15);
+  color: #60a5fa;
+  border: 1px solid rgba(59,130,246,0.3);
+  font-size: 8.5px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.card-btns {
+  display: flex;
+  gap: 6px;
+}
+.btn-lbc {
+  flex: 1;
+  background: #e67e22;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 7px;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: center;
+}
+.btn-add {
+  flex: 1;
+  background: rgba(16,185,129,0.2);
+  color: #10b981;
+  border: 1px solid rgba(16,185,129,0.3);
+  border-radius: 6px;
+  padding: 7px;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: center;
+}
+
+/* ── LOADING SPINNER ── */
+.loading-card {
+  position: absolute;
+  top: 80px;
+  left: 20px;
+  width: 300px;
+  background: #1a2332;
+  border-radius: 12px;
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  opacity: 0;
+  transition: opacity 0.3s;
+  z-index: 10;
+}
+.loading-card.visible { opacity: 1; }
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(59,130,246,0.3);
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-text { font-size: 11px; color: rgba(255,255,255,0.6); }
+
+/* ── WEBCAM ── */
+.webcam {
+  position: absolute;
+  bottom: 16px;
+  left: 16px;
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #2d3748, #1a202c);
+  border: 3px solid #3b82f6;
+  box-shadow: 0 4px 20px rgba(59,130,246,0.4);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40px;
+  z-index: 20;
+}
+.webcam-pulse {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  width: 108px;
+  height: 108px;
+  border-radius: 50%;
+  border: 2px solid rgba(59,130,246,0.3);
+  animation: pulse 2s ease-out infinite;
+  z-index: 19;
+}
+@keyframes pulse {
+  0% { transform: scale(1); opacity: 0.6; }
+  100% { transform: scale(1.3); opacity: 0; }
+}
+
+/* ── REC INDICATOR ── */
+.rec {
+  position: absolute;
+  top: 50px;
+  right: 16px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(0,0,0,0.6);
+  padding: 4px 10px;
+  border-radius: 20px;
+  z-index: 20;
+}
+.rec-dot {
+  width: 8px;
+  height: 8px;
+  background: #ef4444;
+  border-radius: 50%;
+  animation: blink 1s ease-in-out infinite;
+}
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+.rec-text { font-size: 10px; font-weight: 700; color: white; }
+
+/* ── CAPTION ── */
+.caption {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.75);
+  color: white;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px 20px;
+  border-radius: 8px;
+  white-space: nowrap;
+  z-index: 20;
+  opacity: 0;
+  transition: opacity 0.3s;
+  backdrop-filter: blur(4px);
+}
+.caption.visible { opacity: 1; }
+
+/* ── CURSOR ── */
+.cursor {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  background: rgba(255,255,255,0.9);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 30;
+  box-shadow: 0 0 0 2px rgba(0,0,0,0.3);
+  transition: all 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+.cursor.click {
+  transform: scale(0.7);
+  background: #3b82f6;
+}
+
+/* ── CLICK RIPPLE ── */
+.ripple {
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 2px solid #3b82f6;
+  pointer-events: none;
+  z-index: 29;
+  opacity: 0;
+  transition: none;
+}
+.ripple.animate {
+  animation: ripple-anim 0.5s ease-out forwards;
+}
+@keyframes ripple-anim {
+  0% { transform: scale(0.5); opacity: 0.8; }
+  100% { transform: scale(2); opacity: 0; }
+}
+
+/* ── OVERLAY FINAL ── */
+.cta-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(10,15,30,0.92);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  opacity: 0;
+  transition: opacity 0.6s;
+  z-index: 40;
+}
+.cta-overlay.visible { opacity: 1; }
+.cta-logo { font-size: 36px; font-weight: 900; color: white; }
+.cta-logo span { color: #3b82f6; }
+.cta-sub { font-size: 16px; color: rgba(255,255,255,0.6); }
+.cta-url {
+  font-size: 28px;
+  font-weight: 800;
+  color: #3b82f6;
+  margin-top: 8px;
+}
+.cta-badge {
+  background: rgba(16,185,129,0.15);
+  color: #10b981;
+  border: 1px solid rgba(16,185,129,0.4);
+  padding: 6px 20px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* ── REPLAY ── */
+.replay-btn {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  background: rgba(59,130,246,0.2);
+  color: #3b82f6;
+  border: 1px solid rgba(59,130,246,0.4);
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  z-index: 50;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.replay-btn.visible { opacity: 1; }
+.replay-btn:hover { background: rgba(59,130,246,0.35); }
+</style>
+</head>
+<body>
+
+<div class="video-frame" id="frame">
+
+  <!-- BROWSER -->
+  <div class="browser-bar">
+    <div class="browser-dots">
+      <div class="dot dot-r"></div>
+      <div class="dot dot-y"></div>
+      <div class="dot dot-g"></div>
+    </div>
+    <div class="browser-url" id="urlBar">🔒 auto1.com/fr/voitures/bmw/serie-3</div>
+  </div>
+
+  <!-- AUTO1 PAGE -->
+  <div class="auto1-page">
+    <div class="auto1-header">OFFRE SPÉCIALE - la meilleure offre remporte l'enchère</div>
+    <div class="auto1-content">
+      <div class="car-photo">🚗</div>
+      <div class="car-info">
+        <div class="car-title">BMW Série 3 320d xDrive M Sport</div>
+        <div class="car-specs">
+          <div class="spec-row">
+            <div class="spec"><strong>2021</strong> · Berline · BVA</div>
+            <div class="spec"><strong>62 400 km</strong> · Diesel</div>
+          </div>
+          <div class="spec-row">
+            <div class="spec">M-Sport · Toit ouvrant · Caméra · Sièges chauffants</div>
+          </div>
+          <div class="spec-row" style="margin-top:8px">
+            <div class="spec" style="color:#e67e22;font-weight:600">FIN D'ENCHÈRE DANS 1J 06:22:15</div>
+          </div>
+        </div>
+      </div>
+      <div class="auto1-price-block">
+        <div class="auto1-original">Origine AUTO1 : 29 000 €</div>
+        <div class="auto1-current">26 450 €</div>
+        <div class="auto1-save">Vous économisez : 2 550 €</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LOADING -->
+  <div class="loading-card" id="loadingCard">
+    <div class="spinner"></div>
+    <div class="loading-text">Analyse du marché LeBonCoin…</div>
+  </div>
+
+  <!-- CARLYTICS CARD -->
+  <div class="carlytics-card" id="carlyticsCard">
+    <div class="card-header">
+      <div class="card-logo">Carly<span>tics</span></div>
+      <div class="badge-green">🟢 Bonne affaire</div>
+    </div>
+    <div class="card-prices">
+      <div class="price-col">
+        <div class="plabel">Prix Auto1</div>
+        <div class="pval">26 450€</div>
+      </div>
+      <div class="price-divider">→</div>
+      <div class="price-col">
+        <div class="plabel">Marché LBC</div>
+        <div class="pval">31 200€</div>
+      </div>
+      <div class="price-divider">→</div>
+      <div class="price-col highlight">
+        <div class="plabel">Marge estimée</div>
+        <div class="pval">+4 750€</div>
+      </div>
+    </div>
+    <div class="card-tags">
+      <div class="tag">M-Sport +10%</div>
+      <div class="tag">Toit ouvrant +400€</div>
+      <div class="tag">Caméra 360° +300€</div>
+    </div>
+    <div class="card-btns">
+      <div class="btn-lbc">🔍 Voir sur LBC</div>
+      <div class="btn-add">+ Ajouter</div>
+    </div>
+  </div>
+
+  <!-- WEBCAM -->
+  <div class="webcam-pulse"></div>
+  <div class="webcam">🧑‍💼</div>
+
+  <!-- REC -->
+  <div class="rec">
+    <div class="rec-dot"></div>
+    <div class="rec-text">REC</div>
+  </div>
+
+  <!-- CURSOR -->
+  <div class="cursor" id="cursor"></div>
+  <div class="ripple" id="ripple"></div>
+
+  <!-- CAPTION -->
+  <div class="caption" id="caption"></div>
+
+  <!-- CTA OVERLAY -->
+  <div class="cta-overlay" id="ctaOverlay">
+    <div class="cta-logo">Carly<span>tics</span></div>
+    <div class="cta-sub">Identifiez la marge de chaque véhicule Auto1 — en temps réel</div>
+    <div class="cta-url">carlytics.fr</div>
+    <div class="cta-badge">Gratuit pour tester · Sans carte bancaire</div>
+  </div>
+
+  <!-- REPLAY -->
+  <button class="replay-btn" id="replayBtn" onclick="startDemo()">↺ Rejouer</button>
+
+</div>
+
+<script>
+const cursor = document.getElementById('cursor');
+const ripple = document.getElementById('ripple');
+const caption = document.getElementById('caption');
+const loading = document.getElementById('loadingCard');
+const card = document.getElementById('carlyticsCard');
+const cta = document.getElementById('ctaOverlay');
+const replayBtn = document.getElementById('replayBtn');
+
+function moveCursor(x, y) {
+  cursor.style.left = x + 'px';
+  cursor.style.top = y + 'px';
+}
+
+function click(x, y) {
+  return new Promise(resolve => {
+    cursor.style.left = x + 'px';
+    cursor.style.top = y + 'px';
+    cursor.classList.add('click');
+    ripple.style.left = (x - 15) + 'px';
+    ripple.style.top = (y - 15) + 'px';
+    ripple.classList.remove('animate');
+    void ripple.offsetWidth;
+    ripple.classList.add('animate');
+    setTimeout(() => {
+      cursor.classList.remove('click');
+      resolve();
+    }, 400);
+  });
+}
+
+function showCaption(text) {
+  caption.textContent = text;
+  caption.classList.add('visible');
+}
+
+function hideCaption() {
+  caption.classList.remove('visible');
+}
+
+function wait(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function startDemo() {
+  // Reset
+  card.classList.remove('visible');
+  loading.classList.remove('visible');
+  cta.classList.remove('visible');
+  replayBtn.classList.remove('visible');
+  hideCaption();
+  moveCursor(-50, -50);
+
+  await wait(800);
+
+  // Step 1 — Intro
+  showCaption("Vous achetez sur Auto1 ? Regardez ce que ça change.");
+  moveCursor(480, 200);
+  await wait(2500);
+
+  // Step 2 — Pointer le prix
+  hideCaption();
+  await wait(300);
+  showCaption("Le prix Auto1 : 26 450€. Bonne affaire ou pas ?");
+  await click(820, 170);
+  await wait(2200);
+
+  // Step 3 — Normalement LBC manuel
+  hideCaption();
+  await wait(300);
+  showCaption("Normalement → vous ouvrez LeBonCoin dans un autre onglet...");
+  moveCursor(600, 300);
+  await wait(2500);
+
+  // Step 4 — Mais Carlytics
+  hideCaption();
+  await wait(300);
+  showCaption("Avec Carlytics, l'analyse se lance automatiquement.");
+
+  // Show loading
+  loading.classList.add('visible');
+  moveCursor(200, 180);
+  await wait(1800);
+
+  // Step 5 — Card appears
+  loading.classList.remove('visible');
+  card.classList.add('visible');
+  await wait(500);
+
+  hideCaption();
+  await wait(200);
+  showCaption("🟢 Bonne affaire — marché LBC à 31 200€ — marge : +4 750€");
+  await wait(2800);
+
+  // Step 6 — Pointer les options
+  hideCaption();
+  await wait(300);
+  showCaption("Les options premium sont détectées automatiquement.");
+  moveCursor(200, 310);
+  await wait(2200);
+
+  // Step 7 — Click Voir sur LBC
+  hideCaption();
+  await wait(300);
+  showCaption("Je clique 'Voir sur LBC' pour vérifier — en un clic.");
+  await click(148, 370);
+  await wait(2000);
+
+  // Step 8 — CTA
+  hideCaption();
+  await wait(400);
+  cta.classList.add('visible');
+  await wait(500);
+  replayBtn.classList.add('visible');
+}
+
+// Auto-start
+window.addEventListener('load', () => {
+  moveCursor(480, 270);
+  setTimeout(startDemo, 600);
+});
+</script>
+</body>
+</html>
