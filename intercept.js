@@ -1042,6 +1042,24 @@
   };
   window.addEventListener('popstate', () => setTimeout(tryInjectDetailPage, 100));
 
+  // ✅ FALLBACK: MutationObserver — détecte quand .car-details apparaît dans le DOM
+  // Fonctionne même si Auto1 n'utilise pas pushState standard
+  let lastCheckedUrl = window.location.href;
+  const _domObserver = new MutationObserver(() => {
+    const currentUrl = window.location.href;
+    // URL a changé ou .car-details vient d'apparaître
+    if (currentUrl !== lastCheckedUrl || document.querySelector('.car-details')) {
+      lastCheckedUrl = currentUrl;
+      if (isDetailPage() && document.querySelector('.car-details')) {
+        const container = document.querySelector('.car-details');
+        if (!container.querySelector('.plugin-price') && !container.querySelector('.plugin-loading')) {
+          tryInjectDetailPage();
+        }
+      }
+    }
+  });
+  _domObserver.observe(document.body, { childList: true, subtree: true });
+
   // Au chargement initial (accès direct à une fiche détail)
   if (isDetailPage()) tryInjectDetailPage();
 
