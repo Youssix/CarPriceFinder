@@ -1075,7 +1075,11 @@
       top: 80px;
       left: 16px;
       z-index: 99999;
-      width: 300px;
+      width: 320px;
+      max-width: calc(100vw - 32px);
+      overflow: hidden;
+      border-radius: 6px;
+      box-sizing: border-box;
     `;
     document.body.appendChild(wrapper);
 
