@@ -1384,6 +1384,9 @@
     const finalInsertLocation = card.querySelector(".big-car-card__title");
     if (finalInsertLocation && finalInsertLocation.parentNode) {
       finalInsertLocation.parentNode.insertBefore(pluginPriceDiv, finalInsertLocation.nextSibling);
+    } else {
+      // Fallback pour fiche détail : insérer en haut du container
+      card.insertBefore(pluginPriceDiv, card.firstChild);
     }
   }
 
