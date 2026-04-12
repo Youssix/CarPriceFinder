@@ -1007,67 +1007,58 @@
     return parts[parts.length - 1];
   }
 
-  // ✅ SPA navigation: intercepter pushState pour détecter navigation vers fiche détail
-  function waitForElement(selector, callback, maxMs = 8000) {
-    const el = document.querySelector(selector);
-    if (el) { callback(el); return; }
-    const observer = new MutationObserver(() => {
-      const found = document.querySelector(selector);
-      if (found) { observer.disconnect(); callback(found); }
-    });
-    observer.observe(document.body, { childList: true, subtree: true });
-    setTimeout(() => observer.disconnect(), maxMs);
-  }
+  // Flag synchrone pour éviter la race condition (avant tout await)
+  let _detailInjectionLock = null; // stocke le stockNumber en cours d'injection
 
   function tryInjectDetailPage() {
     if (!isDetailPage()) return;
     const stockNumber = getDetailPageStockNumber();
-    console.log(`[🔍 Detail SPA] URL détail détectée, stockNumber=${stockNumber}`);
+    if (_detailInjectionLock === stockNumber) return; // déjà en cours
     try {
       const stored = sessionStorage.getItem('carlyticsLastHits');
-      if (!stored) { console.log('[🔍 Detail SPA] sessionStorage vide'); return; }
+      if (!stored) { console.log('[🔍 Detail] sessionStorage vide'); return; }
       const hits = JSON.parse(stored);
       const matchingCar = hits.find(car => car.stockNumber === stockNumber);
-      if (!matchingCar) { console.log(`[🔍 Detail SPA] ${stockNumber} pas dans sessionStorage`); return; }
-      console.log(`[🔍 Detail SPA] Véhicule trouvé — attente .car-details`);
-      waitForElement('.car-details', () => injectDetailPageCard(matchingCar));
-    } catch(e) { console.warn('[🔍 Detail SPA] Erreur:', e); }
+      if (!matchingCar) { console.log(`[🔍 Detail] ${stockNumber} pas dans sessionStorage`); return; }
+      _detailInjectionLock = stockNumber; // verrouiller AVANT le async
+      console.log(`[🔍 Detail] Véhicule ${stockNumber} trouvé — injection en cours`);
+      injectDetailPageCard(matchingCar).catch(e => {
+        console.warn('[🔍 Detail] Erreur injection:', e);
+        _detailInjectionLock = null;
+      });
+    } catch(e) { console.warn('[🔍 Detail] Erreur:', e); }
   }
 
-  // Intercepter history.pushState (SPA navigation)
+  // Intercepter pushState (SPA navigation)
   const _origPushState = history.pushState.bind(history);
   history.pushState = function(...args) {
     _origPushState(...args);
-    setTimeout(tryInjectDetailPage, 100);
+    _detailInjectionLock = null; // reset sur nouvelle navigation
+    document.getElementById('carlytics-detail-card')?.remove();
+    setTimeout(tryInjectDetailPage, 300);
   };
-  window.addEventListener('popstate', () => setTimeout(tryInjectDetailPage, 100));
-
-  // ✅ FALLBACK: MutationObserver — détecte quand .car-details apparaît dans le DOM
-  // Fonctionne même si Auto1 n'utilise pas pushState standard
-  let lastCheckedUrl = window.location.href;
-  const _domObserver = new MutationObserver(() => {
-    const currentUrl = window.location.href;
-    // URL a changé ou .car-details vient d'apparaître
-    if (currentUrl !== lastCheckedUrl || document.querySelector('.car-details')) {
-      lastCheckedUrl = currentUrl;
-      if (isDetailPage() && document.querySelector('.car-details')) {
-        const container = document.querySelector('.car-details');
-        if (!container.querySelector('.plugin-price') && !container.querySelector('.plugin-loading')) {
-          tryInjectDetailPage();
-        }
-      }
-    }
+  window.addEventListener('popstate', () => {
+    _detailInjectionLock = null;
+    document.getElementById('carlytics-detail-card')?.remove();
+    setTimeout(tryInjectDetailPage, 300);
   });
-  _domObserver.observe(document.body, { childList: true, subtree: true });
 
-  // Au chargement initial (accès direct à une fiche détail)
+  // Polling léger : vérifie toutes les 500ms si on est sur une fiche détail
+  // Plus simple et fiable que MutationObserver sur une SPA React
+  setInterval(() => {
+    if (isDetailPage() && !document.getElementById('carlytics-detail-card') && _detailInjectionLock !== getDetailPageStockNumber()) {
+      tryInjectDetailPage();
+    }
+  }, 500);
+
+  // Au chargement initial
   if (isDetailPage()) tryInjectDetailPage();
 
   async function injectDetailPageCard(car) {
     await settingsReady;
 
-    // Injecter dans document.body (hors React) pour éviter l'effacement au re-render
     const DETAIL_CARD_ID = 'carlytics-detail-card';
+    // Vérification post-await (navigation rapide)
     if (document.getElementById(DETAIL_CARD_ID)) return;
 
     const stockId = car.stockNumber;
