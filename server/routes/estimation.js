@@ -77,7 +77,7 @@ router.get('/api/estimation', optionalApiKeyAuth, async (req, res) => {
             const hitRate = ((cacheStats.hits / (cacheStats.hits + cacheStats.misses)) * 100).toFixed(1);
             console.log(`[💾 Cache DB] HIT for key: ${hitKey} (hit rate: ${hitRate}%)`);
             logEstimation(req, { brand, model, year: yearInt, km: kmInt, fuel, stockNumber, cacheHit: true, estimatedPrice: cachedResult.estimatedPrice });
-            return res.json({ ...cachedResult, isPaid: !!req.subscriber });
+            return res.json({ ...cachedResult, isPaid: !!(req.subscriber && req.subscriber.subscription_status === 'active') });
         }
         cacheStats.misses++;
     } catch (err) {
@@ -230,7 +230,7 @@ router.get('/api/estimation', optionalApiKeyAuth, async (req, res) => {
         }
 
         logEstimation(req, { brand, model, year: yearInt, km: kmInt, fuel, stockNumber, cacheHit: false, lbcCount: results.length, estimatedPrice: responseData.estimatedPrice });
-        res.json({ ...responseData, isPaid: !!req.subscriber });
+        res.json({ ...responseData, isPaid: !!(req.subscriber && req.subscriber.subscription_status === 'active') });
 
         // Log observation for ML training (non-blocking)
         if (req.subscriber) {
@@ -249,7 +249,7 @@ router.get('/api/estimation', optionalApiKeyAuth, async (req, res) => {
     } catch (error) {
         if (error.message === 'DATADOME_BLOCKED') {
             logEstimation(req, { brand, model, year: yearInt, km: kmInt, fuel, stockNumber, cacheHit: false, error: 'DATADOME_BLOCKED' });
-            return res.json({ ok: true, estimatedPrice: null, lowPrice: null, highPrice: null, count: 0, results: [], warning: 'LBC temporairement indisponible', isPaid: !!req.subscriber });
+            return res.json({ ok: true, estimatedPrice: null, lowPrice: null, highPrice: null, count: 0, results: [], warning: 'LBC temporairement indisponible', isPaid: !!(req.subscriber && req.subscriber.subscription_status === 'active') });
         }
         console.error("❌ Scraping failed:", error);
         logEstimation(req, { brand, model, year: yearInt, km: kmInt, fuel, stockNumber, cacheHit: false, error: error.message });
@@ -299,7 +299,7 @@ router.get('/api/lbc-payloads', optionalApiKeyAuth, async (req, res) => {
                 return res.json({
                     ok: true,
                     cached: true,
-                    data: { ...cachedResult, isPaid: !!req.subscriber }
+                    data: { ...cachedResult, isPaid: !!(req.subscriber && req.subscriber.subscription_status === 'active') }
                 });
             }
         }
@@ -318,7 +318,7 @@ router.get('/api/lbc-payloads', optionalApiKeyAuth, async (req, res) => {
         lbcUrl: 'https://api.leboncoin.fr/finder/search',
         payloads: built.payloads,
         cacheKeys: { primary: primaryCacheKey, model: modelCacheKey },
-        isPaid: !!req.subscriber
+        isPaid: !!(req.subscriber && req.subscriber.subscription_status === 'active')
     });
 });
 
@@ -354,7 +354,7 @@ router.post('/api/estimation-from-ads', optionalApiKeyAuth, express.json({ limit
                 cacheStats.hits++;
                 console.log(`[💾 Cache DB] HIT for key: ${key} [estimation-from-ads]`);
                 logEstimation(req, { brand, model, year: built.yearInt, km: built.kmInt, fuel, stockNumber, cacheHit: true, estimatedPrice: cachedResult.estimatedPrice });
-                return res.json({ ...cachedResult, isPaid: !!req.subscriber });
+                return res.json({ ...cachedResult, isPaid: !!(req.subscriber && req.subscriber.subscription_status === 'active') });
             }
         }
     } catch (err) {
@@ -386,7 +386,7 @@ router.post('/api/estimation-from-ads', optionalApiKeyAuth, express.json({ limit
     }
 
     logEstimation(req, { brand, model, year: built.yearInt, km: built.kmInt, fuel, stockNumber, cacheHit: false, lbcCount: filtered.length, estimatedPrice: responseData.estimatedPrice });
-    res.json({ ...responseData, isPaid: !!req.subscriber });
+    res.json({ ...responseData, isPaid: !!(req.subscriber && req.subscriber.subscription_status === 'active') });
 
     // Log observation for ML training (non-blocking)
     if (req.subscriber) {

@@ -43,46 +43,6 @@
     }, '*');
   }
 
-  // --- First reveal helpers (parameterized by flag name) ---
-  function getFirstRevealUsed(flagName) {
-    return new Promise((resolve) => {
-      const requestId = 'fru_get_' + Math.random().toString(36).substr(2, 9);
-      const timer = setTimeout(() => {
-        window.removeEventListener('message', handler);
-        resolve(false); // fail-open
-      }, 2000);
-
-      function handler(event) {
-        if (event.source !== window) return;
-        const msg = event.data;
-        if (!msg || msg.type !== 'STORAGE_RESPONSE' || msg.requestId !== requestId) return;
-        clearTimeout(timer);
-        window.removeEventListener('message', handler);
-        resolve(!!(msg.data && msg.data[flagName] === true));
-      }
-
-      window.addEventListener('message', handler);
-      window.postMessage({
-        type: 'STORAGE_REQUEST',
-        action: 'get',
-        keys: [flagName],
-        requestId: requestId
-      }, '*');
-    });
-  }
-
-  function setFirstRevealUsed(flagName) {
-    const data = {};
-    data[flagName] = true;
-    const requestId = 'fru_set_' + Math.random().toString(36).substr(2, 9);
-    window.postMessage({
-      type: 'STORAGE_REQUEST',
-      action: 'set',
-      data: data,
-      requestId: requestId
-    }, '*');
-  }
-
   // --- Margin indicator ---
   // thresholdType: 'percent' (Auto1 — uses profitPercent + isProfit) or 'euros' (BCA — uses raw margin €)
   function computeMarginIndicator(value, isProfit, thresholdType) {
@@ -175,8 +135,6 @@
   window.__carlytics = {
     bridgeGet,
     bridgeSet,
-    getFirstRevealUsed,
-    setFirstRevealUsed,
     computeMarginIndicator,
     fetchViaBridge,
     callServer,

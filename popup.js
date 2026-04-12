@@ -55,7 +55,6 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     // Setup password screen
     document.getElementById('setupPasswordBtn').addEventListener('click', handleSetupPassword);
-    document.getElementById('skipSetupPassword').addEventListener('click', handleSkipSetupPassword);
 });
 
 // Default settings
@@ -405,10 +404,6 @@ async function handleSetupPassword() {
         btn.disabled = false;
         btn.textContent = 'Enregistrer →';
     }
-}
-
-async function handleSkipSetupPassword() {
-    await _finishAuth();
 }
 
 async function _finishAuth() {

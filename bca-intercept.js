@@ -16,13 +16,57 @@
     });
   }
 
-  // First reveal — uses shared helpers with BCA-specific flag name
-  function getFirstRevealUsed() {
-    return window.__carlytics.getFirstRevealUsed('firstRevealUsedBca');
+  // ─── Quota state (freemium 5/jour) ─────────────────────────────────────────
+  let _quotaRemaining = null;
+  let _quotaLoaded = false;
+  let _userIsPaid = false;
+
+  async function fetchQuota() {
+    try {
+      if (!extensionSettings.apiKey) {
+        console.warn('[📊 BCA Quota] No apiKey — defaulting to free with 5');
+        _quotaRemaining = 5;
+        _quotaLoaded = true;
+        return;
+      }
+      console.log('[📊 BCA Quota] Fetching from', extensionSettings.serverUrl);
+      const res = await callServer({ url: `${extensionSettings.serverUrl}/api/quota?site=bca` });
+      if (res && res.unlimited) {
+        _userIsPaid = true;
+        _quotaRemaining = -1;
+      } else if (res && res.remaining != null) {
+        _userIsPaid = false;
+        _quotaRemaining = res.remaining;
+      } else {
+        _quotaRemaining = 5;
+      }
+      _quotaLoaded = true;
+      console.log('[📊 BCA Quota]', { _userIsPaid, _quotaRemaining });
+    } catch (e) {
+      console.warn('[📊 BCA Quota] fetch failed:', e.message, '— defaulting to 5');
+      _quotaRemaining = 5;
+      _quotaLoaded = true;
+    }
   }
-  function setFirstRevealUsed() {
-    window.__carlytics.setFirstRevealUsed('firstRevealUsedBca');
-    console.log('[🎁 BCA] setFirstRevealUsed → flag pose');
+
+  async function useQuota() {
+    try {
+      const res = await callServer({
+        url: `${extensionSettings.serverUrl}/api/quota/use`,
+        method: 'POST',
+        body: { site: 'bca' }
+      });
+      if (!res) return false;
+      if (res.unlimited) return true;
+      if (res.ok) {
+        _quotaRemaining = res.remaining;
+        return true;
+      }
+      return false;
+    } catch (e) {
+      console.warn('[📊 BCA Quota] use failed:', e.message);
+      return false;
+    }
   }
 
   // Margin indicator — delegates to shared (BCA uses euro thresholds)
@@ -48,8 +92,10 @@
     const authChanged = prevApiKey !== newApiKey || prevIsPaid !== newIsPaid;
     if (authChanged && currentBidPrice && vehicleData) {
       console.log('[🔄 BCA Auth change] apiKey/isPaid changed — relance analyse');
-      // Reset le flag pour permettre la relance, et supprimer la carte existante
       analysisTriggered = false;
+      _quotaLoaded = false;
+      _quotaRemaining = null;
+      _userIsPaid = false;
       const existing = document.getElementById(CARD_ID);
       if (existing) existing.remove();
       triggerAnalysis();
@@ -243,7 +289,7 @@
   // ─── Injection de la carte prix ────────────────────────────────────────────
   const CARD_ID = 'carlytics-bca-card';
 
-  function injectCard(vehicle, currentBid, analysis, isFirstReveal = false) {
+  function injectCard(vehicle, currentBid, analysis) {
     // Éviter les doublons
     const existing = document.getElementById(CARD_ID);
     if (existing) existing.remove();
@@ -341,26 +387,7 @@
       </div>
     `;
 
-    // 🎁 Badge first reveal : si on est en mode "reveal offert" on affiche
-    // le badge et on n'affiche PAS le CTA upgrade (il ne servirait a rien —
-    // les chiffres sont deja visibles en one-shot sur cette carte).
-    if (isFirstReveal) {
-      const giftBadge = document.createElement('div');
-      giftBadge.style.cssText = `
-        margin-top: 10px;
-        padding: 8px 10px;
-        background: linear-gradient(135deg, #f59e0b, #f97316);
-        color: white;
-        border-radius: 6px;
-        font-size: 11px;
-        font-weight: 600;
-        text-align: center;
-      `;
-      giftBadge.innerHTML = '🎁 <strong>Aperçu offert</strong><br>Passe Pro (89€/mois) pour voir les chiffres sur toutes les voitures';
-      card.appendChild(giftBadge);
-    }
-
-    // CTA upgrade (seulement si pas Premium ET pas en first reveal)
+    // CTA upgrade (seulement si pas Premium)
     if (!isPaid) {
       const upgradeWrapper = document.createElement('div');
       upgradeWrapper.style.cssText = 'margin-top:10px;text-align:center';
@@ -498,42 +525,107 @@
 
   window.XMLHttpRequest = BcaXHR;
 
+  // ─── Bouton "Analyser" pour free users ──────────────────────────────────────
+  function showAnalyseButton(vehicle, currentBid) {
+    const existing = document.getElementById(CARD_ID);
+    if (existing) existing.remove();
+
+    const card = document.createElement('div');
+    card.id = CARD_ID;
+    card.style.cssText = `
+      position: fixed; bottom: 24px; right: 24px; z-index: 99999;
+      background: #fff; border: 2px solid #2c3e50; border-radius: 12px;
+      padding: 16px 20px; min-width: 280px; max-width: 340px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.18);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 13px; color: #2c3e50;
+    `;
+
+    const remaining = _quotaRemaining != null ? _quotaRemaining : '?';
+    const disabled = _quotaRemaining != null && _quotaRemaining <= 0;
+
+    card.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <strong>🔍 Carlytics – BCA</strong>
+        <span style="cursor:pointer;font-size:18px" onclick="document.getElementById('${CARD_ID}').remove()">×</span>
+      </div>
+      <div style="font-size:12px;color:#666;margin-bottom:8px">${vehicle.brand} ${vehicle.model} · ${vehicle.year} · ${vehicle.km.toLocaleString('fr-FR')} km</div>
+      <div style="font-size:12px;color:#666;margin-bottom:10px">Enchère actuelle : <strong>${currentBid.toLocaleString('fr-FR')} €</strong></div>
+    `;
+
+    const btn = document.createElement('button');
+    btn.style.cssText = `
+      width: 100%; padding: 10px 14px; border-radius: 8px; cursor: ${disabled ? 'not-allowed' : 'pointer'};
+      background: ${disabled ? '#555' : 'linear-gradient(135deg, #3498db, #2980b9)'};
+      color: white; border: none; font-size: 13px; font-weight: 600;
+      opacity: ${disabled ? '0.6' : '1'};
+    `;
+
+    if (disabled) {
+      btn.innerHTML = '🔒 Quota atteint — <a href="https://app.carlytics.fr/upgrade" target="_blank" style="color: #f1c40f; text-decoration: underline;">Passez Pro</a>';
+    } else {
+      btn.textContent = `🔍 Analyser le véhicule (${remaining}/5 restantes)`;
+    }
+
+    if (!disabled) {
+      btn.addEventListener('click', async () => {
+        btn.disabled = true;
+        btn.textContent = '⏳ Analyse en cours...';
+        btn.style.cursor = 'wait';
+
+        const quotaOk = await useQuota();
+        if (!quotaOk) {
+          btn.innerHTML = '🔒 Quota atteint — <a href="https://app.carlytics.fr/upgrade" target="_blank" style="color: #f1c40f;">Passez Pro</a>';
+          btn.style.background = '#555';
+          btn.style.opacity = '0.6';
+          btn.style.cursor = 'not-allowed';
+          return;
+        }
+
+        try {
+          const analysis = await callEstimation(vehicle, currentBid);
+          analysis.isPaid = true; // User spent a quota credit
+          injectCard(vehicle, currentBid, analysis);
+        } catch (err) {
+          console.error('[❌ BCA] Analyse failed:', err.message);
+          btn.textContent = '❌ Erreur — Réessayer';
+          btn.disabled = false;
+          btn.style.cursor = 'pointer';
+        }
+      });
+    }
+
+    card.appendChild(btn);
+    document.body.appendChild(card);
+  }
+
   // ─── Déclenchement de l'analyse ────────────────────────────────────────────
   async function triggerAnalysis() {
     if (analysisTriggered) return;
     if (!currentBidPrice || !vehicleData) return;
 
     analysisTriggered = true;
-    console.log('[🎯 BCA] Démarrage analyse', vehicleData, 'prix:', currentBidPrice);
 
-    showLoadingCard(vehicleData, currentBidPrice);
+    // Fetch quota if not loaded yet
+    if (!_quotaLoaded) await fetchQuota();
 
-    try {
-      const analysis = await callEstimation(vehicleData, currentBidPrice);
-
-      // 🎁 First reveal (pricing v2) : si le serveur dit isPaid=false et que
-      // l'utilisateur n'a pas encore consomme son reveal, on flip analysis.isPaid
-      // pour cette carte et on pose le flag.
-      // NB : on ne consomme le reveal QUE si on a une vraie donnee LBC a montrer
-      // (estimatedPrice non null). Sinon l'user perdrait son aperçu offert sans
-      // rien voir, ce qui est injuste.
-      let isFirstReveal = false;
-      const hasRealLbcData = analysis.estimatedPrice != null;
-      if (analysis.isPaid !== true && hasRealLbcData) {
-        const alreadyUsed = await getFirstRevealUsed();
-        if (!alreadyUsed) {
-          analysis.isPaid = true;
-          isFirstReveal = true;
-          setFirstRevealUsed();
-          console.log('[🎁 BCA First reveal] Carte offerte — flag firstRevealUsed pose');
-        }
+    // Pro users: auto-analyze
+    if (_userIsPaid) {
+      console.log('[🎯 BCA] Pro user — auto-analyse', vehicleData);
+      showLoadingCard(vehicleData, currentBidPrice);
+      try {
+        const analysis = await callEstimation(vehicleData, currentBidPrice);
+        injectCard(vehicleData, currentBidPrice, analysis);
+      } catch (err) {
+        console.error('[❌ BCA] Erreur analyse:', err.message);
+        showErrorCard(err.message);
       }
-
-      injectCard(vehicleData, currentBidPrice, analysis, isFirstReveal);
-    } catch (err) {
-      console.error('[❌ BCA] Erreur analyse:', err.message);
-      showErrorCard(err.message);
+      return;
     }
+
+    // Free users: show "Analyser" button
+    console.log('[🎯 BCA] Free user — bouton Analyser', { remaining: _quotaRemaining });
+    showAnalyseButton(vehicleData, currentBidPrice);
   }
 
   // ─── Init ──────────────────────────────────────────────────────────────────

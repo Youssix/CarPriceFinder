@@ -201,3 +201,12 @@ CREATE INDEX IF NOT EXISTS idx_api_logs_created ON api_logs(created_at);
 CREATE INDEX IF NOT EXISTS idx_api_logs_path ON api_logs(path);
 CREATE INDEX IF NOT EXISTS idx_api_logs_tier ON api_logs(user_tier);
 CREATE INDEX IF NOT EXISTS idx_api_logs_brand_model ON api_logs(brand, model);
+
+-- Daily usage quotas (freemium: 5 analyses/day per site for free users)
+CREATE TABLE IF NOT EXISTS daily_usage (
+  subscriber_id BIGINT NOT NULL REFERENCES subscribers(id),
+  usage_date DATE NOT NULL DEFAULT CURRENT_DATE,
+  site TEXT NOT NULL DEFAULT 'auto1',
+  analysis_count INT NOT NULL DEFAULT 0,
+  PRIMARY KEY (subscriber_id, usage_date, site)
+);

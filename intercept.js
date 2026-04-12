@@ -21,13 +21,60 @@
     });
   }
 
-  // First reveal — uses shared helpers with Auto1-specific flag name
-  function getFirstRevealUsed() {
-    return window.__carlytics.getFirstRevealUsed('firstRevealUsedAuto1');
+  // --- Quota state (freemium 5 analyses/day) ---
+  let _quotaRemaining = null; // null = not loaded yet
+  let _quotaLoaded = false;
+  let _userIsPaid = false;
+
+  async function fetchQuota() {
+    try {
+      await settingsReady;
+      if (!extensionSettings.apiKey) {
+        console.warn('[📊 Quota] No apiKey — defaulting to free with 5 remaining');
+        _quotaRemaining = 5;
+        _quotaLoaded = true;
+        return;
+      }
+      console.log('[📊 Quota] Fetching from', extensionSettings.serverUrl);
+      const res = await performFetch({
+        url: `${extensionSettings.serverUrl}/api/quota?site=auto1`
+      });
+      if (res && res.unlimited) {
+        _userIsPaid = true;
+        _quotaRemaining = -1;
+      } else if (res && res.remaining != null) {
+        _userIsPaid = false;
+        _quotaRemaining = res.remaining;
+      } else {
+        _quotaRemaining = 5; // fallback
+      }
+      _quotaLoaded = true;
+      console.log(`[📊 Quota] Loaded: paid=${_userIsPaid}, remaining=${_quotaRemaining}`);
+    } catch (e) {
+      console.warn('[📊 Quota] Failed to fetch:', e.message, '— defaulting to 5');
+      _quotaRemaining = 5;
+      _quotaLoaded = true;
+    }
   }
-  function setFirstRevealUsed() {
-    window.__carlytics.setFirstRevealUsed('firstRevealUsedAuto1');
-    console.log('[🎁 Auto1] setFirstRevealUsed → flag pose');
+
+  async function useQuota() {
+    try {
+      const res = await performFetch({
+        url: `${extensionSettings.serverUrl}/api/quota/use`,
+        method: 'POST',
+        body: { site: 'auto1' }
+      });
+      if (res.unlimited) return true;
+      if (res.ok) {
+        _quotaRemaining = res.remaining;
+        updateAllQuotaButtons();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      console.warn('[📊 Quota] use failed:', e.message);
+      return false;
+    }
   }
 
   // Margin indicator — delegates to shared
@@ -64,9 +111,13 @@
           newIsPaid,
           hitsCount: lastHits.length
         });
-        // Supprimer les cards existantes (.plugin-price et .plugin-loading)
-        document.querySelectorAll('.plugin-price, .plugin-loading').forEach(el => el.remove());
-        // Re-injecter avec les nouveaux settings (source de verite = data.isPaid serveur)
+        // Supprimer les cards existantes (.plugin-price, .plugin-loading, .carlytics-analyse-btn)
+        document.querySelectorAll('.plugin-price, .plugin-loading, .carlytics-analyse-btn').forEach(el => el.remove());
+        // Reset quota state so it re-fetches on re-injection
+        _quotaLoaded = false;
+        _quotaRemaining = null;
+        _userIsPaid = false;
+        // Re-injecter avec les nouveaux settings
         injectPluginPrices(lastHits);
       }
     }
@@ -688,6 +739,144 @@
     }
   }
 
+  // --- Analyse button rendering (freemium quota) ---
+  function renderAnalyseButton(card, carDataForAI, euros) {
+    const existing = card.querySelector('.carlytics-analyse-btn');
+    if (existing) return; // Already has button
+
+    const btn = document.createElement('button');
+    btn.className = 'carlytics-analyse-btn';
+    const remaining = _quotaRemaining !== null ? _quotaRemaining : '?';
+    const disabled = _quotaRemaining !== null && _quotaRemaining <= 0;
+
+    btn.style.cssText = `
+      margin: 8px 0; padding: 10px 14px; border-radius: 4px; cursor: ${disabled ? 'not-allowed' : 'pointer'};
+      background: ${disabled ? '#555' : 'linear-gradient(135deg, #3498db, #2980b9)'};
+      color: white; border: none; font-size: 13px; font-weight: 600; width: 100%;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      opacity: ${disabled ? '0.6' : '1'};
+    `;
+
+    if (disabled) {
+      btn.innerHTML = '🔒 Quota atteint — <a href="https://app.carlytics.fr/upgrade" target="_blank" style="color: #f1c40f; text-decoration: underline;">Passez Pro (89\u20ac/mois)</a>';
+    } else {
+      btn.textContent = `🔍 Analyser le v\u00e9hicule (${remaining}/5 restantes)`;
+    }
+
+    if (!disabled) {
+      btn.addEventListener('click', async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        btn.disabled = true;
+        btn.textContent = '⏳ Analyse en cours...';
+        btn.style.cursor = 'wait';
+
+        const quotaOk = await useQuota();
+        if (!quotaOk) {
+          btn.innerHTML = '🔒 Quota atteint — <a href="https://app.carlytics.fr/upgrade" target="_blank" style="color: #f1c40f; text-decoration: underline;">Passez Pro (89\u20ac/mois)</a>';
+          btn.style.background = '#555';
+          btn.style.opacity = '0.6';
+          btn.style.cursor = 'not-allowed';
+          return;
+        }
+
+        // Now do the actual analysis
+        try {
+          btn.remove();
+          await triggerSingleCarAnalysis(card, carDataForAI, euros);
+        } catch (err) {
+          console.error('[📊 Quota] Analysis failed:', err);
+          // Re-insert button with error state
+          const errBtn = document.createElement('button');
+          errBtn.className = 'carlytics-analyse-btn';
+          errBtn.textContent = '❌ Erreur — R\u00e9essayer';
+          errBtn.style.cssText = `
+            margin: 8px 0; padding: 10px 14px; border-radius: 4px; cursor: pointer;
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            color: white; border: none; font-size: 13px; font-weight: 600; width: 100%;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+          `;
+          errBtn.addEventListener('click', async () => {
+            errBtn.remove();
+            try {
+              await triggerSingleCarAnalysis(card, carDataForAI, euros);
+            } catch (retryErr) {
+              renderErrorMessage(card, retryErr.message);
+            }
+          });
+          const insertLoc = card.querySelector('.big-car-card__title');
+          if (insertLoc && insertLoc.parentNode) {
+            insertLoc.parentNode.insertBefore(errBtn, insertLoc.nextSibling);
+          } else {
+            card.appendChild(errBtn);
+          }
+        }
+      });
+    }
+
+    const insertLocation = card.querySelector('.big-car-card__title');
+    if (insertLocation && insertLocation.parentNode) {
+      insertLocation.parentNode.insertBefore(btn, insertLocation.nextSibling);
+    } else {
+      card.appendChild(btn);
+    }
+  }
+
+  function updateAllQuotaButtons() {
+    const buttons = document.querySelectorAll('.carlytics-analyse-btn');
+    buttons.forEach(btn => {
+      if (_quotaRemaining !== null && _quotaRemaining !== -1 && _quotaRemaining <= 0) {
+        btn.innerHTML = '🔒 Quota atteint — <a href="https://app.carlytics.fr/upgrade" target="_blank" style="color: #f1c40f; text-decoration: underline;">Passez Pro (89\u20ac/mois)</a>';
+        btn.style.background = '#555';
+        btn.style.opacity = '0.6';
+        btn.style.cursor = 'not-allowed';
+        btn.disabled = true;
+      } else {
+        btn.textContent = `🔍 Analyser le v\u00e9hicule (${_quotaRemaining}/5 restantes)`;
+      }
+    });
+  }
+
+  // Trigger analysis for a single car — reuses the 3-phase analyzeCar flow
+  async function triggerSingleCarAnalysis(card, carDataForAI, euros) {
+    // Show loading indicator
+    const loadingDiv = createLoadingIndicator(extensionSettings.requestTimeout);
+    const insertLocation = card.querySelector('.big-car-card__title');
+    if (insertLocation && insertLocation.parentNode) {
+      insertLocation.parentNode.insertBefore(loadingDiv, insertLocation.nextSibling);
+    }
+
+    const searchModel = `${carDataForAI.manufacturerName} ${carDataForAI.mainType}`.trim();
+    const year = new Date(carDataForAI.firstRegistrationDate).getFullYear();
+
+    try {
+      const data = await analyzeCar({
+        brand: carDataForAI.manufacturerName.toUpperCase(),
+        model: searchModel,
+        year,
+        km: carDataForAI.km,
+        fuel: (carDataForAI.fuelType || '').toLowerCase(),
+        gearbox: (carDataForAI.gearType || '').toLowerCase(),
+        doors: carDataForAI.doors || '',
+        carModel: (carDataForAI.mainType || '').trim(),
+        carData: carDataForAI,
+        stockNumber: carDataForAI.stockNumber
+      });
+
+      // Remove loading
+      const loadingElement = card.querySelector('.plugin-loading');
+      if (loadingElement) loadingElement.remove();
+
+      // For on-demand analysis, the user spent a quota credit — always show full data
+      renderCarAnalysis(card, carDataForAI, data, euros, true);
+      console.log(`[✅ On-demand] Analysis complete for ${carDataForAI.stockNumber}`);
+    } catch (err) {
+      const loadingElement = card.querySelector('.plugin-loading');
+      if (loadingElement) loadingElement.remove();
+      throw err; // Let caller handle error
+    }
+  }
+
   // Enhanced injection with caching and dynamic timeout
   async function injectPluginPrices(hits) {
     // Attendre que les settings soient chargés via le bridge (max 2s)
@@ -699,57 +888,141 @@
     // Persister dans sessionStorage pour la page détail (survit à la navigation)
     try { sessionStorage.setItem('carlyticsLastHits', JSON.stringify(hits)); } catch(e) {}
 
-    // 🔐 Vérification abonnement (isPaid stocké lors du login)
-    const isPaid = extensionSettings.isPaid === true;
-    console.log(`[🔐 Auth] ${isPaid ? 'Abonné — chiffres complets' : 'Gratuit — indicateur couleur uniquement'}`);
+    // 📊 Fetch quota from server (determines free vs paid flow)
+    if (!_quotaLoaded) {
+      await fetchQuota();
+    }
 
-    console.log(`[🔍 injectPluginPrices] ${hits.length} véhicules à traiter (timeout: ${extensionSettings.requestTimeout}ms)`);
+    const isPaid = _userIsPaid;
+    console.log(`[🔐 Auth] ${isPaid ? 'Abonn\u00e9 — auto-analyse' : 'Gratuit — bouton Analyser (quota)'}`);
 
-    // ✅ PHASE 1: Afficher TOUS les indicateurs de loading IMMÉDIATEMENT
-    console.log('[⚡ PHASE 1] Affichage de tous les indicateurs de loading...');
-    hits.forEach((car, i) => {
-      const stockId = car.stockNumber;
-      const card = document.querySelector(`.big-car-card[data-qa-id="${stockId}"]`);
+    console.log(`[🔍 injectPluginPrices] ${hits.length} v\u00e9hicules \u00e0 traiter (timeout: ${extensionSettings.requestTimeout}ms, paid=${isPaid})`);
 
-      if (!card) {
-        console.log(`[❌ VEHICULE ${i}] Carte non trouvée pour stockNumber=${stockId}`);
-        return;
-      }
-
-      if (card.querySelector(".plugin-price") || card.querySelector(".plugin-loading")) {
-        console.log(`[🔁 VEHICULE ${i}] Bloc déjà présent pour ${stockId}`);
-        return;
-      }
-
-      // Show loading immediately
-      const loadingDiv = createLoadingIndicator(extensionSettings.requestTimeout);
-      const insertLocation = card.querySelector(".big-car-card__title");
-      if (insertLocation && insertLocation.parentNode) {
-        insertLocation.parentNode.insertBefore(loadingDiv, insertLocation.nextSibling);
-      }
-    });
-
-    // ✅ PHASE 2: Faire les requêtes avec délai entre elles
-    console.log('[⚡ PHASE 2] Lancement des requêtes avec délai...');
-    hits.forEach((car, i) => {
-      setTimeout(() => {
+    if (isPaid) {
+      // ✅ PAID USER: Auto-analyze all cars (existing behavior)
+      // PHASE 1: Show loading indicators immediately
+      console.log('[⚡ PHASE 1] Affichage de tous les indicateurs de loading...');
+      hits.forEach((car, i) => {
         const stockId = car.stockNumber;
-        const price = car.searchPrice || car.minimumBid || car.mpPrice;
-
-        if (!price) {
-          console.log(`[⚠️ VEHICULE ${i}] Pas de prix trouvé pour ${stockId}`);
-          return;
-        }
-
-        const euros = (price / 100).toFixed(0) + " €";
         const card = document.querySelector(`.big-car-card[data-qa-id="${stockId}"]`);
 
         if (!card) {
-          console.log(`[❌ VEHICULE ${i}] Carte non trouvée pour stockNumber=${stockId}`);
+          console.log(`[❌ VEHICULE ${i}] Carte non trouv\u00e9e pour stockNumber=${stockId}`);
           return;
         }
 
-        // Prepare car data for analysis
+        if (card.querySelector('.plugin-price') || card.querySelector('.plugin-loading')) {
+          console.log(`[🔁 VEHICULE ${i}] Bloc d\u00e9j\u00e0 pr\u00e9sent pour ${stockId}`);
+          return;
+        }
+
+        const loadingDiv = createLoadingIndicator(extensionSettings.requestTimeout);
+        const insertLocation = card.querySelector('.big-car-card__title');
+        if (insertLocation && insertLocation.parentNode) {
+          insertLocation.parentNode.insertBefore(loadingDiv, insertLocation.nextSibling);
+        }
+      });
+
+      // PHASE 2: Run analyses with delay between them
+      console.log('[⚡ PHASE 2] Lancement des requ\u00eates avec d\u00e9lai...');
+      hits.forEach((car, i) => {
+        setTimeout(() => {
+          const stockId = car.stockNumber;
+          const price = car.searchPrice || car.minimumBid || car.mpPrice;
+
+          if (!price) {
+            console.log(`[⚠️ VEHICULE ${i}] Pas de prix trouv\u00e9 pour ${stockId}`);
+            return;
+          }
+
+          const euros = (price / 100).toFixed(0) + ' \u20ac';
+          const card = document.querySelector(`.big-car-card[data-qa-id="${stockId}"]`);
+
+          if (!card) {
+            console.log(`[❌ VEHICULE ${i}] Carte non trouv\u00e9e pour stockNumber=${stockId}`);
+            return;
+          }
+
+          const carDataForAI = {
+            manufacturerName: car.manufacturerName,
+            mainType: car.mainType,
+            description: car.description || car.title || '',
+            equipment: car.equipment || car.features || [],
+            trim: car.trim || car.variant || '',
+            bodyType: car.bodyType,
+            fuelType: car.fuelType,
+            gearType: car.gearType,
+            doors: car.doors,
+            seats: car.seats,
+            power: car.power || car.horsepower,
+            engine: car.engine || car.engineSize,
+            exteriorColor: car.exteriorColor,
+            interiorColor: car.interiorColor,
+            firstRegistrationDate: car.firstRegistrationDate,
+            km: car.km,
+            price: price,
+            stockNumber: stockId,
+            images: car.images || []
+          };
+
+          const searchModel = `${car.manufacturerName} ${car.mainType}`.trim();
+          const year = new Date(car.firstRegistrationDate).getFullYear();
+          const km = car.km;
+          const brand = car.manufacturerName.toUpperCase();
+          const fuel = (car.fuelType || '').toLowerCase();
+          const gearbox = (car.gearType || '').toLowerCase();
+          const carModel = (car.mainType || '').trim();
+          const doors = car.doors || '';
+
+          analyzeCar({
+            brand,
+            model: searchModel,
+            year,
+            km,
+            fuel,
+            gearbox,
+            doors,
+            carModel,
+            carData: carDataForAI,
+            stockNumber: stockId
+          })
+            .then(async data => {
+              const loadingElement = card.querySelector('.plugin-loading');
+              if (loadingElement) loadingElement.remove();
+
+              // Paid user — always show full data
+              renderCarAnalysis(card, carDataForAI, data, euros, true);
+              console.log(`[✅ VEHICULE ${i}] Analysis complete for ${stockId} (${data.aiAnalysis?.detectedOptions?.length || 0} options detected)`);
+            })
+            .catch(err => {
+              const loadingElement = card.querySelector('.plugin-loading');
+              if (loadingElement) loadingElement.remove();
+              console.warn(`[⚠️ VEHICULE ${i}] Analysis failed for ${stockId}:`, err.message);
+              renderErrorMessage(card, err.message);
+            });
+        }, i * extensionSettings.requestTimeout);
+      });
+
+    } else {
+      // 🆓 FREE USER: Show "Analyser" button on each card (no auto-analyze)
+      console.log(`[📊 Quota] Free user — showing analyse buttons (remaining=${_quotaRemaining})`);
+      hits.forEach((car, i) => {
+        const stockId = car.stockNumber;
+        const price = car.searchPrice || car.minimumBid || car.mpPrice;
+
+        if (!price) return;
+
+        const euros = (price / 100).toFixed(0) + ' \u20ac';
+        const card = document.querySelector(`.big-car-card[data-qa-id="${stockId}"]`);
+        if (!card) return;
+
+        // Skip if already has a plugin-price or analyse button
+        if (card.querySelector('.plugin-price') || card.querySelector('.carlytics-analyse-btn')) return;
+
+        // Remove any stale loading indicator
+        const loadingElement = card.querySelector('.plugin-loading');
+        if (loadingElement) loadingElement.remove();
+
         const carDataForAI = {
           manufacturerName: car.manufacturerName,
           mainType: car.mainType,
@@ -769,91 +1042,22 @@
           km: car.km,
           price: price,
           stockNumber: stockId,
-          images: car.images || []  // ✅ FIX: Include images array for photo extraction
+          images: car.images || []
         };
 
-        // Prepare API request
-        const searchModel = `${car.manufacturerName} ${car.mainType}`.trim();
-        const year = new Date(car.firstRegistrationDate).getFullYear();
-        const km = car.km;
-        const brand = car.manufacturerName.toUpperCase();
-        const fuel = (car.fuelType || "").toLowerCase();
-        const gearbox = (car.gearType || "").toLowerCase();
-        const carModel = (car.mainType || "").trim();
-        const doors = car.doors || "";
-
-        // Track 2 : client-side LBC scraping via service worker (residential IP).
-        // analyzeCar() runs the 3-phase flow (cache → LBC fetches → server compute).
-        analyzeCar({
-          brand,
-          model: searchModel,
-          year,
-          km,
-          fuel,
-          gearbox,
-          doors,
-          carModel,
-          carData: carDataForAI,
-          stockNumber: stockId
-        })
-          .then(async data => {
-            // Remove loading indicator
-            const loadingElement = card.querySelector(".plugin-loading");
-            if (loadingElement) {
-              loadingElement.remove();
-            }
-
-            // 🔐 Source de vérité = serveur (data.isPaid). Évite de fake isPaid côté client.
-            // Si le serveur dit isPaid=false, on respecte même si extensionSettings.isPaid=true (apiKey rotated).
-            let effectiveIsPaid = data.isPaid === true;
-            if (effectiveIsPaid !== isPaid) {
-              console.log(`[🔐 Auth] Server isPaid=${effectiveIsPaid} (local cache=${isPaid}) — using server as source of truth`);
-            }
-
-            // 🎁 First reveal (pricing v2) : si l'user n'est pas payant et n'a pas encore
-            // consomme son reveal gratuit, on affiche les chiffres UNE fois et on pose le flag.
-            // NB : on ne consomme le reveal QUE si on a une vraie donnee LBC a montrer
-            // (estimatedPrice non null). Sinon l'user perdrait son aperçu offert sans
-            // rien voir, ce qui est injuste (meme logique que bca-intercept.js).
-            let isFirstReveal = false;
-            const hasRealLbcDataAuto1 = data.estimatedPrice != null;
-            if (!effectiveIsPaid && hasRealLbcDataAuto1) {
-              const alreadyUsed = await getFirstRevealUsed();
-              if (!alreadyUsed) {
-                effectiveIsPaid = true;
-                isFirstReveal = true;
-                setFirstRevealUsed();
-                console.log('[🎁 First reveal] Voiture offerte — flag firstRevealUsed pose');
-              }
-            }
-
-            // Render result
-            renderCarAnalysis(card, carDataForAI, data, euros, effectiveIsPaid, isFirstReveal);
-
-            console.log(`[✅ VEHICULE ${i}] Analysis complete for ${stockId} (${data.aiAnalysis?.detectedOptions?.length || 0} options detected)`);
-          })
-          .catch(err => {
-            // Remove loading indicator
-            const loadingElement = card.querySelector(".plugin-loading");
-            if (loadingElement) {
-              loadingElement.remove();
-            }
-
-            console.warn(`[⚠️ VEHICULE ${i}] Analysis failed for ${stockId}:`, err.message);
-            renderErrorMessage(card, err.message);
-          });
-      }, i * extensionSettings.requestTimeout);
-    });
+        renderAnalyseButton(card, carDataForAI, euros);
+      });
+    }
 
     // ✅ DETAIL PAGE: si on est sur une fiche individuelle, injecter pour ce véhicule
     if (isDetailPage()) {
       const stockNumber = getDetailPageStockNumber();
       const matchingCar = hits.find(car => car.stockNumber === stockNumber);
       if (matchingCar) {
-        console.log(`[🔍 Detail page] Véhicule trouvé dans lastHits: ${stockNumber}`);
+        console.log(`[🔍 Detail page] V\u00e9hicule trouv\u00e9 dans lastHits: ${stockNumber}`);
         injectDetailPageCard(matchingCar);
       } else {
-        console.log(`[🔍 Detail page] Véhicule ${stockNumber} pas dans lastHits`);
+        console.log(`[🔍 Detail page] V\u00e9hicule ${stockNumber} pas dans lastHits`);
       }
     }
   }
@@ -972,44 +1176,41 @@
 
     const searchModel = `${car.manufacturerName} ${car.mainType}`.trim();
     const year = new Date(car.firstRegistrationDate).getFullYear();
-    const isPaid = extensionSettings.isPaid === true;
 
-    try {
-      const data = await analyzeCar({
-        brand: car.manufacturerName.toUpperCase(),
-        model: searchModel,
-        year,
-        km: car.km,
-        fuel: (car.fuelType || "").toLowerCase(),
-        gearbox: (car.gearType || "").toLowerCase(),
-        doors: car.doors || "",
-        carModel: (car.mainType || "").trim(),
-        carData: carDataForAI,
-        stockNumber: stockId
-      });
+    // Fetch quota if not loaded
+    if (!_quotaLoaded) await fetchQuota();
 
-      const loadingElement = container.querySelector(".plugin-loading");
-      if (loadingElement) loadingElement.remove();
+    if (_userIsPaid) {
+      // Paid user — auto-analyze on detail page
+      try {
+        const data = await analyzeCar({
+          brand: car.manufacturerName.toUpperCase(),
+          model: searchModel,
+          year,
+          km: car.km,
+          fuel: (car.fuelType || '').toLowerCase(),
+          gearbox: (car.gearType || '').toLowerCase(),
+          doors: car.doors || '',
+          carModel: (car.mainType || '').trim(),
+          carData: carDataForAI,
+          stockNumber: stockId
+        });
 
-      let effectiveIsPaid = data.isPaid === true;
-      let isFirstReveal = false;
-      const hasRealLbcData = data.estimatedPrice != null;
-      if (!effectiveIsPaid && hasRealLbcData) {
-        const alreadyUsed = await getFirstRevealUsed();
-        if (!alreadyUsed) {
-          effectiveIsPaid = true;
-          isFirstReveal = true;
-          setFirstRevealUsed();
-          console.log('[🎁 First reveal] Fiche détail — reveal consommé');
-        }
+        const loadingElement = container.querySelector('.plugin-loading');
+        if (loadingElement) loadingElement.remove();
+
+        renderCarAnalysis(container, carDataForAI, data, euros, true);
+        console.log(`[✅ Detail page] Carte inject\u00e9e pour ${stockId}`);
+      } catch (err) {
+        const loadingElement = container.querySelector('.plugin-loading');
+        if (loadingElement) loadingElement.remove();
+        renderErrorMessage(container, err.message);
       }
-
-      renderCarAnalysis(container, carDataForAI, data, euros, effectiveIsPaid, isFirstReveal);
-      console.log(`[✅ Detail page] Carte injectée pour ${stockId}`);
-    } catch (err) {
-      const loadingElement = container.querySelector(".plugin-loading");
+    } else {
+      // Free user — show analyse button on detail page too
+      const loadingElement = container.querySelector('.plugin-loading');
       if (loadingElement) loadingElement.remove();
-      renderErrorMessage(container, err.message);
+      renderAnalyseButton(container, carDataForAI, euros);
     }
   }
 
@@ -1065,7 +1266,7 @@
     return div.innerHTML;
   }
 
-  function renderCarAnalysis(card, carData, analysisData, euros, isPaid, isFirstReveal = false) {
+  function renderCarAnalysis(card, carData, analysisData, euros, isPaid) {
     const pluginPriceDiv = document.createElement("div");
     pluginPriceDiv.className = "plugin-price";
 
@@ -1220,27 +1421,6 @@
 
       pluginPriceDiv.appendChild(pricesSection);
       pluginPriceDiv.appendChild(buttonsContainer);
-
-      // 🎁 Badge first reveal : informe l'user que c'est un one-shot gratuit
-      if (isFirstReveal) {
-        const giftBadge = document.createElement('div');
-        giftBadge.style = `
-          margin-top: 8px;
-          padding: 6px 10px;
-          background: linear-gradient(135deg, #f59e0b, #f97316);
-          color: white;
-          border-radius: 4px;
-          font-size: 11px;
-          font-weight: 600;
-          text-align: center;
-          width: 100%;
-        `;
-        giftBadge.innerHTML = '🎁 <strong>Aperçu offert</strong> — passe Pro (89€/mois) pour voir les chiffres sur toutes les voitures';
-        // On remplace le flex par un bloc pour que le badge passe en dessous
-        pluginPriceDiv.style.flexDirection = 'column';
-        pluginPriceDiv.style.alignItems = 'stretch';
-        pluginPriceDiv.appendChild(giftBadge);
-      }
     }
 
     // Insertion dans la page

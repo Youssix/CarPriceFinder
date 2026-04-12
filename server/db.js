@@ -415,6 +415,34 @@ async function verifySubscriberPassword(email, plainPassword) {
   return ok ? sub : null;
 }
 
+// === Daily Quota Functions ===
+
+const DAILY_QUOTA_LIMIT = 5;
+
+async function getDailyQuota(subscriberId, site = 'auto1') {
+  const { rows } = await pool.query(
+    `SELECT analysis_count FROM daily_usage
+     WHERE subscriber_id = $1 AND usage_date = CURRENT_DATE AND site = $2`,
+    [subscriberId, site]
+  );
+  const used = rows.length > 0 ? rows[0].analysis_count : 0;
+  return { used, remaining: Math.max(0, DAILY_QUOTA_LIMIT - used), total: DAILY_QUOTA_LIMIT };
+}
+
+async function incrementDailyQuota(subscriberId, site = 'auto1') {
+  const { rows } = await pool.query(
+    `INSERT INTO daily_usage (subscriber_id, usage_date, site, analysis_count)
+     VALUES ($1, CURRENT_DATE, $2, 1)
+     ON CONFLICT (subscriber_id, usage_date, site)
+     DO UPDATE SET analysis_count = daily_usage.analysis_count + 1
+     RETURNING analysis_count`,
+    [subscriberId, site]
+  );
+  const used = rows[0].analysis_count;
+  const ok = used <= DAILY_QUOTA_LIMIT;
+  return { ok, used, remaining: Math.max(0, DAILY_QUOTA_LIMIT - used), total: DAILY_QUOTA_LIMIT };
+}
+
 module.exports = {
   pool,
   initDb,
@@ -464,4 +492,7 @@ module.exports = {
   verifyAndConsumePasswordToken,
   setSubscriberPassword,
   verifySubscriberPassword,
+  // Daily quota
+  getDailyQuota,
+  incrementDailyQuota,
 };

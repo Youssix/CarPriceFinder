@@ -15,6 +15,7 @@ const estimationRouter = require('./routes/estimation');
 const vehiclesRouter = require('./routes/vehicles');
 const alertsRouter = require('./routes/alerts');
 const adminRouter = require('./routes/admin');
+const quotaRouter = require('./routes/quota');
 
 const app = express();
 const PORT = process.env.PORT || 9001;
@@ -68,6 +69,7 @@ app.use(estimationRouter);
 app.use(vehiclesRouter);
 app.use(alertsRouter);
 app.use(adminRouter);
+app.use(quotaRouter);
 
 // Initialize DB then start server
 initDb().then(() => {
